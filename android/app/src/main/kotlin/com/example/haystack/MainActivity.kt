@@ -1,0 +1,5 @@
+package com.example.haystack
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
