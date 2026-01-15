@@ -6270,7 +6270,7 @@ class _DietarySettingsPage extends StatelessWidget {
                           isSwitch: true,
                           switchValue: hideIncompatible,
                           onSwitchChanged: (val) => SettingsManager.setHideIncompatibleRecipes(val),
-                          icon: CupertinoIcons.eye_slash,
+
                           lastItem: true,
                         ),
                       ],
