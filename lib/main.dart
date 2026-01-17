@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
 // import 'shopping_list.dart';
 
 
@@ -876,7 +877,26 @@ class _RecetasView extends StatelessWidget {
                         onSearchChanged('');
                         },
                       )
-                    : null,
+                    : IconButton(
+                        icon: const Icon(CupertinoIcons.shuffle),
+                        tooltip: 'Receta aleatoria',
+                        onPressed: () {
+                          final allRecipes = RecipeManager.recipes;
+                          if (allRecipes.isNotEmpty) {
+                            final random = Random();
+                            final recipe = allRecipes[random.nextInt(allRecipes.length)];
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RecipeDetailPage(recipe: recipe),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No hay recetas disponibles')),
+                            );
+                          }
+                        },
+                      ),
               ),
             ),
           ),
