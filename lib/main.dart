@@ -3879,7 +3879,7 @@ class _RecipeCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                if (isPersonalized)
+                if (isPersonalized && SettingsManager.showDefaultRecipes.value)
                   Container(
                     width: 8,
                     height: 8,
@@ -5526,7 +5526,11 @@ class RecipeManager {
   }
 
   static List<Recipe> get ratedRecipes {
-    return _recipes.where((r) => r.rating != null && r.rating! > 0).toList();
+    final rated = _recipes.where((r) => r.rating != null && r.rating! > 0).toList();
+    if (!SettingsManager.showDefaultRecipes.value) {
+      return rated.where((r) => !isDefaultRecipe(r)).toList();
+    }
+    return rated;
   }
 
   static List<FavoriteFolder> get allFolders => List.unmodifiable(_folders);
@@ -5801,7 +5805,15 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Text(
+              'Ajustes',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
           
           _SettingsSection(
             title: 'GENERAL',
