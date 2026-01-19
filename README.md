@@ -1,16 +1,65 @@
-# recetas
+# Recetas 🍳
 
-A new Flutter project.
+A beautiful, privacy-focused recipe management application built with Flutter. Designed with a premium "Dark Mode" aesthetic, **Recetas** helps you organize your culinary life without compromising your data privacy.
 
-## Getting Started
+## ✨ Features
 
-This project is a starting point for a Flutter application.
+*   **📱 Offline-First & Private:** All your data stays on your device. No analytics, no tracking, no external servers. Your recipes are yours alone.
+*   **🧑‍🍳 Recipe Management:** Create, edit, and personalize your own recipes. Add custom photos from your gallery, detailed steps, and nutritional warnings.
+*   **🔍 Smart Search:** 
+    *   **By Name:** fast, fuzzy search to find exactly what you're craving.
+    *   **By Ingredients:** "What can I cook with this?" Select ingredients from your pantry to find matching recipes.
+*   **📂 Organization:** Group your favorite recipes into custom folders for easy access (e.g., "Weekly Dinner," "Christmas," "Desserts").
+*   **🚫 Dietary Compliance:** Set permanent dietary filters (Vegan, Gluten-Free, Keto, etc.). The app highlights incompatible recipes and warns you automatically.
+*   **⭐ Ratings & Sorting:** Rate your recipes with a precision 5-star system and sort them by rating or date.
+*   **🎲 Discover:** Feeling adventurous? Use the "Shuffle" button to open a random recipe.
+*   **⚙️ Powerful Settings:**
+    *   **Custom Start Screen:** Choose to launch directly into Search or your Saved Recipes.
+    *   **Cooking Mode:** Prevent the screen from turning off while you follow instructions.
+    *   **Include/Exclude Defaults:** Toggle built-in AI-generated recipes on or off.
+    *   **Data Portability:** Full JSON Export/Import support to back up or transfer your data.
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Tech Stack
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+*   **Framework:** [Flutter](https://flutter.dev/) (3.x+)
+*   **Language:** [Dart](https://dart.dev/)
+*   **Architecture:** Clean, component-based UI with active state management.
+*   **Persistence:** Local filesystem & Shared Preferences for fast, offline storage.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🚀 Getting Started
+
+This project is a standard Flutter application.
+
+1.  **Prerequisites:**
+    *   [Flutter SDK](https://docs.flutter.dev/get-started/install) installed.
+    *   An Android/iOS emulator or physical device.
+
+2.  **Clone the command:**
+    ```bash
+    git clone https://github.com/dacimbdi/recetas.git
+    cd recetas
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    flutter pub get
+    ```
+
+4.  **Run the app:**
+    ```bash
+    # Run on your connected device
+    flutter run
+    ```
+
+## 🔒 Privacy Policy
+
+**Recetas** is designed with **Privacy by Design**.
+*   We do not collect usage data.
+*   We do not upload your photos.
+*   All backups are local files under your control.
+
+## 📄 Credits
+
+Developed by **Daniel Cimbollek Díaz**.
+
+*   *Icons powered by Cupertino Icons & Material Design.*
