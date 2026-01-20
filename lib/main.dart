@@ -1350,7 +1350,9 @@ class _FavoritosViewState extends State<_FavoritosView> {
 }
 
 class NewRecipePage extends StatefulWidget {
-  const NewRecipePage({super.key});
+  const NewRecipePage({super.key, this.recipeToEdit});
+
+  final Recipe? recipeToEdit;
 
   @override
   State<NewRecipePage> createState() => _NewRecipePageState();
@@ -1381,6 +1383,37 @@ class _NewRecipePageState extends State<NewRecipePage> {
   final TextEditingController _proteinController = TextEditingController();
   final TextEditingController _carbsController = TextEditingController();
   final TextEditingController _fatController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.recipeToEdit != null) {
+      _loadRecipeData(widget.recipeToEdit!);
+    }
+  }
+
+  void _loadRecipeData(Recipe recipe) {
+    _titleController.text = recipe.title;
+    if (recipe.prepTime != null) _prepTimeController.text = recipe.prepTime!;
+    
+    _detailedIngredients.addAll(recipe.detailedIngredients);
+    // If old simple ingredients exist and detailed are empty, try to convert? 
+    // For now we rely on detailedIngredients being populated or manual entry.
+    
+    _steps.addAll(recipe.steps);
+    _selectedCategories.addAll(recipe.categories);
+    _selectedDietaryRestrictions.addAll(recipe.dietaryRestrictions);
+    _selectedCustomTags.addAll(recipe.customDietaryTags);
+    
+    if (recipe.imagePath != null) _selectedImagePath = recipe.imagePath;
+
+    for (final fact in recipe.nutritionFacts) {
+      if (fact.label == 'Calorías') _caloriesController.text = fact.value.toString();
+      if (fact.label == 'Proteína') _proteinController.text = fact.value.toString();
+      if (fact.label == 'Carbohidratos') _carbsController.text = fact.value.toString();
+      if (fact.label == 'Grasas') _fatController.text = fact.value.toString();
+    }
+  }
 
 
   @override
@@ -1464,6 +1497,18 @@ class _NewRecipePageState extends State<NewRecipePage> {
       return;
     }
     
+    // Check if title changed effectively creating a new recipe vs editing
+    // If we are editing, we usually want to keep the same identity (title) OR handle rename.
+    // For simplicity, if we edit a default recipe, we create a custom override.
+    // If we rename, it becomes a new recipe and we might want to delete the old override?
+    // Let's assume title is the ID for now.
+    
+    if (widget.recipeToEdit != null && widget.recipeToEdit!.title != _titleController.text.trim()) {
+       // Name changed. If it was a custom recipe, ideally we should remove the old one?
+       // But user might want to "Save As". For now act as "Save As" / New Recipe if name differs.
+       // However, to support "Edit", if name is same, it updates.
+    }
+    
     // Normalize Ingredients
     final normalizedIngredients = _detailedIngredients.map((d) => d.name).toList();
 
@@ -1495,12 +1540,24 @@ class _NewRecipePageState extends State<NewRecipePage> {
     );
 
     try {
+      if (widget.recipeToEdit != null && widget.recipeToEdit!.title != newRecipe.title) {
+        await RecipeManager.removeRecipe(widget.recipeToEdit!);
+      }
       await RecipeManager.addRecipe(newRecipe);
-      await RecipeManager.toggleFavorite(newRecipe); // Auto-favorite own recipes
+      
+      // If we adjusted a custom recipe (same title), 'addRecipe' overwrites it which is correct.
+      // If we edited a default recipe (same title), 'addRecipe' creates the override.
+      // Favorites should be preserved if title matches.
+      
+      if (!RecipeManager.isFavorite(newRecipe) && widget.recipeToEdit == null) {
+         // Auto-favorite only NEW recipes, not edits unless strictly desired.
+         await RecipeManager.toggleFavorite(newRecipe); 
+      }
+      
       if (mounted) {
         Navigator.of(context).pop(); // Close wizard
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Receta "${newRecipe.title}" creada')),
+          SnackBar(content: Text(widget.recipeToEdit != null ? 'Receta actualizada' : 'Receta creada')),
         );
       }
     } catch (e) {
@@ -1745,7 +1802,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'NUEVA RECETA',
+                        widget.recipeToEdit != null ? 'EDITAR RECETA' : 'NUEVA RECETA',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -1828,7 +1885,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                          mainAxisAlignment: MainAxisAlignment.center,
                          children: [
                             Text(
-                              _currentStep == _totalSteps - 1 ? 'Finalizar Receta' : 'Siguiente',
+                              _currentStep == _totalSteps - 1 ? (widget.recipeToEdit != null ? 'Guardar Cambios' : 'Finalizar Receta') : 'Siguiente',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                              if (_currentStep < _totalSteps - 1) ...[
@@ -3011,7 +3068,25 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                           });
                         },
                       )
-                    : null,
+                    : IconButton(
+                        icon: const Icon(CupertinoIcons.shuffle),
+                        tooltip: 'Receta aleatoria',
+                        onPressed: () {
+                          if (searchFiltered.isNotEmpty) {
+                            final random = Random();
+                            final recipe = searchFiltered[random.nextInt(searchFiltered.length)];
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RecipeDetailPage(recipe: recipe),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No hay recetas disponibles')),
+                            );
+                          }
+                        },
+                      ),
               ),
             ),
           ),
@@ -3879,7 +3954,7 @@ class _RecipeCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                if (isPersonalized && SettingsManager.showDefaultRecipes.value)
+                if (isPersonalized)
                   Container(
                     width: 8,
                     height: 8,
@@ -4258,6 +4333,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       appBar: AppBar(
         title: Text(_currentRecipe.title),
         actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.pencil),
+            tooltip: 'Editar receta',
+            onPressed: () {
+               Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => NewRecipePage(recipeToEdit: _currentRecipe)),
+               );
+            },
+          ),
           if (isPersonalized)
             IconButton(
               icon: const Icon(CupertinoIcons.trash),
@@ -4523,65 +4607,100 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
                 final key = ingredient.name;
                 final isChecked = _checkedIngredients.contains(key);
                 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8), // Reduced bottom padding slightly as Checkbox has internal padding
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        if (isChecked) {
-                          _checkedIngredients.remove(key);
-                        } else {
-                          _checkedIngredients.add(key);
-                        }
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Transform.scale(
-                          scale: 1.1,
-                          child: Checkbox(
-                            value: isChecked,
-                            onChanged: (v) {
-                              setState(() {
-                                if (v == true) {
-                                  _checkedIngredients.add(key);
-                                } else {
-                                  _checkedIngredients.remove(key);
-                                }
-                              });
-                            },
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                            activeColor: theme.colorScheme.primary,
-                            checkColor: theme.colorScheme.onPrimary,
-                            side: BorderSide(
-                                color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                decoration: isChecked ? TextDecoration.lineThrough : null,
-                                color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
-                              ),
-                              children: [
-                                TextSpan(
-                                    text: ingredient.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                                if (ingredient.quantity.isNotEmpty)
-                                  TextSpan(
-                                      text: '  ${ingredient.quantity}',
-                                      style: TextStyle(
-                                          color: theme.textTheme.bodyMedium?.color
-                                              ?.withOpacity(isChecked ? 0.3 : 0.7))),
-                              ],
+                return Dismissible(
+                  key: Key('detailed_${widget.recipe.title}_$key'),
+                  direction: DismissDirection.startToEnd,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: isChecked ? Colors.red : Colors.green,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
+                    ),
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Icon(
+                      isChecked ? CupertinoIcons.arrow_counterclockwise : Icons.check_circle, 
+                      color: Colors.white,
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    // Return false immediately to start the snap-back animation
+                    // But schedule the state change for after the animation completes
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      if (context.mounted) {
+                        setState(() {
+                          if (isChecked) {
+                            _checkedIngredients.remove(key);
+                          } else {
+                            _checkedIngredients.add(key);
+                          }
+                        });
+                      }
+                    });
+                    return false; 
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8), // Reduced bottom padding slightly as Checkbox has internal padding
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          if (isChecked) {
+                            _checkedIngredients.remove(key);
+                          } else {
+                            _checkedIngredients.add(key);
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Transform.scale(
+                            scale: 1.1,
+                            child: Checkbox(
+                              value: isChecked,
+                              onChanged: (v) {
+                                setState(() {
+                                  if (v == true) {
+                                    _checkedIngredients.add(key);
+                                  } else {
+                                    _checkedIngredients.remove(key);
+                                  }
+                                });
+                              },
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              activeColor: theme.colorScheme.primary,
+                              checkColor: theme.colorScheme.onPrimary,
+                              side: BorderSide(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  decoration: isChecked ? TextDecoration.lineThrough : null,
+                                  color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
+                                ),
+                                children: [
+                                  TextSpan(
+                                      text: ingredient.name,
+                                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  if (ingredient.quantity.isNotEmpty)
+                                    TextSpan(
+                                        text: '  ${ingredient.quantity}',
+                                        style: TextStyle(
+                                            color: theme.textTheme.bodyMedium?.color
+                                                ?.withOpacity(isChecked ? 0.3 : 0.7))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -4590,53 +4709,88 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
               // Fallback for old simple string list
                ...widget.recipe.ingredients.map((ingredient) {
                 final isChecked = _checkedIngredients.contains(ingredient);
-                return  Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: InkWell(
-                    onTap: () {
-                       setState(() {
-                        if (isChecked) {
-                          _checkedIngredients.remove(ingredient);
-                        } else {
-                          _checkedIngredients.add(ingredient);
-                        }
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Transform.scale(
-                          scale: 1.1,
-                          child: Checkbox(
-                            value: isChecked,
-                             onChanged: (v) {
-                              setState(() {
-                                if (v == true) {
-                                  _checkedIngredients.add(ingredient);
-                                } else {
-                                  _checkedIngredients.remove(ingredient);
-                                }
-                              });
-                            },
-                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                            activeColor: theme.colorScheme.primary,
-                            checkColor: theme.colorScheme.onPrimary,
-                             side: BorderSide(
-                                color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            ingredient,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                                decoration: isChecked ? TextDecoration.lineThrough : null,
-                                color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
+                return Dismissible(
+                  key: Key('simple_${widget.recipe.title}_$ingredient'),
+                  direction: DismissDirection.startToEnd,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: isChecked ? Colors.red : Colors.green,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
+                    ),
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Icon(
+                      isChecked ? CupertinoIcons.arrow_counterclockwise : Icons.check_circle,
+                      color: Colors.white,
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    // Return false immediately to start the snap-back animation
+                    // But schedule the state change for after the animation completes
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      if (context.mounted) {
+                        setState(() {
+                          if (isChecked) {
+                            _checkedIngredients.remove(ingredient);
+                          } else {
+                            _checkedIngredients.add(ingredient);
+                          }
+                        });
+                      }
+                    });
+                    return false; 
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      onTap: () {
+                         setState(() {
+                          if (isChecked) {
+                            _checkedIngredients.remove(ingredient);
+                          } else {
+                            _checkedIngredients.add(ingredient);
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Row(
+                         crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Transform.scale(
+                            scale: 1.1,
+                            child: Checkbox(
+                              value: isChecked,
+                              onChanged: (v) {
+                                setState(() {
+                                  if (v == true) {
+                                    _checkedIngredients.add(ingredient);
+                                  } else {
+                                    _checkedIngredients.remove(ingredient);
+                                  }
+                                });
+                              },
+                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              activeColor: theme.colorScheme.primary,
+                              checkColor: theme.colorScheme.onPrimary,
+                               side: BorderSide(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ingredient,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                  decoration: isChecked ? TextDecoration.lineThrough : null,
+                                  color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -5240,8 +5394,14 @@ class RecipeManager {
     final defaultTitles = _defaultRecipes.map((r) => r.title).toSet();
     
     // If show defaults is off, just show user recipes (excluding rated defaults)
+    // If show defaults is off, show user recipes, BUT include modified defaults (overrides)
     if (!SettingsManager.showDefaultRecipes.value) {
-      return _recipes.where((r) => !defaultTitles.contains(r.title)).toList();
+      return _recipes.where((r) {
+         final isTitleDefault = defaultTitles.contains(r.title);
+         if (!isTitleDefault) return true; // It's a purely custom recipe
+         // It has a default title. Keep it ONLY if it is modified (i.e., not just a default copy).
+         return !isDefaultRecipe(r);
+      }).toList();
     }
     
     // If show defaults is on:
@@ -5383,9 +5543,14 @@ class RecipeManager {
     }
   }
 
-  // Add a new recipe
+  // Add or update a recipe
   static Future<void> addRecipe(Recipe recipe) async {
-    _recipes.add(recipe);
+    final index = _recipes.indexWhere((r) => r.title == recipe.title);
+    if (index != -1) {
+      _recipes[index] = recipe;
+    } else {
+      _recipes.add(recipe);
+    }
     await _saveRecipes();
     _notifyListeners();
   }
