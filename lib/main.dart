@@ -932,7 +932,14 @@ class _RecetasView extends StatelessWidget {
                       final c = categories[index];
                     return Container(
                                   decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withOpacity(0.09),
+                            Colors.white.withOpacity(0.03),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                           color: Colors.white.withOpacity(0.1),
@@ -3356,7 +3363,14 @@ class _PopularIngredientsGrid extends StatelessWidget {
         
         return Container(
                     decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.09),
+                Colors.white.withOpacity(0.03),
+              ],
+            ),
             borderRadius: BorderRadius.circular(16),
                       border: Border.all(
               color: Colors.white.withOpacity(0.1),
@@ -4358,6 +4372,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       ),
       body: Column(
           children: [
+            Stack(
+              children: [
             // Recipe Image
             if (displayImagePath != null)
               GestureDetector(
@@ -4406,6 +4422,38 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   child: _buildPlaceholder(),
                 ),
               ),
+              
+            // Floating Prep Time Chip
+            if (_currentRecipe.prepTime != null)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(CupertinoIcons.clock, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        _currentRecipe.prepTime!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
           
 
 
@@ -4847,10 +4895,7 @@ class _InstructionsView extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                step,
-                                style: theme.textTheme.bodyLarge,
-                              ),
+                              child: _buildStepText(step, theme),
                             ),
                           ],
                         ),
@@ -4894,6 +4939,38 @@ class _InstructionsView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildStepText(String text, ThemeData theme) {
+    final colonIndex = text.indexOf(':');
+    
+    // Bold prefix if it looks like "Paso 1:", "Nota:", etc.
+    if (colonIndex > 0 && colonIndex < 20) {
+      final prefix = text.substring(0, colonIndex + 1);
+      final rest = text.substring(colonIndex + 1);
+      
+      return Text.rich(
+        TextSpan(
+          style: theme.textTheme.bodyLarge?.copyWith(
+            height: 1.6, // Increased line height
+          ),
+          children: [
+            TextSpan(
+              text: prefix,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(text: rest),
+          ],
+        ),
+      );
+    }
+
+    return Text(
+      text,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        height: 1.6, // Increased line height
+      ),
+    );
+  }
 }
 
 
@@ -4913,40 +4990,7 @@ class _InfoView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prep Time
-            if (recipe.prepTime != null) ...[
-              Text(
-                'Tiempo de preparación',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.clock, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      recipe.prepTime!,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-
-            // Dietary Restrictions
+             // Dietary Restrictions
             // Dietary Restrictions
             if (recipe.dietaryRestrictions.isNotEmpty || recipe.customDietaryTags.isNotEmpty) ...[
               Text(
@@ -5987,7 +6031,7 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.startScreenIndex,
                 builder: (context, index, child) {
                   return _SettingsTile(
-                    title: 'Pantalla de inicio',
+                    title: 'Pantalla predeterminada',
                     subtitle: index == 0 ? 'Buscador' : 'Mis Recetas',
                     trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                     onTap: () => _showStartScreenDialog(context, index),
@@ -6113,7 +6157,7 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(height: 24),
               
               Text(
-                'Elegir pantalla de inicio',
+                'Elegir pantalla predeterminada',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
