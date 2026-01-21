@@ -4655,41 +4655,7 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
                 final key = ingredient.name;
                 final isChecked = _checkedIngredients.contains(key);
                 
-                return Dismissible(
-                  key: Key('detailed_${widget.recipe.title}_$key'),
-                  direction: DismissDirection.startToEnd,
-                  background: Container(
-                    decoration: BoxDecoration(
-                      color: isChecked ? Colors.red : Colors.green,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                      ),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 24),
-                    child: Icon(
-                      isChecked ? CupertinoIcons.arrow_counterclockwise : Icons.check_circle, 
-                      color: Colors.white,
-                    ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    // Return false immediately to start the snap-back animation
-                    // But schedule the state change for after the animation completes
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      if (context.mounted) {
-                        setState(() {
-                          if (isChecked) {
-                            _checkedIngredients.remove(key);
-                          } else {
-                            _checkedIngredients.add(key);
-                          }
-                        });
-                      }
-                    });
-                    return false; 
-                  },
-                  child: Padding(
+                return Padding(
                     padding: const EdgeInsets.only(bottom: 8), // Reduced bottom padding slightly as Checkbox has internal padding
                     child: InkWell(
                       onTap: () {
@@ -4750,48 +4716,13 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
                         ],
                       ),
                     ),
-                  ),
-                );
+                  );
               })
             else
               // Fallback for old simple string list
                ...widget.recipe.ingredients.map((ingredient) {
                 final isChecked = _checkedIngredients.contains(ingredient);
-                return Dismissible(
-                  key: Key('simple_${widget.recipe.title}_$ingredient'),
-                  direction: DismissDirection.startToEnd,
-                  background: Container(
-                    decoration: BoxDecoration(
-                      color: isChecked ? Colors.red : Colors.green,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                      ),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 24),
-                    child: Icon(
-                      isChecked ? CupertinoIcons.arrow_counterclockwise : Icons.check_circle,
-                      color: Colors.white,
-                    ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    // Return false immediately to start the snap-back animation
-                    // But schedule the state change for after the animation completes
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      if (context.mounted) {
-                        setState(() {
-                          if (isChecked) {
-                            _checkedIngredients.remove(ingredient);
-                          } else {
-                            _checkedIngredients.add(ingredient);
-                          }
-                        });
-                      }
-                    });
-                    return false; 
-                  },
-                  child: Padding(
+                return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: InkWell(
                       onTap: () {
@@ -4840,8 +4771,7 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
                         ],
                       ),
                     ),
-                  ),
-                );
+                  );
                }),
           ],
         ),
