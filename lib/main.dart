@@ -13,6 +13,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
+import 'package:google_fonts/google_fonts.dart';
 // import 'shopping_list.dart';
 
 
@@ -41,8 +42,9 @@ class SettingsManager {
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    // Force dark mode (option removed from UI per request), but keep variable in case needed
-    isDarkMode.value = true; 
+    // Check system brightness if no preference is saved
+    final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    isDarkMode.value = prefs.getBool(_themeKey) ?? (systemBrightness == Brightness.dark); 
     showDefaultRecipes.value = prefs.getBool(_defaultsKey) ?? true;
     
     preventSleep.value = prefs.getBool(_preventSleepKey) ?? false;
@@ -65,6 +67,12 @@ class SettingsManager {
 
     applyDietaryToDefaults.value = prefs.getBool(_applyToDefaultsKey) ?? false;
     hideIncompatibleRecipes.value = prefs.getBool(_hideIncompatibleKey) ?? false;
+  }
+
+  static Future<void> setDarkMode(bool value) async {
+    isDarkMode.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_themeKey, value);
   }
 
   static Future<void> setStartScreenIndex(int index) async {
@@ -490,10 +498,39 @@ class _RecetasAppState extends State<RecetasApp> {
 
 
   @override
+  @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFF00CED1);
-    
+    // Light Mode Palette
+    const lightBg = Color(0xFFF9F7F2); // Crema suave / Hueso
+    const lightPrimary = Color(0xFF6B8E23); // Verde Salvia / Albahaca
+    const lightSecondary = Color(0xFFC05832); // Terracota / Naranja Quemado
+    const lightText = Color(0xFF333333); // Gris oscuro cálido
+    const lightSurface = Colors.white;
 
+    // Dark Mode Palette
+    const darkBg = Color(0xFF1E1E24); // Gris Carbón / Azul Pizarra muy oscuro
+    const darkSurface = Color(0xFF2B2B36); // Ligeramente más claro que el fondo
+    const darkPrimary = Color(0xFF9CCC65); // Verde Fresco / Vibrante
+    // const darkSecondary = Color(0xFFE2916E); // Terracota suave
+
+    // Typography
+    TextTheme createTextTheme(TextTheme base, Color textColor) {
+      return GoogleFonts.nunitoTextTheme(base).copyWith(
+        displayLarge: GoogleFonts.playfairDisplay(textStyle: base.displayLarge, color: textColor),
+        displayMedium: GoogleFonts.playfairDisplay(textStyle: base.displayMedium, color: textColor),
+        displaySmall: GoogleFonts.playfairDisplay(textStyle: base.displaySmall, color: textColor),
+        headlineLarge: GoogleFonts.playfairDisplay(textStyle: base.headlineLarge, color: textColor),
+        headlineMedium: GoogleFonts.playfairDisplay(textStyle: base.headlineMedium, color: textColor),
+        headlineSmall: GoogleFonts.playfairDisplay(textStyle: base.headlineSmall, color: textColor, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.playfairDisplay(textStyle: base.titleLarge, color: textColor, fontWeight: FontWeight.w600),
+        titleMedium: GoogleFonts.nunito(textStyle: base.titleMedium, color: textColor, fontWeight: FontWeight.w600),
+        titleSmall: GoogleFonts.nunito(textStyle: base.titleSmall, color: textColor),
+        bodyLarge: GoogleFonts.nunito(textStyle: base.bodyLarge, color: textColor),
+        bodyMedium: GoogleFonts.nunito(textStyle: base.bodyMedium, color: textColor),
+        bodySmall: GoogleFonts.nunito(textStyle: base.bodySmall, color: textColor),
+        labelLarge: GoogleFonts.nunito(textStyle: base.labelLarge, color: textColor, fontWeight: FontWeight.w600),
+      );
+    }
 
     return ValueListenableBuilder<bool>(
       valueListenable: SettingsManager.isDarkMode,
@@ -502,12 +539,20 @@ class _RecetasAppState extends State<RecetasApp> {
           debugShowCheckedModeBanner: false,
           title: 'Recetas',
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          theme: ThemeData.light(useMaterial3: true).copyWith(
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: lightBg,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: seed,
+              seedColor: lightPrimary,
               brightness: Brightness.light,
+              primary: lightPrimary,
+              secondary: lightSecondary,
+              surface: lightSurface,
+              onSurface: lightText,
+              background: lightBg,
             ),
-            scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+            textTheme: createTextTheme(ThemeData.light().textTheme, lightText),
             appBarTheme: const AppBarTheme(
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -516,10 +561,18 @@ class _RecetasAppState extends State<RecetasApp> {
             ),
             inputDecorationTheme: InputDecorationTheme(
               filled: true,
-              fillColor: Colors.black.withOpacity(0.05),
+              fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: lightPrimary, width: 1.5),
               ),
             ),
             cardTheme: const CardThemeData(
@@ -527,14 +580,34 @@ class _RecetasAppState extends State<RecetasApp> {
               elevation: 2,
               shadowColor: Colors.black12,
               margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+            ),
+            floatingActionButtonTheme: const FloatingActionButtonThemeData(
+              backgroundColor: lightPrimary,
+              foregroundColor: Colors.white,
+            ),
+            navigationBarTheme: NavigationBarThemeData(
+              backgroundColor: lightBg,
+              indicatorColor: lightPrimary.withOpacity(0.2),
+              iconTheme: MaterialStateProperty.all(IconThemeData(color: Colors.grey[700])),
+              labelTextStyle: MaterialStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600)),
             ),
           ),
-          darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: darkBg,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: seed,
+              seedColor: darkPrimary,
               brightness: Brightness.dark,
+              primary: darkPrimary,
+              surface: darkSurface,
+              onSurface: Colors.white, // Text on dark background
+              background: darkBg,
             ),
-            scaffoldBackgroundColor: const Color(0xFF0B0B0F),
+            textTheme: createTextTheme(ThemeData.dark().textTheme, Colors.white),
             appBarTheme: const AppBarTheme(
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -555,24 +628,34 @@ class _RecetasAppState extends State<RecetasApp> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: seed.withOpacity(0.8), width: 1.2),
+                borderSide: BorderSide(color: darkPrimary.withOpacity(0.8), width: 1.2),
               ),
             ),
             cardTheme: CardThemeData(
-              color: Colors.white.withOpacity(0.05),
+              color: darkSurface,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: const BorderRadius.all(Radius.circular(18)),
-                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                side: BorderSide(color: Colors.white.withOpacity(0.05)),
               ),
             ),
             chipTheme: ChipThemeData(
               backgroundColor: Colors.white.withOpacity(0.05),
-              selectedColor: seed.withOpacity(0.2),
+              selectedColor: darkPrimary.withOpacity(0.3),
               side: BorderSide(color: Colors.white.withOpacity(0.1)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               labelStyle: const TextStyle(color: Colors.white),
               secondaryLabelStyle: const TextStyle(color: Colors.white),
+            ),
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
+              backgroundColor: darkPrimary,
+              foregroundColor: darkBg,
+            ),
+             navigationBarTheme: NavigationBarThemeData(
+              backgroundColor: darkBg,
+              indicatorColor: darkPrimary.withOpacity(0.2),
+              iconTheme: MaterialStateProperty.all(const IconThemeData(color: Colors.white70)),
+              labelTextStyle: MaterialStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
             ),
           ),
           home: ValueListenableBuilder<int>(
@@ -931,23 +1014,30 @@ class _RecetasView extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final c = categories[index];
                     return Container(
-                                  decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withOpacity(0.09),
-                            Colors.white.withOpacity(0.03),
-                          ],
-                        ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? null 
+                            : Colors.white,
+                        gradient: Theme.of(context).brightness == Brightness.dark
+                          ? LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withOpacity(0.09),
+                                Colors.white.withOpacity(0.03),
+                              ],
+                            )
+                          : null,
                         borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.05),
                           width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withOpacity(0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -2660,22 +2750,29 @@ class _FolderCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.09),
-            Colors.white.withOpacity(0.03),
-          ],
-        ),
+        color: Theme.of(context).brightness == Brightness.dark 
+            ? null 
+            : Colors.white,
+        gradient: Theme.of(context).brightness == Brightness.dark
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.09),
+                Colors.white.withOpacity(0.03),
+              ],
+            )
+          : null,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -2718,7 +2815,7 @@ class _FolderCard extends StatelessWidget {
                     Text(
                       '$recipeCount receta${recipeCount != 1 ? 's' : ''} • $subFolderCount subcarpeta${subFolderCount != 1 ? 's' : ''}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -3370,22 +3467,29 @@ class _PopularIngredientsGrid extends StatelessWidget {
         
         return Container(
                     decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.09),
-                Colors.white.withOpacity(0.03),
-              ],
-            ),
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? null 
+                : Colors.white,
+            gradient: Theme.of(context).brightness == Brightness.dark
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.09),
+                    Colors.white.withOpacity(0.03),
+                  ],
+                )
+              : null,
             borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -3477,11 +3581,15 @@ class IngredientsByCategoryPage extends StatelessWidget {
                       alignment: WrapAlignment.start,
                       children: availableIngredients.map((text) {
                         return Material(
-                          color: const Color(0xFF16161C),
+                          color: theme.brightness == Brightness.dark 
+                              ? const Color(0xFF16161C) 
+                              : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
-                              color: Colors.white.withOpacity(0.06),
+                              color: theme.brightness == Brightness.dark 
+                                  ? Colors.white.withOpacity(0.06)
+                                  : Colors.black.withOpacity(0.05),
                             ),
                           ),
                           child: InkWell(
@@ -3497,10 +3605,10 @@ class IngredientsByCategoryPage extends StatelessWidget {
                               ),
                               child: Text(
                                 text,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
-                                  color: Colors.white,
+                                  color: theme.colorScheme.onSurface,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -3836,22 +3944,29 @@ class _RecipeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.09),
-            Colors.white.withOpacity(0.03),
-          ],
-        ),
+        color: Theme.of(context).brightness == Brightness.dark 
+            ? null 
+            : Colors.white,
+        gradient: Theme.of(context).brightness == Brightness.dark
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.09),
+                Colors.white.withOpacity(0.03),
+              ],
+            )
+          : null,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -3913,7 +4028,9 @@ class _RecipeCard extends StatelessWidget {
                               i,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isMatch ? Colors.white : Colors.white.withOpacity(0.6),
+                                color: isMatch 
+                                    ? Colors.white 
+                                    : theme.colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                             backgroundColor: isMatch 
@@ -3988,7 +4105,7 @@ class _RecipeCard extends StatelessWidget {
                     height: 8,
                     margin: const EdgeInsets.only(left: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00CED1),
+                      color: theme.colorScheme.secondary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -4142,17 +4259,17 @@ class _NutritionFactCard extends StatelessWidget {
       width: 150,
       padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1D1D24),
+            color: theme.cardTheme.color,
             borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
             fact.label,
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
           ),
           const SizedBox(height: 6),
           Text(
@@ -4395,8 +4512,10 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Container(
                   width: double.infinity,
                   height: 250,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF16161C),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF16161C) 
+                        : Colors.grey[200],
                   ),
                   child: displayImagePath.startsWith('assets/')
 
@@ -4430,8 +4549,10 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Container(
                   width: double.infinity,
                   height: 250,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF16161C),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF16161C) 
+                        : Colors.grey[200],
                   ),
                   child: _buildPlaceholder(),
                 ),
@@ -4445,19 +4566,19 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: theme.colorScheme.primary.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    // border: Border.all(color: Colors.white.withOpacity(0.1)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(CupertinoIcons.clock, color: Colors.white, size: 16),
+                      Icon(CupertinoIcons.clock, color: theme.colorScheme.onPrimary, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         _currentRecipe.prepTime!,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -4500,6 +4621,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
   Widget _buildPlaceholder() {
+    final theme = Theme.of(context);
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -4509,12 +4631,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             Icon(
               CupertinoIcons.photo,
               size: 64,
-              color: Colors.white.withOpacity(0.3),
+              color: theme.colorScheme.primary.withOpacity(0.5),
             ),
             const SizedBox(height: 8),
             Text(
               'Toca para añadir foto',
-              style: TextStyle(color: Colors.white.withOpacity(0.3)),
+              style: TextStyle(color: theme.colorScheme.primary.withOpacity(0.5), fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -4541,10 +4663,12 @@ class _SlidingSegmentedControl extends StatelessWidget {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Theme.of(context).brightness == Brightness.dark 
+            ? Colors.white.withOpacity(0.05) 
+            : Colors.black.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -5982,15 +6106,27 @@ class SettingsPage extends StatelessWidget {
                   );
                 },
               ),
+              _SettingsTile(
+                title: 'Filtros dietéticos permanentes',
+                subtitle: 'Excluir siempre recetas incompatibles',
+                icon: Icons.no_food,
+                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const _DietarySettingsPage()),
+                  );
+                },
+              ),
               ValueListenableBuilder<bool>(
-                valueListenable: SettingsManager.preventSleep,
-                builder: (context, prevent, child) {
+                valueListenable: SettingsManager.isDarkMode,
+                builder: (context, isDark, child) {
                   return _SettingsTile(
-                    title: 'Mantener pantalla encendida',
+                    title: 'Modo Oscuro',
                     isSwitch: true,
-                    switchValue: prevent,
-                    onSwitchChanged: (value) => SettingsManager.setPreventSleep(value),
-                    icon: CupertinoIcons.eye,
+                    switchValue: isDark,
+                    onSwitchChanged: (value) => SettingsManager.setDarkMode(value),
+                    icon: CupertinoIcons.moon_fill,
                   );
                 },
               ),
@@ -6006,18 +6142,18 @@ class SettingsPage extends StatelessWidget {
                   );
                 },
               ),
-              _SettingsTile(
-                title: 'Filtros dietéticos permanentes',
-                subtitle: 'Excluir siempre recetas incompatibles',
-                icon: Icons.no_food,
-                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
-                onTap: () {
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (_) => const _DietarySettingsPage()),
+              ValueListenableBuilder<bool>(
+                valueListenable: SettingsManager.preventSleep,
+                builder: (context, prevent, child) {
+                  return _SettingsTile(
+                    title: 'Mantener pantalla encendida',
+                    isSwitch: true,
+                    switchValue: prevent,
+                    onSwitchChanged: (value) => SettingsManager.setPreventSleep(value),
+                    icon: CupertinoIcons.eye,
+                    lastItem: true, 
                   );
                 },
-                lastItem: true,
               ),
             ],
           ),
