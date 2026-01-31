@@ -4105,7 +4105,7 @@ class _RecipeCard extends StatelessWidget {
                     height: 8,
                     margin: const EdgeInsets.only(left: 6),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary,
+                      color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
