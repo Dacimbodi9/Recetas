@@ -10,10 +10,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:animations/animations.dart';
 // import 'shopping_list.dart';
 
 
@@ -591,8 +591,8 @@ class _RecetasAppState extends State<RecetasApp> {
             navigationBarTheme: NavigationBarThemeData(
               backgroundColor: lightBg,
               indicatorColor: lightPrimary.withOpacity(0.2),
-              iconTheme: MaterialStateProperty.all(IconThemeData(color: Colors.grey[700])),
-              labelTextStyle: MaterialStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600)),
+              iconTheme: WidgetStateProperty.all(IconThemeData(color: Colors.grey[700])),
+              labelTextStyle: WidgetStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600)),
             ),
           ),
           darkTheme: ThemeData(
@@ -654,8 +654,8 @@ class _RecetasAppState extends State<RecetasApp> {
              navigationBarTheme: NavigationBarThemeData(
               backgroundColor: darkBg,
               indicatorColor: darkPrimary.withOpacity(0.2),
-              iconTheme: MaterialStateProperty.all(const IconThemeData(color: Colors.white70)),
-              labelTextStyle: MaterialStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
+              iconTheme: WidgetStateProperty.all(const IconThemeData(color: Colors.white70)),
+              labelTextStyle: WidgetStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
             ),
           ),
           home: ValueListenableBuilder<int>(
@@ -790,7 +790,7 @@ class _SearchPageState extends State<SearchPage> {
               controller: _pageController,
               selectedIndex: _selectedIndex,
               onTap: _onSegmentChanged,
-              tabs: const ['Ingredientes', 'Recetas'],
+              tabs: const ['Recetas', 'Ingredientes'],
             ),
           ),
           
@@ -800,12 +800,12 @@ class _SearchPageState extends State<SearchPage> {
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: [
-                const IngredientSearchPage(),
                 _RecetasView(
                   searchController: _searchController,
                   searchQuery: _searchQuery,
                   onSearchChanged: (value) => setState(() => _searchQuery = value),
                 ),
+                const IngredientSearchPage(),
               ],
             ),
           ),
@@ -930,16 +930,7 @@ class _RecetasView extends StatelessWidget {
     final searchResults = searchQuery.isEmpty 
         ? <Recipe>[]
         : RecipeManager.recipes.where((recipe) {
-            final normalizedTitle = _removeDiacritics(recipe.title.toLowerCase());
-            final normalizedQuery = _removeDiacritics(searchQuery.toLowerCase().trim());
-            
-            if (normalizedQuery.isEmpty) return false;
-            
-            // Split query into words (tokens)
-            final queryWords = normalizedQuery.split(RegExp(r'\s+'));
-            
-            // Check if ALL words are present in the title
-            return queryWords.every((word) => normalizedTitle.contains(word));
+            return _fuzzyMatch(recipe.title, searchQuery);
           }).toList();
 
     return Column(
@@ -1090,6 +1081,58 @@ class _RecetasView extends StatelessWidget {
   }
 }
 
+bool _fuzzyMatch(String text, String query) {
+  final normalizedText = _removeDiacritics(text.toLowerCase());
+  final normalizedQuery = _removeDiacritics(query.toLowerCase().trim());
+  
+  if (normalizedQuery.isEmpty) return false;
+  
+  final queryWords = normalizedQuery.split(RegExp(r'\s+'));
+  final textWords = normalizedText.split(RegExp(r'\s+'));
+  
+  return queryWords.every((qWord) {
+     // 1. Exact substring match (existing behavior)
+     if (normalizedText.contains(qWord)) return true;
+     
+     // 2. Fuzzy match against individual text words
+     return textWords.any((tWord) {
+       // Optimization: Length difference check
+       if ((qWord.length - tWord.length).abs() > 2) return false;
+       
+       final dist = _levenshtein(qWord, tWord);
+       
+       // Allow distance 1 for short words (>=3 chars), distance 2 for long words (>=6 chars)
+       if (qWord.length < 3) return dist == 0; // Strict for very short words
+       if (qWord.length < 6) return dist <= 1;
+       return dist <= 2;
+     });
+  });
+}
+
+int _levenshtein(String s, String t) {
+  if (s == t) return 0;
+  if (s.isEmpty) return t.length;
+  if (t.isEmpty) return s.length;
+
+  List<int> v0 = List<int>.generate(t.length + 1, (i) => i);
+  List<int> v1 = List<int>.filled(t.length + 1, 0);
+
+  for (int i = 0; i < s.length; i++) {
+    v1[0] = i + 1;
+
+    for (int j = 0; j < t.length; j++) {
+      int cost = (s.codeUnitAt(i) == t.codeUnitAt(j)) ? 0 : 1;
+      v1[j + 1] = min(v1[j] + 1, min(v0[j + 1] + 1, v0[j] + cost));
+    }
+
+    for (int j = 0; j < v0.length; j++) {
+      v0[j] = v1[j];
+    }
+  }
+
+  return v1[t.length];
+}
+
 String _removeDiacritics(String str) {
   const withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
   const withoutDia = 'AAAAAAaaaaaaOOOOOØooooooEEEEeeeedCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
@@ -1162,7 +1205,7 @@ class _FavoritosView extends StatefulWidget {
 
 class _FavoritosViewState extends State<_FavoritosView> {
   String? _currentFolderId;
-  List<String> _folderPath = [];
+  final List<String> _folderPath = [];
 
   @override
   void initState() {
@@ -1223,10 +1266,10 @@ class _FavoritosViewState extends State<_FavoritosView> {
       if (widget.searchQuery.isNotEmpty) {
         // GLOBAL SEARCH
         recipesToShow = RecipeManager.favoriteRecipes
-            .where((r) => r.title.toLowerCase().contains(widget.searchQuery.toLowerCase()))
+            .where((r) => _fuzzyMatch(r.title, widget.searchQuery))
             .toList();
         foldersToShow = RecipeManager.allFolders
-            .where((f) => f.name.toLowerCase().contains(widget.searchQuery.toLowerCase()))
+            .where((f) => _fuzzyMatch(f.name, widget.searchQuery))
             .toList();
       } else {
         // NORMAL ROOT VIEW
@@ -1330,10 +1373,10 @@ class _FavoritosViewState extends State<_FavoritosView> {
       if (widget.searchQuery.isNotEmpty) {
         // RECURSIVE SEARCH
         recipesToShow = RecipeManager.getRecipesInFolderRecursive(_currentFolderId!)
-            .where((r) => r.title.toLowerCase().contains(widget.searchQuery.toLowerCase()))
+            .where((r) => _fuzzyMatch(r.title, widget.searchQuery))
             .toList();
          foldersToShow = RecipeManager.getSubFoldersRecursive(_currentFolderId!)
-            .where((f) => f.name.toLowerCase().contains(widget.searchQuery.toLowerCase()))
+            .where((f) => _fuzzyMatch(f.name, widget.searchQuery))
             .toList();
       } else {
         recipesToShow = RecipeManager.getRecipesInFolder(currentFolder);
@@ -1820,7 +1863,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('Ingrediente nuevo'),
+            title: const Text('Crear ingrediente'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1831,9 +1874,13 @@ class _NewRecipePageState extends State<NewRecipePage> {
                  Container(
                    padding: const EdgeInsets.symmetric(horizontal: 16),
                    decoration: BoxDecoration(
-                     color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                     borderRadius: BorderRadius.circular(12),
-                     border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
+                     color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white.withOpacity(0.05) 
+                        : Colors.white,
+                     borderRadius: BorderRadius.circular(14),
+                     border: Theme.of(context).brightness == Brightness.dark
+                        ? Border.all(color: Colors.white.withOpacity(0.1))
+                        : null,
                    ),
                    child: DropdownButtonHideUnderline(
                      child: DropdownButton<IngredientCategory>(
@@ -2445,7 +2492,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                            TextButton.icon(
                               onPressed: _showAddCustomTagDialog,
                               icon: const Icon(CupertinoIcons.add, size: 16),
-                              label: const Text('Añadir etiqueta'),
+                              label: const Text('Crear etiqueta'),
                               style: TextButton.styleFrom(
                                  visualDensity: VisualDensity.compact,
                                  textStyle: const TextStyle(fontSize: 12),
@@ -2464,8 +2511,11 @@ class _NewRecipePageState extends State<NewRecipePage> {
                                  label: Text(r.displayName),
                                  selected: active,
                                  onSelected: (_) => setState(() {
-                                    if (active) _selectedDietaryRestrictions.remove(r);
-                                    else _selectedDietaryRestrictions.add(r);
+                                    if (active) {
+                                      _selectedDietaryRestrictions.remove(r);
+                                    } else {
+                                      _selectedDietaryRestrictions.add(r);
+                                    }
                                  }),
                                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                                  selectedColor: theme.colorScheme.primary.withOpacity(0.3),
@@ -2617,7 +2667,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<IngredientCategory>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             decoration: const InputDecoration(
               labelText: 'Categoría',
               border: OutlineInputBorder(),
@@ -3645,11 +3695,12 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
     final List<_ScoredRecipe> results = RecipeManager.recipes
         .map((r) {
           final matches = widget.selectedIngredients
-              .where((needle) => r.ingredients.contains(needle.toLowerCase()))
+              .where((needle) => r.ingredients.any((i) => _ingredientsMatch(i, needle)))
               .length;
           // Get the actual recipe ingredients that matched (to highlight them correctly)
           final matchedRecipeIngredients = r.ingredients
-              .where((ingredient) => widget.selectedIngredients.contains(ingredient.toLowerCase()))
+              .where((ingredient) => widget.selectedIngredients.any((needle) => _ingredientsMatch(ingredient, needle)))
+              .map((e) => e.toLowerCase())
               .toList();
           final remainingIngredients = r.ingredients.length - matches;
           return _ScoredRecipe(
@@ -3746,6 +3797,22 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
         _selectedCustomFilters.every((tag) => recipe.customDietaryTags.contains(tag));
         
     return standardMatch && customMatch;
+  }
+
+  bool _ingredientsMatch(String recipeIngredient, String searchIngredient) {
+    final r = recipeIngredient.toLowerCase().trim();
+    final s = searchIngredient.toLowerCase().trim();
+    
+    if (r == s) return true;
+    
+    // Check for plural forms (e.g. "tomate" matches "tomates", "huevo" matches "huevos")
+    // If recipe has "tomates" and search is "tomate" -> r contains s
+    if (r.contains(s) && r.length <= s.length + 2) return true;
+    
+    // If recipe has "tomate" and search is "tomates" -> s contains r
+    if (s.contains(r) && s.length <= r.length + 2) return true;
+    
+    return false;
   }
 
   void _showFilterDialog(BuildContext context) {
@@ -3944,26 +4011,7 @@ class _RecipeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark 
-            ? null 
-            : Colors.white,
-        gradient: Theme.of(context).brightness == Brightness.dark
-          ? LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.09),
-                Colors.white.withOpacity(0.03),
-              ],
-            )
-          : null,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -3972,155 +4020,186 @@ class _RecipeCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => RecipeDetailPage(
-                recipe: recipe,
-                heroTag: heroTag,
+      child: OpenContainer(
+        transitionDuration: const Duration(milliseconds: 500),
+        openBuilder: (context, _) => RecipeDetailPage(
+          recipe: recipe,
+          heroTag: heroTag,
+        ),
+        closedElevation: 0,
+        openElevation: 0,
+        closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        closedColor: Colors.transparent,
+        middleColor: theme.cardColor,
+        tappable: false,
+        closedBuilder: (context, openContainer) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? theme.cardColor
+                  : Colors.white,
+              gradient: Theme.of(context).brightness == Brightness.dark
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.09),
+                      Colors.white.withOpacity(0.03),
+                    ],
+                  )
+                : null,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
+                width: 1,
               ),
             ),
-          );
-        },
-        onLongPress: showFolderOptions && RecipeManager.isFavorite(recipe)
-            ? () => _showRecipeFolderMenu(context)
-            : isPersonalized
-                ? () => _showDeleteDialog(context)
-                : null,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: matchedIngredients.isEmpty ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-            children: [
-              _RecipeAvatar(title: recipe.title, imagePath: displayImagePath, heroTag: recipe.title),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: matchedIngredients.isEmpty ? MainAxisAlignment.center : MainAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            recipe.title, 
-                            style: matchedIngredients.isEmpty 
-                                ? theme.textTheme.titleMedium 
-                                : theme.textTheme.titleLarge,
-                          ),
-                        ),
-
-                      ],
-                    ),
-                    if (matchedIngredients.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: recipe.ingredients.map((i) {
-                          final isMatch = matchedIngredients.contains(i.toLowerCase());
-                          return Chip(
-                            label: Text(
-                              i,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isMatch 
-                                    ? Colors.white 
-                                    : theme.colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                            backgroundColor: isMatch 
-                                ? theme.colorScheme.primary.withOpacity(0.3)
-                                : Colors.white.withOpacity(0.05),
-                            side: BorderSide(
-                              color: isMatch ? theme.colorScheme.primary : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                    if (showRating && (recipe.rating ?? 0) > 0) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ...List.generate(5, (index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 2),
-                              child: _PartialStar(
-                                filledPercentage: (recipe.rating! - index).clamp(0.0, 1.0),
-                                size: 14,
-                              ),
-                            );
-                          }),
-                          const SizedBox(width: 4),
-                          Text(
-                            recipe.rating!.toStringAsFixed(1),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.amber,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        ),
-        if (isPersonalized || !isDietaryCompatible)
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Stack(
               children: [
-                if (!isDietaryCompatible)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    margin: EdgeInsets.only(left: isPersonalized ? 6 : 0),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
+                InkWell(
+                  onTap: openContainer,
+                  onLongPress: showFolderOptions && RecipeManager.isFavorite(recipe)
+                      ? () => _showRecipeFolderMenu(context)
+                      : isPersonalized
+                          ? () => _showDeleteDialog(context)
+                          : null,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      crossAxisAlignment: matchedIngredients.isEmpty ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                      children: [
+                        _RecipeAvatar(title: recipe.title, imagePath: displayImagePath, heroTag: recipe.title),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: matchedIngredients.isEmpty ? MainAxisAlignment.center : MainAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      recipe.title, 
+                                      style: matchedIngredients.isEmpty 
+                                          ? theme.textTheme.titleMedium 
+                                          : theme.textTheme.titleLarge,
+                                    ),
+                                  ),
+
+                                ],
+                              ),
+                              if (matchedIngredients.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: recipe.ingredients.map((i) {
+                                    final isMatch = matchedIngredients.contains(i.toLowerCase());
+                                    return Chip(
+                                      label: Text(
+                                        i,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isMatch ? FontWeight.bold : FontWeight.normal,
+                                          color: isMatch 
+                                              ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
+                                              : theme.colorScheme.onSurface.withOpacity(0.6),
+                                        ),
+                                      ),
+                                      backgroundColor: isMatch 
+                                          ? theme.colorScheme.primary.withOpacity(0.3)
+                                          : theme.colorScheme.onSurface.withOpacity(0.05),
+                                      side: BorderSide(
+                                        color: isMatch ? theme.colorScheme.primary : Colors.transparent,
+                                        width: 1.5,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                              if (showRating && (recipe.rating ?? 0) > 0) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    ...List.generate(5, (index) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 2),
+                                        child: _PartialStar(
+                                          filledPercentage: (recipe.rating! - index).clamp(0.0, 1.0),
+                                          size: 14,
+                                        ),
+                                      );
+                                    }),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      recipe.rating!.toStringAsFixed(1),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.amber,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                if (isPersonalized)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.only(left: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
-                        ),
+                ),
+                if (isPersonalized || !isDietaryCompatible)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isDietaryCompatible)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: EdgeInsets.only(left: isPersonalized ? 6 : 0),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (isPersonalized)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(left: 6),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
               ],
             ),
-          ),
-      ],
-    ),
+          );
+        },
+      ),
     );
   }
 
@@ -4492,12 +4571,9 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               icon: const Icon(CupertinoIcons.trash),
               onPressed: _showDeleteDialog,
             ),
-          IconButton(
-            icon: Icon(
-              _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-              color: _isFavorite ? Colors.red : null,
-            ),
-            onPressed: _toggleFavorite,
+          _LikeButton(
+            isFavorite: _isFavorite,
+            onTap: _toggleFavorite,
           ),
         ],
       ),
@@ -4793,125 +4869,175 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
                 final key = ingredient.name;
                 final isChecked = _checkedIngredients.contains(key);
                 
-                return Padding(
-                    padding: const EdgeInsets.only(bottom: 8), // Reduced bottom padding slightly as Checkbox has internal padding
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          if (isChecked) {
-                            _checkedIngredients.remove(key);
-                          } else {
-                            _checkedIngredients.add(key);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Transform.scale(
-                            scale: 1.1,
-                            child: Checkbox(
-                              value: isChecked,
-                              onChanged: (v) {
-                                setState(() {
-                                  if (v == true) {
-                                    _checkedIngredients.add(key);
-                                  } else {
-                                    _checkedIngredients.remove(key);
-                                  }
-                                });
-                              },
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              activeColor: theme.colorScheme.primary,
-                              checkColor: theme.colorScheme.onPrimary,
-                              side: BorderSide(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  decoration: isChecked ? TextDecoration.lineThrough : null,
-                                  color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
-                                ),
-                                children: [
-                                  TextSpan(
-                                      text: ingredient.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  if (ingredient.quantity.isNotEmpty)
-                                    TextSpan(
-                                        text: '  ${ingredient.quantity}',
-                                        style: TextStyle(
-                                            color: theme.textTheme.bodyMedium?.color
-                                                ?.withOpacity(isChecked ? 0.3 : 0.7))),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                return _IngredientRow(
+                  name: ingredient.name,
+                  quantity: ingredient.quantity,
+                  isChecked: isChecked,
+                  onTap: () {
+                    setState(() {
+                      if (isChecked) {
+                        _checkedIngredients.remove(key);
+                      } else {
+                        _checkedIngredients.add(key);
+                      }
+                    });
+                  },
+                );
               })
             else
               // Fallback for old simple string list
                ...widget.recipe.ingredients.map((ingredient) {
                 final isChecked = _checkedIngredients.contains(ingredient);
-                return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
-                      onTap: () {
-                         setState(() {
-                          if (isChecked) {
-                            _checkedIngredients.remove(ingredient);
-                          } else {
-                            _checkedIngredients.add(ingredient);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                         crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Transform.scale(
-                            scale: 1.1,
-                            child: Checkbox(
-                              value: isChecked,
-                              onChanged: (v) {
-                                setState(() {
-                                  if (v == true) {
-                                    _checkedIngredients.add(ingredient);
-                                  } else {
-                                    _checkedIngredients.remove(ingredient);
-                                  }
-                                });
-                              },
-                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              activeColor: theme.colorScheme.primary,
-                              checkColor: theme.colorScheme.onPrimary,
-                               side: BorderSide(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              ingredient,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                  decoration: isChecked ? TextDecoration.lineThrough : null,
-                                  color: isChecked ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                return _IngredientRow(
+                  name: ingredient,
+                  quantity: '',
+                  isChecked: isChecked,
+                  onTap: () {
+                     setState(() {
+                      if (isChecked) {
+                        _checkedIngredients.remove(ingredient);
+                      } else {
+                        _checkedIngredients.add(ingredient);
+                      }
+                    });
+                  },
+                );
                }),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LikeButton extends StatefulWidget {
+  const _LikeButton({required this.isFavorite, required this.onTap});
+  final bool isFavorite;
+  final VoidCallback onTap;
+
+  @override
+  State<_LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends State<_LikeButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _scaleAnimation = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_LikeButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isFavorite && !oldWidget.isFavorite) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: IconButton(
+        icon: Icon(
+          widget.isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+          color: widget.isFavorite ? Colors.red : null,
+        ),
+        onPressed: () {
+          // Trigger animation if turning ON, or just toggle
+          // The parent handles the state change, so we rely on didUpdateWidget for the 'filling' animation.
+          // But we can also animate on tap for immediate feedback.
+          // If we want a "pop" effect on both check/uncheck, we can run it.
+          // Usually hearts pop when filled.
+          if (!widget.isFavorite) {
+             _controller.forward(from: 0.0);
+          }
+          widget.onTap();
+        },
+      ),
+    );
+  }
+}
+
+class _IngredientRow extends StatelessWidget {
+  const _IngredientRow({
+    required this.name,
+    required this.quantity,
+    required this.isChecked,
+    required this.onTap,
+  });
+
+  final String name;
+  final String quantity;
+  final bool isChecked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: isChecked ? 0.6 : 1.0,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Transform.scale(
+                scale: 1.1,
+                child: Checkbox(
+                  value: isChecked,
+                  onChanged: (_) => onTap(),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  activeColor: theme.colorScheme.primary,
+                  checkColor: theme.colorScheme.onPrimary,
+                  side: BorderSide(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5), width: 1.5),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      decoration: isChecked ? TextDecoration.lineThrough : null,
+                      color: isChecked 
+                          ? theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5) 
+                          : theme.textTheme.bodyLarge?.color,
+                    ),
+                    children: [
+                      TextSpan(
+                          text: name,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if (quantity.isNotEmpty)
+                        TextSpan(
+                            text: '  $quantity',
+                            style: TextStyle(
+                                color: theme.textTheme.bodyMedium?.color
+                                    ?.withValues(alpha: isChecked ? 0.3 : 0.7))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -5334,7 +5460,7 @@ class NutritionFact {
       };
 
   factory NutritionFact.fromJson(Map<String, dynamic> json) {
-    double _toDouble(dynamic raw) {
+    double toDouble(dynamic raw) {
       if (raw is int) return raw.toDouble();
       if (raw is double) return raw;
       if (raw is String) return double.tryParse(raw) ?? 0;
@@ -5343,7 +5469,7 @@ class NutritionFact {
 
     return NutritionFact(
       label: json['label'] as String? ?? '',
-      value: _toDouble(json['value']),
+      value: toDouble(json['value']),
       unit: json['unit'] as String? ?? 'g',
     );
   }
@@ -6454,7 +6580,7 @@ class _SettingsTile extends StatelessWidget {
               child: Icon(icon, color: effectiveIconColor, size: 18),
             ) : null,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            activeColor: theme.colorScheme.primary,
+            activeThumbColor: theme.colorScheme.primary,
           ),
           if (!lastItem)
             Divider(
@@ -6819,7 +6945,6 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
 
 class _EmptyStateWidget extends StatelessWidget {
   const _EmptyStateWidget({
-    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -6868,7 +6993,7 @@ class _EmptyStateWidget extends StatelessWidget {
 }
 
 class _LegalPage extends StatelessWidget {
-  const _LegalPage({super.key});
+  const _LegalPage();
 
   @override
   Widget build(BuildContext context) {
