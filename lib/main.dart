@@ -19,15 +19,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Enable edge-to-edge for Android 10+
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.dark, // Default to dark icons (for light backgrounds)
-    statusBarColor: Colors.transparent,
-  ));
-
   await SettingsManager.loadSettings();
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
