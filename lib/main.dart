@@ -31,14 +31,18 @@ class SettingsManager {
   static final ValueNotifier<bool> preventSleep = ValueNotifier(false);
   static final ValueNotifier<int> startScreenIndex = ValueNotifier(0); // 0: Search, 1: Favorites
   static final ValueNotifier<Set<DietaryRestriction>> dietaryDefaults = ValueNotifier({});
+
   static final ValueNotifier<Set<String>> customDietaryDefaults = ValueNotifier({});
+  static final ValueNotifier<bool> hasSeenOnboarding = ValueNotifier(false);
 
   static const _themeKey = 'is_dark_mode';
   static const _defaultsKey = 'show_default_recipes';
   static const _preventSleepKey = 'prevent_sleep';
   static const _startScreenKey = 'start_screen_index';
   static const _dietaryDefaultsKey = 'dietary_defaults';
+
   static const _customDietaryDefaultsKey = 'custom_dietary_defaults';
+  static const _onboardingKey = 'has_seen_onboarding';
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -67,6 +71,13 @@ class SettingsManager {
 
     applyDietaryToDefaults.value = prefs.getBool(_applyToDefaultsKey) ?? false;
     hideIncompatibleRecipes.value = prefs.getBool(_hideIncompatibleKey) ?? false;
+    hasSeenOnboarding.value = prefs.getBool(_onboardingKey) ?? false;
+  }
+
+  static Future<void> completeOnboarding() async {
+    hasSeenOnboarding.value = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingKey, true);
   }
 
   static Future<void> setDarkMode(bool value) async {
@@ -620,23 +631,23 @@ class _RecetasAppState extends State<RecetasApp> {
               hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: darkPrimary.withOpacity(0.8), width: 1.2),
+                borderSide: BorderSide(color: darkPrimary, width: 1.5),
               ),
             ),
             cardTheme: CardThemeData(
               color: darkSurface,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: const BorderRadius.all(Radius.circular(18)),
-                side: BorderSide(color: Colors.white.withOpacity(0.05)),
+              margin: EdgeInsets.zero,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
             ),
             chipTheme: ChipThemeData(
@@ -647,9 +658,9 @@ class _RecetasAppState extends State<RecetasApp> {
               labelStyle: const TextStyle(color: Colors.white),
               secondaryLabelStyle: const TextStyle(color: Colors.white),
             ),
-            floatingActionButtonTheme: FloatingActionButtonThemeData(
+            floatingActionButtonTheme: const FloatingActionButtonThemeData(
               backgroundColor: darkPrimary,
-              foregroundColor: darkBg,
+              foregroundColor: Color(0xFF1E1E24), // Text on button
             ),
              navigationBarTheme: NavigationBarThemeData(
               backgroundColor: darkBg,
@@ -658,9 +669,16 @@ class _RecetasAppState extends State<RecetasApp> {
               labelTextStyle: WidgetStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
             ),
           ),
-          home: ValueListenableBuilder<int>(
-            valueListenable: SettingsManager.startScreenIndex,
-            builder: (context, index, child) => const MainNavigationPage(),
+          home: ValueListenableBuilder<bool>(
+            valueListenable: SettingsManager.hasSeenOnboarding,
+            builder: (context, hasSeen, _) {
+              if (!hasSeen) return const OnboardingPage();
+              
+              return ValueListenableBuilder<int>(
+                valueListenable: SettingsManager.startScreenIndex,
+                builder: (context, index, child) => const MainNavigationPage(),
+              );
+            },
           ),
         );
       },
@@ -1629,24 +1647,45 @@ class _NewRecipePageState extends State<NewRecipePage> {
 
   // --- Logic Helpers ---
 
+  bool _areRecipesDifferent(Recipe oldR, Recipe newR) {
+    if (oldR.title != newR.title) return true;
+    if (oldR.prepTime != newR.prepTime) return true;
+    if (oldR.imagePath != newR.imagePath) return true;
+    
+    if (!listEquals(oldR.ingredients, newR.ingredients)) return true;
+    
+    if (oldR.detailedIngredients.length != newR.detailedIngredients.length) return true;
+    for (int i = 0; i < oldR.detailedIngredients.length; i++) {
+      if (oldR.detailedIngredients[i].name != newR.detailedIngredients[i].name) return true;
+      if (oldR.detailedIngredients[i].quantity != newR.detailedIngredients[i].quantity) return true;
+    }
+    
+    if (!listEquals(oldR.steps, newR.steps)) return true;
+    
+    if (!setEquals(oldR.categories.toSet(), newR.categories.toSet())) return true;
+    if (!setEquals(oldR.dietaryRestrictions.toSet(), newR.dietaryRestrictions.toSet())) return true;
+    if (!setEquals(oldR.customDietaryTags.toSet(), newR.customDietaryTags.toSet())) return true;
+
+    // Simple Nutrition check
+    if (oldR.nutritionFacts.length != newR.nutritionFacts.length) return true;
+    // To be safer, we could compare contents, but length + title/prep/ingredients covers 99% of edits.
+    // Let's do a deep check just in case.
+    for (int i = 0; i < oldR.nutritionFacts.length; i++) {
+        final f1 = oldR.nutritionFacts[i];
+        // Order might differ? Assuming strict order for now as they are generated in order.
+        final f2 = newR.nutritionFacts[i];
+        if (f1.label != f2.label || f1.value != f2.value || f1.unit != f2.unit) return true;
+    }
+    
+    return false;
+  }
+
   Future<void> _saveRecipe() async {
      if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, escribe un nombre para la receta')),
       );
       return;
-    }
-    
-    // Check if title changed effectively creating a new recipe vs editing
-    // If we are editing, we usually want to keep the same identity (title) OR handle rename.
-    // For simplicity, if we edit a default recipe, we create a custom override.
-    // If we rename, it becomes a new recipe and we might want to delete the old override?
-    // Let's assume title is the ID for now.
-    
-    if (widget.recipeToEdit != null && widget.recipeToEdit!.title != _titleController.text.trim()) {
-       // Name changed. If it was a custom recipe, ideally we should remove the old one?
-       // But user might want to "Save As". For now act as "Save As" / New Recipe if name differs.
-       // However, to support "Edit", if name is same, it updates.
     }
     
     // Normalize Ingredients
@@ -1677,7 +1716,65 @@ class _NewRecipePageState extends State<NewRecipePage> {
       imagePath: _selectedImagePath,
       steps: _steps,
       nutritionFacts: nutritionFacts,
+      rating: widget.recipeToEdit?.rating, // Preserve rating if editing
     );
+
+    // Check for changes if editing
+    if (widget.recipeToEdit != null) {
+      if (_areRecipesDifferent(widget.recipeToEdit!, newRecipe)) {
+        final choice = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Guardar cambios'),
+            content: const Text('Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), 
+                child: const Text('Cancelar')
+              ),
+              TextButton(
+                  onPressed: () => Navigator.pop(context, 'new'),
+                  child: const Text('Guardar como nueva')
+              ),
+              FilledButton(
+                  onPressed: () => Navigator.pop(context, 'update'),
+                  child: const Text('Actualizar')
+              ),
+            ],
+          ),
+        );
+
+        if (choice == null) return; // Cancelled
+        
+        if (choice == 'new') {
+           // Create copy
+           Recipe recipeToSave = newRecipe;
+           // If user didn't change title manually, we must change it to allow 'new'.
+           if (newRecipe.title == widget.recipeToEdit!.title) {
+              recipeToSave = newRecipe.copyWith(title: '${newRecipe.title} (Copia)');
+           }
+           
+           try {
+             await RecipeManager.addRecipe(recipeToSave);
+             // Also favorite the copy
+             if (!RecipeManager.isFavorite(recipeToSave)) {
+               await RecipeManager.toggleFavorite(recipeToSave);
+             }
+             
+             if (mounted) {
+               Navigator.of(context).pop();
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receta guardada como nueva')));
+             }
+           } catch (e) {
+             if (mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar')));
+             }
+           }
+           return;
+        }
+        // If 'update', continue to standard saving logic below
+      }
+    }
 
     try {
       if (widget.recipeToEdit != null && widget.recipeToEdit!.title != newRecipe.title) {
@@ -1685,12 +1782,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
       }
       await RecipeManager.addRecipe(newRecipe);
       
-      // If we adjusted a custom recipe (same title), 'addRecipe' overwrites it which is correct.
-      // If we edited a default recipe (same title), 'addRecipe' creates the override.
-      // Favorites should be preserved if title matches.
-      
       if (!RecipeManager.isFavorite(newRecipe) && widget.recipeToEdit == null) {
-         // Auto-favorite only NEW recipes, not edits unless strictly desired.
          await RecipeManager.toggleFavorite(newRecipe); 
       }
       
@@ -3807,10 +3899,15 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
     
     // Check for plural forms (e.g. "tomate" matches "tomates", "huevo" matches "huevos")
     // If recipe has "tomates" and search is "tomate" -> r contains s
+    // AND length diff is small to avoid "pan" matching "empanada" purely by string containment without checking boundaries here
     if (r.contains(s) && r.length <= s.length + 2) return true;
     
     // If recipe has "tomate" and search is "tomates" -> s contains r
     if (s.contains(r) && s.length <= r.length + 2) return true;
+
+    // Word boundary check (allows "pan" -> "pan integral")
+    // Matches if 's' appears as a whole word inside 'r'
+    if (RegExp(r'\b' + RegExp.escape(s) + r'\b').hasMatch(r)) return true;
     
     return false;
   }
@@ -5435,6 +5532,37 @@ class Recipe {
     
     return list;
   }
+
+  Recipe copyWith({
+    String? title,
+    List<String>? ingredients,
+    List<DietaryRestriction>? dietaryRestrictions,
+    List<String>? customDietaryTags,
+    List<RecipeCategory>? categories,
+    String? imagePath,
+    List<String>? steps,
+    List<NutritionFact>? nutritionFacts,
+    String? prepTime,
+    List<DetailedIngredient>? detailedIngredients,
+    double? rating,
+    DateTime? dateRated,
+    bool nullifyRating = false,
+  }) {
+    return Recipe(
+      title: title ?? this.title,
+      ingredients: ingredients ?? this.ingredients,
+      dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
+      customDietaryTags: customDietaryTags ?? this.customDietaryTags,
+      categories: categories ?? this.categories,
+      imagePath: imagePath ?? this.imagePath,
+      steps: steps ?? this.steps,
+      nutritionFacts: nutritionFacts ?? this.nutritionFacts,
+      prepTime: prepTime ?? this.prepTime,
+      detailedIngredients: detailedIngredients ?? this.detailedIngredients,
+      rating: nullifyRating ? null : (rating ?? this.rating),
+      dateRated: nullifyRating ? null : (dateRated ?? this.dateRated),
+    );
+  }
 }
 
 class NutritionFact {
@@ -5747,7 +5875,11 @@ class RecipeManager {
     final bool contentMatches = 
         listEquals(recipe.ingredients, defaultMatch.ingredients) &&
         listEquals(recipe.steps, defaultMatch.steps) &&
-        listEquals(recipe.detailedIngredients.map((e)=>e.toJson().toString()).toList(), defaultMatch.detailedIngredients.map((e)=>e.toJson().toString()).toList());
+        listEquals(recipe.detailedIngredients.map((e)=>e.toJson().toString()).toList(), defaultMatch.detailedIngredients.map((e)=>e.toJson().toString()).toList()) &&
+        listEquals(recipe.categories, defaultMatch.categories) &&
+        listEquals(recipe.dietaryRestrictions, defaultMatch.dietaryRestrictions) &&
+        recipe.imagePath == defaultMatch.imagePath &&
+        recipe.prepTime == defaultMatch.prepTime;
         
     return contentMatches;
   }
@@ -7316,3 +7448,344 @@ class _PremiumRatingButton extends StatelessWidget {
 
 
 
+
+// --- Onboarding Flow ---
+
+class OnboardingPage extends StatefulWidget {
+  const OnboardingPage({super.key});
+
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final int _totalPages = 3;
+
+  void _nextPage() {
+    if (_currentPage < _totalPages - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _completeOnboarding();
+    }
+  }
+
+  void _completeOnboarding() {
+    SettingsManager.completeOnboarding();
+    // Use pushReplacement to avoid going back to onboarding
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const MainNavigationPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Progress Bar (Wizard Style)
+            Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+               child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_totalPages, (index) {
+                     final isActive = index <= _currentPage;
+                     return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 4,
+                        width: isActive ? 32 : 16, // Active step is wider
+                        decoration: BoxDecoration(
+                           color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.1),
+                           borderRadius: BorderRadius.circular(2),
+                        ),
+                     );
+                  }),
+               ),
+            ),
+
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(), // Enforce buttons
+                onPageChanged: (index) => setState(() => _currentPage = index),
+                children: [
+                  _buildStep1Welcome(theme),
+                  _buildStep2Features(theme, isDark),
+                  _buildStep3Settings(theme, isDark),
+                ],
+              ),
+            ),
+
+            // Bottom Navigation
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                   onPressed: _nextPage,
+                   style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary, // High contrast text
+                   ),
+                   child: Text(
+                      _currentPage == _totalPages - 1 ? 'Comenzar a cocinar' : 'Siguiente',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                   ),
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Step 1: Welcome
+  Widget _buildStep1Welcome(ThemeData theme) {
+     final isDark = theme.brightness == Brightness.dark;
+     return Padding(
+       padding: const EdgeInsets.all(24),
+       child: Column(
+         mainAxisAlignment: MainAxisAlignment.center,
+         children: [
+            ClipRRect(
+               borderRadius: BorderRadius.circular(32),
+               child: Image.asset(
+                  isDark ? 'assets/images/onboarding_logo_dark.png' : 'assets/images/onboarding_logo_light.jpg',
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.cover,
+               ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+               'Bienvenido a Recetas',
+               style: theme.textTheme.headlineMedium?.copyWith(
+                 fontWeight: FontWeight.bold,
+               ),
+               textAlign: TextAlign.center,
+            ),
+         ],
+       ),
+     );
+  }
+
+  // Step 2: All Features
+  Widget _buildStep2Features(ThemeData theme, bool isDark) {
+     return SingleChildScrollView(
+       padding: const EdgeInsets.all(24),
+       child: Column(
+         children: [
+            // No title text requested
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.search,
+               title: 'Búsqueda Inteligente',
+               desc: 'Encuentra recetas según los ingredientes que ya tengas en tu nevera.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: Icons.auto_awesome, 
+               title: '+1000 Recetas',
+               desc: 'Una base de datos inmensa de recetas creativas y deliciosas.',
+            ),
+            const SizedBox(height: 16),
+             _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.add_circled,
+               title: 'Tus Propias Recetas',
+               desc: 'Añade y organiza tus creaciones culinarias en un solo lugar.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.slider_horizontal_3,
+               title: 'Filtros Dietéticos',
+               desc: 'Vegetariano, vegano, sin gluten... Filtra según tus necesidades.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.moon,
+               title: 'Modo Oscuro',
+               desc: 'Una interfaz elegante que cuida tus ojos.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.cloud_upload,
+               title: 'Importar/Exportar',
+               desc: 'Haz copias de seguridad de tus recetas y compártelas.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.globe,
+               title: 'Búsqueda en Internet',
+               desc: 'Busca recetas en Google desdela aplicación.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.star,
+               title: 'Valoración',
+               desc: 'Califica las recetas y organiza tus favoritas.',
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+               theme, isDark,
+               icon: CupertinoIcons.shuffle,
+               title: 'Receta Aleatoria',
+               desc: '¿Indeciso? Deja que el azar decida qué cocinar hoy.',
+            ),
+         ],
+       ),
+     );
+  }
+
+  // Step 3: Initial Setup
+  Widget _buildStep3Settings(ThemeData theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+           Text(
+             'Personaliza tu experiencia',
+             style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+             textAlign: TextAlign.center,
+           ),
+           const SizedBox(height: 32),
+           
+           // Dark Mode Toggle
+           ValueListenableBuilder<bool>(
+              valueListenable: SettingsManager.isDarkMode,
+              builder: (context, isDarkEnabled, _) {
+                 return _buildSettingToggle(
+                    theme, isDark,
+                    title: 'Modo Oscuro',
+                    subtitle: 'Activa el tema oscuro.',
+                    icon: isDarkEnabled ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
+                    value: isDarkEnabled,
+                    onChanged: (v) => SettingsManager.setDarkMode(v),
+                 );
+              }
+           ),
+           const SizedBox(height: 16),
+           
+           // Default Recipes
+           ValueListenableBuilder<bool>(
+              valueListenable: SettingsManager.showDefaultRecipes,
+              builder: (context, showDefaults, _) {
+                 return _buildSettingToggle(
+                    theme, isDark,
+                    title: 'Recetas Predeterminadas',
+                    subtitle: 'Carga nuestras +1000 recetas iniciales.',
+                    icon: Icons.book, 
+                    value: showDefaults,
+                    onChanged: (v) => SettingsManager.setShowDefaults(v),
+                 );
+              }
+           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(ThemeData theme, bool isDark, {required IconData icon, required String title, required String desc}) {
+     return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+           color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+           borderRadius: BorderRadius.circular(20),
+           boxShadow: isDark ? [] : [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+           ],
+           border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
+        ),
+        child: Row(
+           children: [
+              Container(
+                 padding: const EdgeInsets.all(12),
+                 decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                 ),
+                 child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                 child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                       const SizedBox(height: 4),
+                       Text(desc, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                    ],
+                 ),
+              )
+           ],
+        ),
+     );
+  }
+
+
+
+  Widget _buildSettingToggle(ThemeData theme, bool isDark, {required String title, required String subtitle, required IconData icon, required bool value, required ValueChanged<bool> onChanged}) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+           color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+           borderRadius: BorderRadius.circular(20),
+           border: Border.all(color: value ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.1), width: value ? 2 : 1),
+        ),
+        child: Row(
+           children: [
+              Container(
+                 padding: const EdgeInsets.all(10),
+                 decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                 ),
+                 child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                 child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                       Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                       Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                    ],
+                 ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                 value: value, 
+                 onChanged: onChanged,
+                 activeColor: theme.colorScheme.primary,
+              ),
+           ],
+        ),
+     );
+  }
+}
