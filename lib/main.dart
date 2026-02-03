@@ -14,6 +14,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animations/animations.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 // import 'shopping_list.dart';
 
 
@@ -4473,6 +4475,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   int _selectedIndex = 0;
   bool _isFavorite = false;
   late Recipe _currentRecipe;
+  final GlobalKey _globalKey = GlobalKey();
 
   @override
   void initState() {
@@ -4595,6 +4598,57 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     }
   }
 
+  Future<void> _shareRecipe(BuildContext context, ThemeData theme) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+
+      // Wait a bit to ensure the off-screen widget is rendered
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      
+      if (boundary == null) {
+         throw Exception("No se pudo encontrar el límite de repintado");
+      }
+
+      // Capture image
+      // pixelRatio 3.0 for high resolution
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData!.buffer.asUint8List();
+
+      final directory = await getApplicationDocumentsDirectory();
+      final sanitizedTitle = _currentRecipe.title.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+      final imagePath = '${directory.path}/${sanitizedTitle}_receta.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(pngBytes);
+      
+      if (mounted) {
+        Navigator.pop(context); // Hide loading
+        
+        await Share.shareXFiles(
+           [XFile(imagePath)],
+           text: '¡Mira esta receta!\n${_currentRecipe.title}',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Hide loading (if open)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al compartir: $e')),
+        );
+      }
+      print('Share error: $e');
+    }
+  }
+
   void _showRatingDialog() {
     showDialog(
       context: context,
@@ -4672,9 +4726,35 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             isFavorite: _isFavorite,
             onTap: _toggleFavorite,
           ),
+          IconButton(
+            icon: const Icon(CupertinoIcons.share),
+            tooltip: 'Compartir receta',
+            onPressed: () => _shareRecipe(context, theme),
+          ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        children: [
+            // Off-screen widget for capture
+            Transform.translate(
+              offset: const Offset(-9999, -9999),
+               child: OverflowBox(
+                 minWidth: 0, 
+                 maxWidth: double.infinity, 
+                 minHeight: 0, 
+                 maxHeight: double.infinity,
+                 alignment: Alignment.topLeft,
+                 child: RepaintBoundary(
+                   key: _globalKey,
+                   child: _RecipeShareCard(
+                      recipe: _currentRecipe, 
+                      isDark: theme.brightness == Brightness.dark,
+                      imagePathOverride: displayImagePath,
+                   ), 
+                 ),
+               ),
+            ),
+           Column(
           children: [
             Stack(
               children: [
@@ -4789,6 +4869,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               ],
             ),
           ),
+        ],
+      ),
         ],
       ),
     );
@@ -7861,5 +7943,218 @@ class _OnboardingPageState extends State<OnboardingPage> {
            ],
         ),
      );
+  }
+}
+
+class _RecipeShareCard extends StatelessWidget {
+  final Recipe recipe;
+  final bool isDark;
+  final String? imagePathOverride;
+
+  const _RecipeShareCard({
+    required this.recipe, 
+    required this.isDark,
+    this.imagePathOverride,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const double width = 600; 
+    
+    // Determine effective image path
+    final effectiveImagePath = imagePathOverride ?? recipe.imagePath;
+
+    // Theme Colors
+    final backgroundColor = isDark ? const Color(0xFF1E1E24) : Colors.white;
+    final titleColor = isDark ? Colors.white : const Color(0xFF333333);
+    final primaryColor = isDark ? const Color(0xFF9CCC65) : const Color(0xFF6B8E23); // Fresh Green vs Olive
+    final secondaryColor = const Color(0xFFC05832); // Terracotta
+    final chipColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F5F0);
+    final chipTextColor = isDark ? Colors.white.withOpacity(0.9) : const Color(0xFF444444);
+    
+    return Container(
+      width: width,
+      color: backgroundColor,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+               Text(
+                  'RECETAS',
+                  style: TextStyle(
+                     fontSize: 24,
+                     fontWeight: FontWeight.w900,
+                     letterSpacing: 4,
+                     color: primaryColor, 
+                  ),
+               ),
+               if (recipe.prepTime != null)
+                 Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                   decoration: BoxDecoration(
+                     color: primaryColor.withOpacity(0.1),
+                     borderRadius: BorderRadius.circular(20),
+                   ),
+                   child: Row(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+                       Icon(Icons.timer_outlined, size: 16, color: primaryColor),
+                       const SizedBox(width: 6),
+                       Text(
+                         recipe.prepTime!,
+                         style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
+                       ),
+                     ],
+                   ),
+                 )
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          Text(
+            recipe.title,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: titleColor,
+              height: 1.1,
+            ),
+          ),
+          
+          if (effectiveImagePath != null) ...[
+             const SizedBox(height: 24),
+             ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: AspectRatio(
+                  aspectRatio: 16/9,
+                  child: effectiveImagePath.startsWith('assets/')
+                      ? Image.asset(
+                          effectiveImagePath, 
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(primaryColor),
+                        )
+                      : Image.file(
+                          File(effectiveImagePath), 
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(primaryColor),
+                        ),
+                ),
+             ),
+             const SizedBox(height: 32),
+          ] else ...[
+             const SizedBox(height: 24),
+             ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: AspectRatio(
+                  aspectRatio: 16/9,
+                  child: _buildPlaceholder(primaryColor),
+                ),
+             ),
+             const SizedBox(height: 32),
+          
+          ],
+          
+          // Ingredients
+          Text(
+             'INGREDIENTES',
+             style: GoogleFonts.nunito(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                color: secondaryColor, 
+             ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+             spacing: 12,
+             runSpacing: 12,
+             children: recipe.ingredients.map((ing) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                   color: chipColor,
+                   borderRadius: BorderRadius.circular(12),
+                   border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                ),
+                child: Text(
+                   ing,
+                   style: GoogleFonts.nunito(
+                      fontSize: 16,
+                      color: chipTextColor,
+                      fontWeight: FontWeight.w600
+                   ),
+                ),
+             )).toList(),
+          ),
+          
+           if (recipe.steps.isNotEmpty) ...[
+             const SizedBox(height: 32),
+             const Divider(thickness: 1, color: Colors.black12),
+             const SizedBox(height: 24),
+             Text(
+               'PREPARACIÓN',
+               style: GoogleFonts.nunito(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  color: secondaryColor, 
+               ),
+             ),
+             const SizedBox(height: 16),
+             ...recipe.steps.asMap().entries.map((entry) {
+                final index = entry.key + 1;
+                final step = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(
+                         '$index.',
+                         style: GoogleFonts.nunito(
+                           fontSize: 16,
+                           fontWeight: FontWeight.bold,
+                           color: primaryColor,
+                         ),
+                       ),
+                       const SizedBox(width: 12),
+                       Expanded(
+                         child: Text(
+                           step,
+                           style: GoogleFonts.nunito(
+                             fontSize: 16,
+                             color: chipTextColor,
+                             height: 1.5,
+                           ),
+                         ),
+                       ),
+                    ],
+                  ),
+                );
+             }),
+           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(Color primaryColor) {
+    return Container(
+      color: primaryColor.withOpacity(0.05),
+      child: Center(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Image.asset(
+             isDark ? 'assets/images/onboarding_logo_dark.png' : 'assets/images/onboarding_logo_light.jpg',
+             width: 120,
+             height: 120,
+             fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
   }
 }
