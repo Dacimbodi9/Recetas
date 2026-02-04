@@ -2016,7 +2016,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7), // OLED Black for Dark Mode
+      // backgroundColor: Use theme default
+
       body: SafeArea(
         child: Column(
           children: [
@@ -4706,30 +4707,70 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentRecipe.title),
+        title: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Text(_currentRecipe.title),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.pencil),
-            tooltip: 'Editar receta',
-            onPressed: () {
-               Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => NewRecipePage(recipeToEdit: _currentRecipe)),
-               );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'favorite') _toggleFavorite();
+              if (value == 'edit') {
+                 Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => NewRecipePage(recipeToEdit: _currentRecipe)),
+                 );
+              }
+              if (value == 'share') _shareRecipe(context, theme);
+              if (value == 'delete') _showDeleteDialog();
             },
-          ),
-          if (isPersonalized)
-            IconButton(
-              icon: const Icon(CupertinoIcons.trash),
-              onPressed: _showDeleteDialog,
-            ),
-          _LikeButton(
-            isFavorite: _isFavorite,
-            onTap: _toggleFavorite,
-          ),
-          IconButton(
-            icon: const Icon(CupertinoIcons.share),
-            tooltip: 'Compartir receta',
-            onPressed: () => _shareRecipe(context, theme),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'favorite',
+                child: Row(
+                  children: [
+                    Icon(
+                      _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                      color: _isFavorite ? Colors.red : theme.iconTheme.color,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(_isFavorite ? 'Quitar de favoritos' : 'Favoritos'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.pencil, size: 20, color: theme.iconTheme.color),
+                    const SizedBox(width: 12),
+                    const Text('Editar'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.share, size: 20, color: theme.iconTheme.color),
+                    const SizedBox(width: 12),
+                    const Text('Compartir'),
+                  ],
+                ),
+              ),
+              if (isPersonalized)
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(CupertinoIcons.trash, size: 20, color: theme.colorScheme.error),
+                      const SizedBox(width: 12),
+                      Text('Eliminar', style: TextStyle(color: theme.colorScheme.error)),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),
