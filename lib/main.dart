@@ -7836,9 +7836,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                width: double.infinity,
                padding: const EdgeInsets.all(16),
                decoration: BoxDecoration(
-                 color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-                 borderRadius: BorderRadius.circular(20),
-                 border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
+                 color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                 borderRadius: BorderRadius.circular(16),
+                 border: Border.all(
+                   color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                 ),
+                 boxShadow: isDark ? null : [
+                   BoxShadow(
+                     color: Colors.black.withOpacity(0.02),
+                     blurRadius: 10,
+                     offset: const Offset(0, 4),
+                   )
+                 ],
                ),
                child: Column(
                  crossAxisAlignment: CrossAxisAlignment.start,
@@ -7911,7 +7920,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
      return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-           color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+           color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
            borderRadius: BorderRadius.circular(20),
            boxShadow: isDark ? [] : [
               BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
@@ -7950,9 +7959,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-           color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-           borderRadius: BorderRadius.circular(20),
-           border: Border.all(color: value ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.1), width: value ? 2 : 1),
+           color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+           borderRadius: BorderRadius.circular(16),
+           border: Border.all(
+             color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+           ),
+           boxShadow: isDark ? null : [
+             BoxShadow(
+               color: Colors.black.withOpacity(0.02),
+               blurRadius: 10,
+               offset: const Offset(0, 4),
+             )
+           ],
         ),
         child: Row(
            children: [
