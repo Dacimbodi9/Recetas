@@ -1,5 +1,3 @@
-import 'package:flutter/widgets.dart';
-
 class AppLocalization {
   static final AppLocalization instance = AppLocalization._internal();
   AppLocalization._internal();
@@ -25,9 +23,12 @@ class AppLocalization {
     "Aplicar a recetas predeterminadas": "Apply to default recipes",
     "Atrás": "Back",
     "Añade los ingredientes necesarios": "Add necessary ingredients",
-    "Añade recetas para explorar sus ingredientes": "Add recipes to explore their ingredients",
-    "Añade tus propias recetas para verlas aquí": "Add your own recipes to see them here",
-    "Añade y organiza tus creaciones culinarias en un solo lugar.": "Add and organize your culinary creations in one place.",
+    "Añade recetas para explorar sus ingredientes":
+        "Add recipes to explore their ingredients",
+    "Añade tus propias recetas para verlas aquí":
+        "Add your own recipes to see them here",
+    "Añade y organiza tus creaciones culinarias en un solo lugar.":
+        "Add and organize your culinary creations in one place.",
     "Añadir": "Add",
     "Añadir etiqueta": "Add tag",
     "Añadir foto": "Add photo",
@@ -38,7 +39,8 @@ class AppLocalization {
     "Borrar TODOS los datos": "Delete ALL data",
     "Borrar todo": "Delete all",
     "Borrar todos los datos": "Delete all data",
-    "Busca recetas en Google desde la aplicación.": "Search for recipes on Google from the app.",
+    "Busca recetas en Google desde la aplicación.":
+        "Search for recipes on Google from the app.",
     "Buscador": "Search engine",
     "Buscar": "Search",
     "Buscar en Internet": "Search on the Internet",
@@ -50,10 +52,12 @@ class AppLocalization {
     "Búsqueda por ingredientes...": "Search by ingredients...",
     "CATEGORÍA": "CATEGORY",
     "Calendario": "Calendar",
-    "Califica las recetas y organiza tus favoritas.": "Rate recipes and organize your favorites.",
+    "Califica las recetas y organiza tus favoritas.":
+        "Rate recipes and organize your favorites.",
     "Cancelar": "Cancel",
     "Cantidad (ej: 100g)": "Amount (e.g., 100g)",
-    "Carga nuestras +1000 recetas iniciales.": "Load our +1000 initial recipes.",
+    "Carga nuestras +1000 recetas iniciales.":
+        "Load our +1000 initial recipes.",
     "Categoría (Opcional)": "Category (Optional)",
     "Cerrar": "Close",
     "Comenzar a cocinar": "Start cooking",
@@ -84,15 +88,19 @@ class AppLocalization {
     "Eliminar carpeta": "Delete folder",
     "Eliminar paso": "Delete step",
     "Eliminar receta": "Delete recipe",
-    "Encuentra recetas según los ingredientes que ya tengas en tu nevera.": "Find recipes based on the ingredients you already have in your fridge.",
+    "Encuentra recetas según los ingredientes que ya tengas en tu nevera.":
+        "Find recipes based on the ingredients you already have in your fridge.",
     "Ensaladas": "Salads",
     "Entrantes": "Appetizers",
     "Error al guardar": "Error saving",
     "Error al guardar la receta": "Error saving recipe",
-    "Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?": "This will delete all your custom recipes and folders. It cannot be undone. Are you sure?",
+    "Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?":
+        "This will delete all your custom recipes and folders. It cannot be undone. Are you sure?",
     "Etiquetas personalizadas:": "Custom tags:",
-    "Excluir siempre recetas incompatibles": "Always exclude incompatible recipes",
-    "Excluye recetas incompatibles. Elige las que coincidan con tu dieta.": "Exclude incompatible recipes. Choose those that match your diet.",
+    "Excluir siempre recetas incompatibles":
+        "Always exclude incompatible recipes",
+    "Excluye recetas incompatibles. Elige las que coincidan con tu dieta.":
+        "Exclude incompatible recipes. Choose those that match your diet.",
     "Exportar recetas": "Export recipes",
     "Favoritos": "Favorites",
     "Filtros Dietéticos": "Dietary Filters",
@@ -108,8 +116,10 @@ class AppLocalization {
     "Guardar como nueva": "Save as new",
     "Guardar en dispositivo": "Save to device",
     "Guarniciones": "Side dishes",
-    "Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?": "You've modified the recipe. Update the current one or save as new?",
-    "Haz copias de seguridad de tus recetas y compártelas.": "Backup your recipes and share them.",
+    "Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?":
+        "You've modified the recipe. Update the current one or save as new?",
+    "Haz copias de seguridad de tus recetas y compártelas.":
+        "Backup your recipes and share them.",
     "INFORMACIÓN": "INFORMATION",
     "INGREDIENTES": "INGREDIENTS",
     "Imagen actualizada": "Image updated",
@@ -129,7 +139,8 @@ class AppLocalization {
     "Mis Recetas": "My Recipes",
     "Modo Oscuro": "Dark Mode",
     "Mostrar Recetas Predeterminadas": "Show Default Recipes",
-    "Mostrar indicador rojo también en recetas incluidas en la app": "Show red indicator also on default recipes",
+    "Mostrar indicador rojo también en recetas incluidas en la app":
+        "Show red indicator also on default recipes",
     "Mover a carpeta": "Move to folder",
     "Mover abajo": "Move down",
     "Mover arriba": "Move up",
@@ -141,12 +152,15 @@ class AppLocalization {
     "No contiene productos animales": "Does not contain animal products",
     "No existen recetas": "No recipes exist",
     "No hay ingredientes": "No ingredients",
-    "No hay ingredientes disponibles en esta categoría": "No ingredients available in this category",
-    "No hay pasos disponibles para esta receta.": "No steps available for this recipe.",
+    "No hay ingredientes disponibles en esta categoría":
+        "No ingredients available in this category",
+    "No hay pasos disponibles para esta receta.":
+        "No steps available for this recipe.",
     "No hay recetas": "No recipes",
     "No hay recetas disponibles": "No recipes available",
     "No hay recetas para exportar": "No recipes to export",
-    "No mostrar recetas que no cumplan con los filtros": "Do not show recipes that do not meet the filters",
+    "No mostrar recetas que no cumplan con los filtros":
+        "Do not show recipes that do not meet the filters",
     "No se encontraron recetas": "No recipes found",
     "No se pudo abrir el navegador": "Could not open browser",
     "No tienes favoritos": "No favorites",
@@ -178,7 +192,8 @@ class AppLocalization {
     "Repostería y Harinas": "Baking & Flours",
     "Restricciones dietéticas": "Dietary restrictions",
     "Restricciones estándar:": "Standard restrictions:",
-    "Selecciona las restricciones que coincidan con tus preferencias (ej: si eres vegetariano, selecciona \"vegetariano\"). Añadirá un indicador rojo a las recetas que no cumplen con estas restricciones.": "Select the restrictions that match your preferences (e.g., if you are vegetarian, select \"vegetarian\"). This will add a red indicator to recipes that do not meet these restrictions.",
+    "Selecciona las restricciones que coincidan con tus preferencias (ej: si eres vegetariano, selecciona \"vegetariano\"). Añadirá un indicador rojo a las recetas que no cumplen con estas restricciones.":
+        "Select the restrictions that match your preferences (e.g., if you are vegetarian, select \"vegetarian\"). This will add a red indicator to recipes that do not meet these restrictions.",
     "Seleccionados": "Selected",
     "Seleccionar icono": "Select icon",
     "Siguiente": "Next",
@@ -197,18 +212,23 @@ class AppLocalization {
     "Toca una estrella para valorar:": "Tap a star to rate:",
     "Tu valoración": "Your rating",
     "Tus Propias Recetas": "Your Own Recipes",
-    "Tus recetas guardadas aparecerán aquí": "Your saved recipes will appear here",
-    "Una base de datos inmensa de recetas creativas y deliciosas.": "A huge database of creative and delicious recipes.",
-    "Una interfaz elegante que cuida tus ojos.": "An elegant interface that takes care of your eyes.",
+    "Tus recetas guardadas aparecerán aquí":
+        "Your saved recipes will appear here",
+    "Una base de datos inmensa de recetas creativas y deliciosas.":
+        "A huge database of creative and delicious recipes.",
+    "Una interfaz elegante que cuida tus ojos.":
+        "An elegant interface that takes care of your eyes.",
     "Valora recetas para verlas aquí": "Rate recipes to see them here",
     "Valoraciones": "Ratings",
     "Valoración": "Rating",
     "Valorar receta": "Rate recipe",
     "Vegano": "Vegan",
     "Vegetariano": "Vegetarian",
-    "Vegetariano, vegano, sin gluten... Filtra según tus necesidades.": "Vegetarian, vegan, gluten-free... Filter according to your needs.",
+    "Vegetariano, vegano, sin gluten... Filtra según tus necesidades.":
+        "Vegetarian, vegan, gluten-free... Filter according to your needs.",
     "¿Cómo se prepara?": "How is it prepared?",
-    "¿Indeciso? Deja que el azar decida qué cocinar hoy.": "Undecided? Let chance decide what to cook today.",
+    "¿Indeciso? Deja que el azar decida qué cocinar hoy.":
+        "Undecided? Let chance decide what to cook today.",
   };
 }
 
