@@ -12,7 +12,7 @@ import 'package:recetas/main.dart';
 void main() {
   testWidgets('App load smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const RecetasApp());
+    await tester.pumpWidget(RecetasApp());
 
     // Verify that our app title is present.
     // Note: Since main page loads async data (SettingsManager, RecipeManager), 

@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,7 @@ void main() async {
   await SettingsManager.loadSettings();
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
-  runApp(const RecetasApp());
+  runApp(RecetasApp());
 }
 
 class SettingsManager {
@@ -36,8 +37,10 @@ class SettingsManager {
 
   static final ValueNotifier<Set<String>> customDietaryDefaults = ValueNotifier({});
   static final ValueNotifier<bool> hasSeenOnboarding = ValueNotifier(false);
+  static final ValueNotifier<String> language = ValueNotifier('es');
 
   static const _themeKey = 'is_dark_mode';
+  static const _languageKey = 'app_language';
   static const _defaultsKey = 'show_default_recipes';
   static const _preventSleepKey = 'prevent_sleep';
   static const _startScreenKey = 'start_screen_index';
@@ -74,6 +77,19 @@ class SettingsManager {
     applyDietaryToDefaults.value = prefs.getBool(_applyToDefaultsKey) ?? false;
     hideIncompatibleRecipes.value = prefs.getBool(_hideIncompatibleKey) ?? false;
     hasSeenOnboarding.value = prefs.getBool(_onboardingKey) ?? false;
+    final deviceLocale = Platform.localeName;
+    final defaultLang = deviceLocale.startsWith('es') ? 'es' : 'en';
+    language.value = prefs.getString(_languageKey) ?? defaultLang;
+    AppLocalization.instance.setLanguage(language.value);
+  }
+
+  static Future<void> setLanguage(String lang) async {
+    AppLocalization.instance.setLanguage(lang);
+    language.value = lang;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languageKey, lang);
+    await RecipeManager.loadDefaultRecipes();
+    RecipeManager.notifyListeners();
   }
 
   static Future<void> completeOnboarding() async {
@@ -171,7 +187,7 @@ class SettingsManager {
     try {
       final recipes = await RecipeManager.getCustomRecipes();
       if (recipes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay recetas para exportar')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No hay recetas para exportar'.tr)));
         return;
       }
 
@@ -183,13 +199,13 @@ class SettingsManager {
             child: Wrap(
               children: <Widget>[
                 ListTile(
-                  leading: const Icon(Icons.share),
-                  title: const Text('Compartir'),
+                  leading: Icon(Icons.share),
+                  title: Text('Compartir'.tr),
                   onTap: () => Navigator.pop(context, 'share'),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.save),
-                  title: const Text('Guardar en dispositivo'),
+                  leading: Icon(Icons.save),
+                  title: Text('Guardar en dispositivo'.tr),
                   onTap: () => Navigator.pop(context, 'save'),
                 ),
               ],
@@ -210,7 +226,7 @@ class SettingsManager {
         final result = await Share.shareXFiles([XFile(file.path)], text: 'Copia de seguridad de Mis Recetas');
         
         if (result.status == ShareResultStatus.success) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copia de seguridad compartida')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Copia de seguridad compartida'.tr)));
         }
       } else if (choice == 'save') {
         final bytes = Uint8List.fromList(utf8.encode(jsonStr));
@@ -231,7 +247,7 @@ class SettingsManager {
            // So we assume if we get here, it's done or we have a path.
            // But if we passed bytes, we shouldn't write to outputFile again blindly unless we know it's just a path picker.
            // Given the error, I trust the plugin used the bytes.
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recetas guardadas exitosamente')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recetas guardadas exitosamente'.tr)));
         }
       }
     } catch (e) {
@@ -310,7 +326,7 @@ class SettingsManager {
         
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Importado: $importedCount. Omitido (duplicado): $skippedCount'),
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ));
       }
     } catch (e) {
@@ -322,14 +338,14 @@ class SettingsManager {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Borrar TODOS los datos'),
-        content: const Text('Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?'),
+        title: Text('Borrar TODOS los datos'.tr),
+        content: Text('Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?'.tr),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar'.tr)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true), 
-            child: const Text('Borrar todo')
+            child: Text('Borrar todo'.tr)
           ),
         ],
       ),
@@ -337,7 +353,7 @@ class SettingsManager {
 
     if (confirmed == true) {
       await RecipeManager.clearAllData();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datos eliminados correctamente')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Datos eliminados correctamente'.tr)));
     }
   }
 }
@@ -356,34 +372,34 @@ extension DietaryRestrictionExtension on DietaryRestriction {
   String get displayName {
     switch (this) {
       case DietaryRestriction.vegetariano:
-        return 'Vegetariano';
+        return 'Vegetariano'.tr;
       case DietaryRestriction.vegano:
-        return 'Vegano';
+        return 'Vegano'.tr;
       case DietaryRestriction.sinlactosa:
-        return 'Sin lactosa';
+        return 'Sin lactosa'.tr;
       case DietaryRestriction.singluten:
-        return 'Sin gluten';
+        return 'Sin gluten'.tr;
       case DietaryRestriction.sinfrutossecos:
-        return 'Sin frutos secos';
+        return 'Sin frutos secos'.tr;
       case DietaryRestriction.sinmariscos:
-        return 'Sin mariscos';
+        return 'Sin mariscos'.tr;
     }
   }
 
   String get description {
     switch (this) {
       case DietaryRestriction.vegetariano:
-        return 'No contiene carne';
+        return 'No contiene carne'.tr;
       case DietaryRestriction.vegano:
-        return 'No contiene productos animales';
+        return 'No contiene productos animales'.tr;
       case DietaryRestriction.sinlactosa:
-        return 'Sin lactosa';
+        return 'Sin lactosa'.tr;
       case DietaryRestriction.singluten:
-        return 'Sin gluten';
+        return 'Sin gluten'.tr;
       case DietaryRestriction.sinfrutossecos:
-        return 'Sin frutos secos';
+        return 'Sin frutos secos'.tr;
       case DietaryRestriction.sinmariscos:
-        return 'Sin mariscos';
+        return 'Sin mariscos'.tr;
     }
   }
 }
@@ -403,21 +419,21 @@ extension RecipeCategoryX on RecipeCategory {
   String get displayName {
     switch (this) {
       case RecipeCategory.entrantes:
-        return 'Entrantes';
+        return 'Entrantes'.tr;
       case RecipeCategory.sopasycremas:
-        return 'Sopas y Cremas';
+        return 'Sopas y Cremas'.tr;
       case RecipeCategory.ensaladas:
-        return 'Ensaladas';
+        return 'Ensaladas'.tr;
       case RecipeCategory.platosprincipales:
-        return 'Platos Principales';
+        return 'Platos Principales'.tr;
       case RecipeCategory.guarniciones:
-        return 'Guarniciones';
+        return 'Guarniciones'.tr;
       case RecipeCategory.postresydulces:
-        return 'Postres y Dulces';
+        return 'Postres y Dulces'.tr;
       case RecipeCategory.bebidas:
-        return 'Bebidas';
+        return 'Bebidas'.tr;
       case RecipeCategory.otros:
-        return 'Otros';
+        return 'Otros'.tr;
       
     }
   }
@@ -459,21 +475,21 @@ extension IngredientCategoryX on IngredientCategory {
   String get displayName {
     switch (this) {
       case IngredientCategory.frescosVegetales:
-        return 'Frescos Vegetales';
+        return 'Frescos Vegetales'.tr;
       case IngredientCategory.proteinaAnimal:
-        return 'Proteína Animal';
+        return 'Proteína Animal'.tr;
       case IngredientCategory.lacteosYHuevos:
-        return 'Lácteos y Huevos';
+        return 'Lácteos y Huevos'.tr;
       case IngredientCategory.granosYPastas:
-        return 'Granos y Pastas';
+        return 'Granos y Pastas'.tr;
       case IngredientCategory.aceitesYGrasas:
-        return 'Aceites y Grasas';
+        return 'Aceites y Grasas'.tr;
       case IngredientCategory.condimentosYEspecias:
-        return 'Condimentos y Especias';
+        return 'Condimentos y Especias'.tr;
       case IngredientCategory.reposteriaYHarinas:
-        return 'Repostería y Harinas';
+        return 'Repostería y Harinas'.tr;
       case IngredientCategory.conservasYVarios:
-        return 'Conservas y Varios';
+        return 'Conservas y Varios'.tr;
     }
   }
 
@@ -501,7 +517,7 @@ extension IngredientCategoryX on IngredientCategory {
 
 
 class RecetasApp extends StatefulWidget {
-  const RecetasApp({super.key});
+  RecetasApp({super.key});
 
   @override
   State<RecetasApp> createState() => _RecetasAppState();
@@ -545,50 +561,53 @@ class _RecetasAppState extends State<RecetasApp> {
       );
     }
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: SettingsManager.isDarkMode,
-      builder: (context, isDark, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Recetas',
-          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          theme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: lightBg,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: lightPrimary,
-              brightness: Brightness.light,
-              primary: lightPrimary,
-              secondary: lightSecondary,
-              surface: lightSurface,
-              onSurface: lightText,
-              background: lightBg,
-            ),
-            textTheme: createTextTheme(ThemeData.light().textTheme, lightText),
-            appBarTheme: const AppBarTheme(
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              backgroundColor: Colors.transparent,
-              centerTitle: true,
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
+    return ValueListenableBuilder<String>(
+      valueListenable: SettingsManager.language,
+      builder: (context, lang, child) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: SettingsManager.isDarkMode,
+          builder: (context, isDark, child) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Recetas'.tr.tr,
+              themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+              theme: ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.light,
+                scaffoldBackgroundColor: lightBg,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: lightPrimary,
+                  brightness: Brightness.light,
+                  primary: lightPrimary,
+                  secondary: lightSecondary,
+                  surface: lightSurface,
+                  onSurface: lightText,
+                  background: lightBg,
+                ),
+                textTheme: createTextTheme(ThemeData.light().textTheme, lightText),
+                appBarTheme: AppBarTheme(
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  backgroundColor: Colors.transparent,
+                  centerTitle: true,
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(color: lightPrimary, width: 1.5),
               ),
             ),
-            cardTheme: const CardThemeData(
+            cardTheme: CardThemeData(
               color: Colors.white,
               elevation: 2,
               shadowColor: Colors.black12,
@@ -597,7 +616,7 @@ class _RecetasAppState extends State<RecetasApp> {
                 borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
             ),
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
               backgroundColor: lightPrimary,
               foregroundColor: Colors.white,
             ),
@@ -621,7 +640,7 @@ class _RecetasAppState extends State<RecetasApp> {
               background: darkBg,
             ),
             textTheme: createTextTheme(ThemeData.dark().textTheme, Colors.white),
-            appBarTheme: const AppBarTheme(
+            appBarTheme: AppBarTheme(
               elevation: 0,
               scrolledUnderElevation: 0,
               backgroundColor: Colors.transparent,
@@ -648,7 +667,7 @@ class _RecetasAppState extends State<RecetasApp> {
               color: darkSurface,
               elevation: 0,
               margin: EdgeInsets.zero,
-              shape: const RoundedRectangleBorder(
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
             ),
@@ -657,39 +676,41 @@ class _RecetasAppState extends State<RecetasApp> {
               selectedColor: darkPrimary.withOpacity(0.3),
               side: BorderSide(color: Colors.white.withOpacity(0.1)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              labelStyle: const TextStyle(color: Colors.white),
-              secondaryLabelStyle: const TextStyle(color: Colors.white),
+              labelStyle: TextStyle(color: Colors.white),
+              secondaryLabelStyle: TextStyle(color: Colors.white),
             ),
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
               backgroundColor: darkPrimary,
               foregroundColor: Color(0xFF1E1E24), // Text on button
             ),
              navigationBarTheme: NavigationBarThemeData(
               backgroundColor: darkBg,
               indicatorColor: darkPrimary.withOpacity(0.2),
-              iconTheme: WidgetStateProperty.all(const IconThemeData(color: Colors.white70)),
+              iconTheme: WidgetStateProperty.all(IconThemeData(color: Colors.white70)),
               labelTextStyle: WidgetStateProperty.all(GoogleFonts.nunito(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
             ),
           ),
           home: ValueListenableBuilder<bool>(
             valueListenable: SettingsManager.hasSeenOnboarding,
             builder: (context, hasSeen, _) {
-              if (!hasSeen) return const OnboardingPage();
+              if (!hasSeen) return OnboardingPage();
               
               return ValueListenableBuilder<int>(
                 valueListenable: SettingsManager.startScreenIndex,
-                builder: (context, index, child) => const MainNavigationPage(),
+                builder: (context, index, child) => MainNavigationPage(),
               );
             },
           ),
         );
       },
     );
+     },
+    );
   }
 }
 
 class MainNavigationPage extends StatefulWidget {
-  const MainNavigationPage({super.key});
+  MainNavigationPage({super.key});
 
   @override
   State<MainNavigationPage> createState() => _MainNavigationPageState();
@@ -706,45 +727,50 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: const [
-          SearchPage(),
-          FavoritesPage(),
-          SettingsPage(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(CupertinoIcons.search),
-            label: 'Buscar',
+    return ValueListenableBuilder<String>(
+      valueListenable: SettingsManager.language,
+      builder: (context, lang, child) {
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: [
+              SearchPage(),
+              FavoritesPage(),
+              SettingsPage(),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(CupertinoIcons.book),
-            label: 'Mis Recetas',
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) => setState(() => _currentIndex = index),
+            destinations: [
+              NavigationDestination(
+                icon: Icon(CupertinoIcons.search),
+                label: 'Buscar'.tr,
+              ),
+              NavigationDestination(
+                icon: Icon(CupertinoIcons.book),
+                label: 'Mis Recetas'.tr,
+              ),
+              /*
+              NavigationDestination(
+                icon: Icon(CupertinoIcons.calendar),
+                label: 'Calendario'.tr,
+              ),
+              */
+              NavigationDestination(
+                icon: Icon(CupertinoIcons.settings),
+                label: 'Ajustes'.tr,
+              ),
+            ],
           ),
-          /*
-          NavigationDestination(
-            icon: Icon(CupertinoIcons.calendar),
-            label: 'Calendario',
-          ),
-          */
-          NavigationDestination(
-            icon: Icon(CupertinoIcons.settings),
-            label: 'Ajustes',
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 }
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  SearchPage({super.key});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -787,7 +813,7 @@ class _SearchPageState extends State<SearchPage> {
     });
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
@@ -810,7 +836,7 @@ class _SearchPageState extends State<SearchPage> {
               controller: _pageController,
               selectedIndex: _selectedIndex,
               onTap: _onSegmentChanged,
-              tabs: const ['Recetas', 'Ingredientes'],
+              tabs: ['Recetas'.tr, 'Ingredientes'.tr],
             ),
           ),
           
@@ -825,7 +851,7 @@ class _SearchPageState extends State<SearchPage> {
                   searchQuery: _searchQuery,
                   onSearchChanged: (value) => setState(() => _searchQuery = value),
                 ),
-                const IngredientSearchPage(),
+                IngredientSearchPage(),
               ],
             ),
           ),
@@ -833,7 +859,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddRecipeDialog(context),
-        child: const Icon(CupertinoIcons.plus),
+        child: Icon(CupertinoIcons.plus),
       ),
     );
   }
@@ -841,7 +867,7 @@ class _SearchPageState extends State<SearchPage> {
   void _showAddRecipeDialog(BuildContext context) {
   Navigator.of(context).push(
     MaterialPageRoute(
-      builder: (context) => const NewRecipePage(),
+      builder: (context) => NewRecipePage(),
       fullscreenDialog: true,
     ),
   );
@@ -849,7 +875,7 @@ class _SearchPageState extends State<SearchPage> {
 }
 
 class FavoritesPage extends StatefulWidget {
-  const FavoritesPage({super.key});
+  FavoritesPage({super.key});
 
   @override
   State<FavoritesPage> createState() => _FavoritesPageState();
@@ -874,7 +900,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     });
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
@@ -903,7 +929,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               controller: _pageController,
               selectedIndex: _selectedIndex,
               onTap: _onSegmentChanged,
-              tabs: const ['Favoritos', 'Valoraciones'],
+              tabs: ['Favoritos'.tr, 'Valoraciones'.tr],
             ),
           ),
           
@@ -918,7 +944,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   onSearchChanged: (value) => setState(() => _searchQuery = value),
                   showAppBar: false,
                 ),
-                const RatedRecipesPage(),
+                RatedRecipesPage(),
               ],
             ),
           ),
@@ -931,7 +957,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
 
 class _RecetasView extends StatelessWidget {
-  const _RecetasView({
+  _RecetasView({
     required this.searchController,
     required this.searchQuery,
     required this.onSearchChanged,
@@ -961,18 +987,18 @@ class _RecetasView extends StatelessWidget {
             controller: searchController,
             onChanged: onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Buscar recetas por nombre...',
-                prefixIcon: const Icon(CupertinoIcons.search),
+                hintText: 'Buscar recetas por nombre...'.tr.tr,
+                prefixIcon: Icon(CupertinoIcons.search),
               suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(CupertinoIcons.xmark_circle_fill),
+                        icon: Icon(CupertinoIcons.xmark_circle_fill),
                         onPressed: () {
                         searchController.clear();
                         onSearchChanged('');
                         },
                       )
                     : IconButton(
-                        icon: const Icon(CupertinoIcons.shuffle),
+                        icon: Icon(CupertinoIcons.shuffle),
                         tooltip: 'Receta aleatoria',
                         onPressed: () {
                           final allRecipes = RecipeManager.recipes;
@@ -986,7 +1012,7 @@ class _RecetasView extends StatelessWidget {
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No hay recetas disponibles')),
+                              SnackBar(content: Text('No hay recetas disponibles'.tr)),
                             );
                           }
                         },
@@ -994,11 +1020,11 @@ class _RecetasView extends StatelessWidget {
               ),
             ),
           ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
           Expanded(
           child: searchQuery.isNotEmpty
                 ? searchResults.isEmpty
-                    ? const Center(child: Text('No se encontraron recetas'))
+                    ? Center(child: Text('No se encontraron recetas'.tr))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: searchResults.length,
@@ -1008,14 +1034,14 @@ class _RecetasView extends StatelessWidget {
                         },
                       )
               : categories.isEmpty
-                  ? const _EmptyStateWidget(
+                  ? _EmptyStateWidget(
                       icon: Icons.restaurant_menu,
-                      title: 'No hay recetas',
-                      subtitle: 'Añade tus propias recetas para verlas aquí',
+                      title: 'No hay recetas'.tr.tr,
+                      subtitle: 'Añade tus propias recetas para verlas aquí'.tr.tr.tr,
                     )
                   : GridView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
@@ -1050,7 +1076,7 @@ class _RecetasView extends StatelessWidget {
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
                             blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
@@ -1077,7 +1103,7 @@ class _RecetasView extends StatelessWidget {
                                   size: 40,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12),
                                 Text(
                                   c.displayName,
                                   textAlign: TextAlign.center,
@@ -1207,7 +1233,7 @@ List<String> _sortIngredients(List<String> ingredients, String query) {
 }
 
 class _FavoritosView extends StatefulWidget {
-  const _FavoritosView({
+  _FavoritosView({
     required this.searchController,
     required this.searchQuery,
     required this.onSearchChanged,
@@ -1315,11 +1341,11 @@ class _FavoritosViewState extends State<_FavoritosView> {
                       onChanged: widget.onSearchChanged,
                       textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
-                        hintText: 'Buscar en favoritos...',
-                        prefixIcon: const Icon(CupertinoIcons.search),
+                        hintText: 'Buscar en favoritos...'.tr.tr,
+                        prefixIcon: Icon(CupertinoIcons.search),
                         suffixIcon: widget.searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(CupertinoIcons.xmark_circle_fill),
+                                icon: Icon(CupertinoIcons.xmark_circle_fill),
                                 onPressed: () {
                                   widget.searchController.clear();
                                   widget.onSearchChanged('');
@@ -1329,7 +1355,7 @@ class _FavoritosViewState extends State<_FavoritosView> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Container(
                     height: 56,
                     width: 56,
@@ -1338,21 +1364,21 @@ class _FavoritosViewState extends State<_FavoritosView> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(CupertinoIcons.add),
+                      icon: Icon(CupertinoIcons.add),
                       onPressed: () => _showCreateFolderDialog(context, _currentFolderId),
-                      tooltip: 'Crear carpeta',
+                      tooltip: 'Crear carpeta'.tr,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Expanded(
               child: foldersToShow.isEmpty && recipesToShow.isEmpty
                   ? _EmptyStateWidget(
                       icon: widget.searchQuery.isEmpty ? CupertinoIcons.heart : CupertinoIcons.search,
-                      title: widget.searchQuery.isEmpty ? 'No tienes favoritos' : 'Sin resultados',
-                      subtitle: widget.searchQuery.isEmpty ? 'Tus recetas guardadas aparecerán aquí' : 'Intenta con otra búsqueda',
+                      title: widget.searchQuery.isEmpty ? 'No tienes favoritos'.tr : 'Sin resultados'.tr,
+                      subtitle: widget.searchQuery.isEmpty ? 'Tus recetas guardadas aparecerán aquí'.tr : 'Intenta con otra búsqueda'.tr,
                     )
                   : ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1405,19 +1431,19 @@ class _FavoritosViewState extends State<_FavoritosView> {
 
       return Scaffold(
         body: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics: AlwaysScrollableScrollPhysics(),
           slivers: [
             // 1. Pinned Navigation Header
             SliverAppBar(
               pinned: true,
               leading: IconButton(
-                icon: const Icon(CupertinoIcons.chevron_left),
+                icon: Icon(CupertinoIcons.chevron_left),
                 onPressed: _navigateBack,
               ),
               title: Text(currentFolder.name),
               actions: [
                 IconButton(
-                  icon: const Icon(CupertinoIcons.add),
+                  icon: Icon(CupertinoIcons.add),
                   onPressed: () => _showCreateFolderDialog(context, _currentFolderId),
                   tooltip: 'Crear subcarpeta',
                 ),
@@ -1438,10 +1464,10 @@ class _FavoritosViewState extends State<_FavoritosView> {
                     onChanged: widget.onSearchChanged,
                     decoration: InputDecoration(
                       hintText: 'Buscar en ${currentFolder.name}...',
-                      prefixIcon: const Icon(CupertinoIcons.search),
+                      prefixIcon: Icon(CupertinoIcons.search),
                       suffixIcon: widget.searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(CupertinoIcons.xmark_circle_fill),
+                              icon: Icon(CupertinoIcons.xmark_circle_fill),
                               onPressed: () {
                                 widget.searchController.clear();
                                 widget.onSearchChanged('');
@@ -1510,7 +1536,7 @@ class _FavoritosViewState extends State<_FavoritosView> {
 }
 
 class NewRecipePage extends StatefulWidget {
-  const NewRecipePage({super.key, this.recipeToEdit});
+  NewRecipePage({super.key, this.recipeToEdit});
 
   final Recipe? recipeToEdit;
 
@@ -1592,7 +1618,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
   void _nextStep() {
     if (_currentStep < _totalSteps - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300), 
+        duration: Duration(milliseconds: 300), 
         curve: Curves.easeInOut
       );
     } else {
@@ -1603,7 +1629,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
   void _prevStep() {
     if (_currentStep > 0) {
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 300), 
+        duration: Duration(milliseconds: 300), 
         curve: Curves.easeInOut
       );
     } else {
@@ -1685,7 +1711,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
   Future<void> _saveRecipe() async {
      if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, escribe un nombre para la receta')),
+        SnackBar(content: Text('Por favor, escribe un nombre para la receta'.tr)),
       );
       return;
     }
@@ -1727,20 +1753,20 @@ class _NewRecipePageState extends State<NewRecipePage> {
         final choice = await showDialog<String>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Guardar cambios'),
-            content: const Text('Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?'),
+            title: Text('Guardar cambios'.tr),
+            content: Text('Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?'.tr),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context), 
-                child: const Text('Cancelar')
+                child: Text('Cancelar'.tr)
               ),
               TextButton(
                   onPressed: () => Navigator.pop(context, 'new'),
-                  child: const Text('Guardar como nueva')
+                  child: Text('Guardar como nueva'.tr)
               ),
               FilledButton(
                   onPressed: () => Navigator.pop(context, 'update'),
-                  child: const Text('Actualizar')
+                  child: Text('Actualizar'.tr)
               ),
             ],
           ),
@@ -1765,11 +1791,11 @@ class _NewRecipePageState extends State<NewRecipePage> {
              
              if (mounted) {
                Navigator.of(context).pop();
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receta guardada como nueva')));
+               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Receta guardada como nueva'.tr)));
              }
            } catch (e) {
              if (mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al guardar')));
+               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar'.tr)));
              }
            }
            return;
@@ -1797,7 +1823,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar la receta')),
+          SnackBar(content: Text('Error al guardar la receta'.tr)),
         );
       }
     }
@@ -1837,28 +1863,28 @@ class _NewRecipePageState extends State<NewRecipePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(CupertinoIcons.pencil),
-              title: const Text('Editar paso'),
+              leading: Icon(CupertinoIcons.pencil),
+              title: Text('Editar paso'.tr),
               onTap: () {
                 Navigator.pop(context);
                 final controller = TextEditingController(text: _steps[index]);
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Editar paso'),
+                    title: Text('Editar paso'.tr),
                     content: TextField(
                       controller: controller,
                       maxLines: 3,
                       autofocus: true,
                     ),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                      TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar'.tr)),
                       FilledButton(
                         onPressed: () {
                           _editStep(index, controller.text);
                           Navigator.pop(context);
                         },
-                        child: const Text('Guardar'),
+                        child: Text('Guardar'.tr),
                       ),
                     ],
                   ),
@@ -1867,8 +1893,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
             ),
             if (index > 0 && !_isReorderingSteps)
               ListTile(
-                leading: const Icon(CupertinoIcons.arrow_up),
-                title: const Text('Mover arriba'),
+                leading: Icon(CupertinoIcons.arrow_up),
+                title: Text('Mover arriba'.tr),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
@@ -1879,8 +1905,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
               ),
             if (index < _steps.length - 1 && !_isReorderingSteps)
               ListTile(
-                leading: const Icon(CupertinoIcons.arrow_down),
-                title: const Text('Mover abajo'),
+                leading: Icon(CupertinoIcons.arrow_down),
+                title: Text('Mover abajo'.tr),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
@@ -1890,8 +1916,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
                 },
               ),
             ListTile(
-              leading: const Icon(CupertinoIcons.trash, color: Colors.redAccent),
-              title: const Text('Eliminar paso', style: TextStyle(color: Colors.redAccent)),
+              leading: Icon(CupertinoIcons.trash, color: Colors.redAccent),
+              title: Text('Eliminar paso'.tr, style: TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 setState(() => _steps.removeAt(index));
@@ -1911,12 +1937,12 @@ class _NewRecipePageState extends State<NewRecipePage> {
         title: Text('Cantidad para $ingredientName'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Ej: 200g, 1 un, al gusto...'),
+          decoration: InputDecoration(labelText: 'Ej: 200g, 1 un, al gusto...'),
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Añadir')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar'.tr)),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text('Añadir'.tr)),
         ],
       ),
     );
@@ -1927,21 +1953,21 @@ class _NewRecipePageState extends State<NewRecipePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Añadir paso'),
+        title: Text('Añadir paso'.tr),
         content: TextField(
           controller: controller,
           maxLines: 3,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Describe el paso...'),
+          decoration: InputDecoration(hintText: 'Describe el paso...'.tr.tr),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar'.tr)),
           FilledButton(
             onPressed: () {
                _addStep(controller.text);
                Navigator.pop(context);
             },
-            child: const Text('Añadir'),
+            child: Text('Añadir'.tr),
           ),
         ],
       ),
@@ -1957,14 +1983,14 @@ class _NewRecipePageState extends State<NewRecipePage> {
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('Crear ingrediente'),
+            title: Text('Crear ingrediente'.tr),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre')),
-                const SizedBox(height: 12),
-                TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: 'Cantidad (ej: 100g)')),
-                 const SizedBox(height: 12),
+                TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Nombre'.tr)),
+                SizedBox(height: 12),
+                TextField(controller: qtyCtrl, decoration: InputDecoration(labelText: 'Cantidad (ej: 100g)'.tr)),
+                 SizedBox(height: 12),
                  Container(
                    padding: const EdgeInsets.symmetric(horizontal: 16),
                    decoration: BoxDecoration(
@@ -1980,10 +2006,10 @@ class _NewRecipePageState extends State<NewRecipePage> {
                      child: DropdownButton<IngredientCategory>(
                        isExpanded: true,
                        value: selectedCat,
-                       hint: Text('Categoría (Opcional)', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey)),
+                       hint: Text('Categoría (Opcional)'.tr, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey)),
                        items: IngredientCategory.values.map((c) => DropdownMenuItem(value: c, child: Text(c.displayName))).toList(),
                        onChanged: (v) => setState(() => selectedCat = v),
-                       icon: const Icon(CupertinoIcons.chevron_down, size: 16),
+                       icon: Icon(CupertinoIcons.chevron_down, size: 16),
                        borderRadius: BorderRadius.circular(12),
                        dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                      ),
@@ -1992,7 +2018,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
               ],
             ),
             actions: [
-               TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+               TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar'.tr)),
                FilledButton(
                  onPressed: () {
                     final name = nameCtrl.text.trim();
@@ -2002,7 +2028,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                        Navigator.pop(context);
                     }
                  }, 
-                 child: const Text('Añadir')
+                 child: Text('Añadir'.tr)
                ),
             ],
           ),
@@ -2031,7 +2057,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      icon: const Icon(CupertinoIcons.xmark),
+                      icon: Icon(CupertinoIcons.xmark),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -2041,7 +2067,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        widget.recipeToEdit != null ? 'EDITAR RECETA' : 'NUEVA RECETA',
+                        widget.recipeToEdit != null ? 'EDITAR RECETA'.tr : 'NUEVA RECETA'.tr,
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -2049,7 +2075,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           color: theme.colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: List.generate(_totalSteps, (index) {
@@ -2074,7 +2100,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Disable swipe, enforce buttons
+                physics: NeverScrollableScrollPhysics(), // Disable swipe, enforce buttons
                 onPageChanged: (index) => setState(() => _currentStep = index),
                 children: [
                    _buildStep1Overview(theme),
@@ -2098,18 +2124,18 @@ class _NewRecipePageState extends State<NewRecipePage> {
                            padding: const EdgeInsets.symmetric(vertical: 16),
                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: const Row(
+                        child: Row(
                            mainAxisAlignment: MainAxisAlignment.center,
                            children: [
                               Icon(CupertinoIcons.chevron_left, size: 18),
                               SizedBox(width: 8),
-                              Text('Atrás'),
+                              Text('Atrás'.tr),
                            ],
                         ),
                       ),
                     ),
                   if (_currentStep > 0)
-                     const SizedBox(width: 12),
+                     SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: FilledButton(
@@ -2124,12 +2150,12 @@ class _NewRecipePageState extends State<NewRecipePage> {
                          mainAxisAlignment: MainAxisAlignment.center,
                          children: [
                             Text(
-                              _currentStep == _totalSteps - 1 ? (widget.recipeToEdit != null ? 'Guardar Cambios' : 'Finalizar Receta') : 'Siguiente',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              _currentStep == _totalSteps - 1 ? (widget.recipeToEdit != null ? 'Guardar Cambios'.tr : 'Finalizar Receta'.tr) : 'Siguiente'.tr,
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                              if (_currentStep < _totalSteps - 1) ...[
-                                const SizedBox(width: 8),
-                                const Icon(CupertinoIcons.chevron_right, size: 18),
+                                SizedBox(width: 8),
+                                Icon(CupertinoIcons.chevron_right, size: 18),
                              ],
                          ],
                       ),
@@ -2168,24 +2194,24 @@ class _NewRecipePageState extends State<NewRecipePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                          Icon(CupertinoIcons.camera, size: 48, color: theme.colorScheme.primary),
-                         const SizedBox(height: 12),
-                         Text('Añadir foto', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                         SizedBox(height: 12),
+                         Text('Añadir foto'.tr, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
                       ],
                     )
                   : null,
              ),
            ),
-           const SizedBox(height: 32),
+           SizedBox(height: 32),
            
            _buildInputSection(
              theme,
-             title: 'NOMBRE',
+             title: 'NOMBRE'.tr.tr,
              children: [
                TextField(
                  controller: _titleController,
                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                 decoration: const InputDecoration(
-                    hintText: 'Nombre de la receta',
+                 decoration: InputDecoration(
+                    hintText: 'Nombre de la receta'.tr.tr,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -2198,12 +2224,12 @@ class _NewRecipePageState extends State<NewRecipePage> {
 
            _buildInputSection(
              theme,
-             title: 'TIEMPO ESTIMADO',
+             title: 'TIEMPO ESTIMADO'.tr.tr,
              children: [
                TextField(
                  controller: _prepTimeController,
-                 decoration: const InputDecoration(
-                    hintText: 'Ej: 30 min',
+                 decoration: InputDecoration(
+                    hintText: 'Ej: 30 min'.tr.tr,
                     prefixIcon: Icon(CupertinoIcons.clock, size: 20),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -2217,7 +2243,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
 
            _buildInputSection(
               theme,
-              title: 'NUTRICIÓN (OPCIONAL)',
+              title: 'NUTRICIÓN (OPCIONAL)'.tr.tr,
               children: [
                  Theme(
                    data: theme.copyWith(
@@ -2227,25 +2253,25 @@ class _NewRecipePageState extends State<NewRecipePage> {
                      dividerColor: Colors.transparent, // Ensure no dividers show up unexpectedly
                    ),
                    child: ExpansionTile(
-                      title: const Text('Información Nutricional'),
-                      leading: const Icon(Icons.analytics_outlined),
-                      shape: const Border(),
-                      collapsedShape: const Border(),
+                      title: Text('Información Nutricional'.tr),
+                      leading: Icon(Icons.analytics_outlined),
+                      shape: Border(),
+                      collapsedShape: Border(),
                       tilePadding: const EdgeInsets.symmetric(horizontal: 16),
                       childrenPadding: const EdgeInsets.all(16),
                       children: [
                          Row(
                            children: [
                               Expanded(child: _buildCompactNutriInput(theme, _caloriesController, 'Calorías (kcal)')),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Expanded(child: _buildCompactNutriInput(theme, _proteinController, 'Proteína (g)')),
                            ],
                          ),
-                         const SizedBox(height: 8),
+                         SizedBox(height: 8),
                          Row(
                            children: [
                               Expanded(child: _buildCompactNutriInput(theme, _carbsController, 'Carbohidratos (g)')),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Expanded(child: _buildCompactNutriInput(theme, _fatController, 'Grasas (g)')),
                            ],
                          ),
@@ -2330,8 +2356,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text('INGREDIENTES', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                   const SizedBox(height: 12),
+                   Text('INGREDIENTES'.tr, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                   SizedBox(height: 12),
                    Row(
                       children: [
                         Expanded(
@@ -2340,11 +2366,11 @@ class _NewRecipePageState extends State<NewRecipePage> {
                              onChanged: (val) => setState(() => _ingredientQuery = val),
                              textAlignVertical: TextAlignVertical.center,
                              decoration: InputDecoration(
-                                hintText: 'Buscar ingredientes...',
-                                prefixIcon: const Icon(CupertinoIcons.search),
+                                hintText: 'Buscar ingredientes...'.tr.tr,
+                                prefixIcon: Icon(CupertinoIcons.search),
                                 suffixIcon: _ingredientQuery.isNotEmpty
                                    ? IconButton(
-                                       icon: const Icon(CupertinoIcons.xmark_circle_fill, size: 20),
+                                       icon: Icon(CupertinoIcons.xmark_circle_fill, size: 20),
                                        onPressed: () {
                                          _ingredientController.clear();
                                          setState(() => _ingredientQuery = '');
@@ -2354,7 +2380,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                              ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Container(
                           height: 56,
                           width: 56,
@@ -2363,7 +2389,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                             icon: const Icon(CupertinoIcons.add),
+                             icon: Icon(CupertinoIcons.add),
                              onPressed: _showAddCustomIngredientDialog,
                              tooltip: 'Crear nuevo',
                           ),
@@ -2372,9 +2398,9 @@ class _NewRecipePageState extends State<NewRecipePage> {
                    ),
                    // Search Results
                    if (filteredList.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Container(
-                         constraints: const BoxConstraints(maxHeight: 180),
+                         constraints: BoxConstraints(maxHeight: 180),
                          decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(16),
@@ -2382,12 +2408,12 @@ class _NewRecipePageState extends State<NewRecipePage> {
                          child: ListView.separated(
                             shrinkWrap: true,
                             itemCount: filteredList.length,
-                            separatorBuilder: (_,__) => const Divider(height: 1),
+                            separatorBuilder: (_,__) => Divider(height: 1),
                             itemBuilder: (context, index) {
                                final ing = filteredList[index];
                                return ListTile(
                                   title: Text(ing),
-                                  leading: const Icon(CupertinoIcons.add, size: 16),
+                                  leading: Icon(CupertinoIcons.add, size: 16),
                                   visualDensity: VisualDensity.compact,
                                   onTap: () async {
                                      final qty = await _pickQuantityDialog(ing);
@@ -2405,7 +2431,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
            ),
            Expanded(
               child: _detailedIngredients.isEmpty 
-                 ? Center(child: Text('Añade los ingredientes necesarios', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)))
+                 ? Center(child: Text('Añade los ingredientes necesarios'.tr, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)))
                  : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     itemCount: _detailedIngredients.length,
@@ -2421,13 +2447,13 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           child: ListTile(
                              title: Row(
                                children: [
-                                 Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                 const SizedBox(width: 8),
+                                 Text(item.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                                 SizedBox(width: 8),
                                  Text(item.quantity, style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7))),
                                ],
                              ),
                              trailing: IconButton(
-                                icon: const Icon(CupertinoIcons.trash, size: 18, color: Colors.grey),
+                                icon: Icon(CupertinoIcons.trash, size: 18, color: Colors.grey),
                                 onPressed: () => _removeIngredient(item),
                              ),
                           ),
@@ -2448,7 +2474,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
              child: Row(
                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                children: [
-                  Text('PASOS A SEGUIR', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                  Text('PASOS A SEGUIR'.tr, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                   Row(
                      children: [
                        FilledButton(
@@ -2457,16 +2483,16 @@ class _NewRecipePageState extends State<NewRecipePage> {
                            visualDensity: VisualDensity.compact,
                            backgroundColor: _isReorderingSteps ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest,
                            foregroundColor: _isReorderingSteps ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-                           minimumSize: const Size(48, 36), // Ensure min height matches standard compact button
+                           minimumSize: Size(48, 36), // Ensure min height matches standard compact button
                            padding: const EdgeInsets.symmetric(horizontal: 12), // Restore some padding
                          ),
-                         child: const Icon(Icons.drag_handle, size: 20),
+                         child: Icon(Icons.drag_handle, size: 20),
                        ),
-                       const SizedBox(width: 8),
+                       SizedBox(width: 8),
                        FilledButton.icon(
                           onPressed: _showAddStepDialog,
-                          icon: const Icon(CupertinoIcons.add),
-                          label: const Text('Añadir paso'),
+                          icon: Icon(CupertinoIcons.add),
+                          label: Text('Añadir paso'.tr),
                           style: FilledButton.styleFrom(
                              visualDensity: VisualDensity.compact,
                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
@@ -2485,8 +2511,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                          Icon(CupertinoIcons.list_bullet, size: 48, color: theme.colorScheme.onSurface.withOpacity(0.2)),
-                         const SizedBox(height: 16),
-                         Text('¿Cómo se prepara?', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
+                         SizedBox(height: 16),
+                         Text('¿Cómo se prepara?'.tr, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
                       ],
                     ),
                   )
@@ -2511,7 +2537,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                                     border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.05)),
                                  ),
                                  child: ListTile(
-                                    leading: const Icon(Icons.drag_indicator, color: Colors.grey),
+                                    leading: Icon(Icons.drag_indicator, color: Colors.grey),
                                     title: Text(_steps[index]),
                                     trailing: Text('${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                                  ),
@@ -2562,7 +2588,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
             children: [
                _buildTagSection(
                   theme: theme, 
-                  title: 'CATEGORÍA', 
+                  title: 'CATEGORÍA'.tr.tr, 
                   items: RecipeCategory.values, 
                   isSelected: (c) => _selectedCategories.contains(c), 
                   onToggle: (c) {
@@ -2576,26 +2602,26 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   },
                   getLabel: (c) => c.displayName,
                ),
-               const SizedBox(height: 32),
+               SizedBox(height: 32),
                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                           Text('DIETA', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                           Text('DIETA'.tr, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                            TextButton.icon(
                               onPressed: _showAddCustomTagDialog,
-                              icon: const Icon(CupertinoIcons.add, size: 16),
-                              label: const Text('Crear etiqueta'),
+                              icon: Icon(CupertinoIcons.add, size: 16),
+                              label: Text('Crear etiqueta'.tr),
                               style: TextButton.styleFrom(
                                  visualDensity: VisualDensity.compact,
-                                 textStyle: const TextStyle(fontSize: 12),
+                                 textStyle: TextStyle(fontSize: 12),
                               ),
                            ),
                         ],
                      ),
-                     const SizedBox(height: 12),
+                     SizedBox(height: 12),
                      Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -2654,7 +2680,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
            Text(title, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-           const SizedBox(height: 12),
+           SizedBox(height: 12),
            Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -2682,15 +2708,15 @@ class _NewRecipePageState extends State<NewRecipePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Añadir etiqueta'),
+        title: Text('Añadir etiqueta'.tr),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Ej: Keto, Low Carb...'),
+          decoration: InputDecoration(hintText: 'Ej: Keto, Low Carb...'.tr.tr),
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar'.tr)),
           FilledButton(
             onPressed: () {
               final tag = controller.text.trim();
@@ -2701,7 +2727,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
               }
               Navigator.pop(context);
             },
-            child: const Text('Añadir'),
+            child: Text('Añadir'.tr),
           ),
         ],
       ),
@@ -2710,7 +2736,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
 }
 
 class _AddIngredientDialog extends StatefulWidget {
-  const _AddIngredientDialog({required this.onAdd});
+  _AddIngredientDialog({required this.onAdd});
 
   final void Function(String, String, IngredientCategory?) onAdd;
 
@@ -2740,30 +2766,30 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Añadir ingrediente'),
+      title: Text('Añadir ingrediente'.tr),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              hintText: 'Nombre del ingrediente',
+            decoration: InputDecoration(
+              hintText: 'Nombre del ingrediente'.tr.tr,
               labelText: 'Ingrediente',
             ),
             autofocus: true,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           TextField(
             controller: _quantityController,
-            decoration: const InputDecoration(
-              hintText: 'Ej: 200g',
+            decoration: InputDecoration(
+              hintText: 'Ej: 200g'.tr.tr,
               labelText: 'Cantidad',
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           DropdownButtonFormField<IngredientCategory>(
             initialValue: _selectedCategory,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Categoría',
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -2775,7 +2801,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
                 child: Row(
                   children: [
                     Icon(category.icon, size: 20),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         category.displayName,
@@ -2793,7 +2819,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text('Cancelar'.tr),
         ),
         FilledButton(
           onPressed: () {
@@ -2806,7 +2832,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Añadir'),
+          child: Text('Añadir'.tr),
         ),
       ],
     );
@@ -2814,7 +2840,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
 }
 
 class _AddStepDialog extends StatefulWidget {
-  const _AddStepDialog({required this.onAdd});
+  _AddStepDialog({required this.onAdd});
 
   final void Function(String) onAdd;
 
@@ -2840,11 +2866,11 @@ class _AddStepDialogState extends State<_AddStepDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Añadir paso'),
+      title: Text('Añadir paso'.tr),
       content: TextField(
         controller: _controller,
-        decoration: const InputDecoration(
-          hintText: 'Describe el paso de la receta',
+        decoration: InputDecoration(
+          hintText: 'Describe el paso de la receta'.tr.tr,
           labelText: 'Paso',
         ),
         autofocus: true,
@@ -2859,7 +2885,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text('Cancelar'.tr),
         ),
         FilledButton(
           onPressed: () {
@@ -2868,7 +2894,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Añadir'),
+          child: Text('Añadir'.tr),
         ),
       ],
     );
@@ -2876,7 +2902,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
 }
 
 class _FolderCard extends StatelessWidget {
-  const _FolderCard({
+  _FolderCard({
     required this.folder,
     required this.onTap,
     this.onLongPress,
@@ -2919,7 +2945,7 @@ class _FolderCard extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -2947,7 +2973,7 @@ class _FolderCard extends StatelessWidget {
                   size: 28,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2956,7 +2982,7 @@ class _FolderCard extends StatelessWidget {
                       folder.name,
                       style: theme.textTheme.titleLarge,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       '$recipeCount receta${recipeCount != 1 ? 's' : ''} • $subFolderCount subcarpeta${subFolderCount != 1 ? 's' : ''}',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -2966,7 +2992,7 @@ class _FolderCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(CupertinoIcons.chevron_right),
+              Icon(CupertinoIcons.chevron_right),
             ],
           ),
         ),
@@ -2976,7 +3002,7 @@ class _FolderCard extends StatelessWidget {
 }
 
 class _CreateFolderDialog extends StatefulWidget {
-  const _CreateFolderDialog({this.parentId, this.folderToEdit});
+  _CreateFolderDialog({this.parentId, this.folderToEdit});
 
   final String? parentId;
   final FavoriteFolder? folderToEdit;
@@ -3011,7 +3037,7 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
   void _saveFolder() async {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor ingresa un nombre para la carpeta')),
+        SnackBar(content: Text('Por favor ingresa un nombre para la carpeta'.tr)),
       );
       return;
     }
@@ -3043,7 +3069,7 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
-      title: Text(widget.folderToEdit != null ? 'Editar carpeta' : 'Crear carpeta'),
+      title: Text(widget.folderToEdit != null ? 'Editar carpeta'.tr : 'Crear carpeta'.tr),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -3051,15 +3077,15 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre de la carpeta',
-                hintText: 'Ej: Postres',
+              decoration: InputDecoration(
+                labelText: 'Nombre de la carpeta'.tr,
+                hintText: 'Ej: Postres'.tr.tr,
               ),
               autofocus: true,
             ),
-            const SizedBox(height: 20),
-            Text('Seleccionar icono', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 12),
+            SizedBox(height: 20),
+            Text('Seleccionar icono'.tr, style: theme.textTheme.titleSmall),
+            SizedBox(height: 12),
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -3099,11 +3125,11 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text('Cancelar'.tr),
         ),
         FilledButton(
           onPressed: _saveFolder,
-          child: Text(widget.folderToEdit != null ? 'Guardar' : 'Crear'),
+          child: Text(widget.folderToEdit != null ? 'Guardar'.tr : 'Crear'.tr),
         ),
       ],
     );
@@ -3111,7 +3137,7 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
 }
 
 class _FolderOptionsSheet extends StatelessWidget {
-  const _FolderOptionsSheet({required this.folder});
+  _FolderOptionsSheet({required this.folder});
 
   final FavoriteFolder folder;
 
@@ -3122,8 +3148,8 @@ class _FolderOptionsSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(CupertinoIcons.pencil),
-            title: const Text('Editar carpeta'),
+            leading: Icon(CupertinoIcons.pencil),
+            title: Text('Editar carpeta'.tr),
             onTap: () {
               Navigator.of(context).pop();
               showDialog(
@@ -3133,8 +3159,8 @@ class _FolderOptionsSheet extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(CupertinoIcons.delete, color: Colors.red),
-            title: const Text('Eliminar carpeta', style: TextStyle(color: Colors.red)),
+            leading: Icon(CupertinoIcons.delete, color: Colors.red),
+            title: Text('Eliminar carpeta'.tr, style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.of(context).pop();
               _showDeleteConfirmation(context);
@@ -3149,12 +3175,12 @@ class _FolderOptionsSheet extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar carpeta'),
+        title: Text('Eliminar carpeta'.tr),
         content: Text('¿Estás seguro de que quieres eliminar "${folder.name}"? Esto también eliminará todas las subcarpetas.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'.tr),
           ),
           FilledButton(
             onPressed: () async {
@@ -3164,7 +3190,7 @@ class _FolderOptionsSheet extends StatelessWidget {
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: Text('Eliminar'.tr),
           ),
         ],
       ),
@@ -3173,7 +3199,7 @@ class _FolderOptionsSheet extends StatelessWidget {
 }
 
 class _RecipeFolderMenu extends StatelessWidget {
-  const _RecipeFolderMenu({required this.recipe});
+  _RecipeFolderMenu({required this.recipe});
 
   final Recipe recipe;
 
@@ -3236,7 +3262,7 @@ class _RecipeFolderMenu extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Mover a carpeta',
+              'Mover a carpeta'.tr,
               style: theme.textTheme.titleLarge,
             ),
           ),
@@ -3245,21 +3271,21 @@ class _RecipeFolderMenu extends StatelessWidget {
               shrinkWrap: true,
               children: [
                 ListTile(
-                  leading: const Icon(CupertinoIcons.folder),
-                  title: const Text('Sin carpeta'),
+                  leading: Icon(CupertinoIcons.folder),
+                  title: Text('Sin carpeta'.tr),
                   trailing: currentFolderId == null
-                      ? const Icon(CupertinoIcons.checkmark, color: Colors.green)
+                      ? Icon(CupertinoIcons.checkmark, color: Colors.green)
                       : null,
                   onTap: () => _moveToFolder(context, null),
                 ),
-                const Divider(),
+                Divider(),
                 ...allFolders.map((folder) {
                   final isSelected = currentFolderId == folder.id;
                   return ListTile(
                     leading: Icon(folder.icon),
                     title: Text(folder.name),
                     trailing: isSelected
-                        ? const Icon(CupertinoIcons.checkmark, color: Colors.green)
+                        ? Icon(CupertinoIcons.checkmark, color: Colors.green)
                         : null,
                     onTap: () => _moveToFolder(context, folder.id),
                   );
@@ -3274,7 +3300,7 @@ class _RecipeFolderMenu extends StatelessWidget {
 }
 
 class RecipesByCategoryPage extends StatefulWidget {
-  const RecipesByCategoryPage({super.key, required this.category});
+  RecipesByCategoryPage({super.key, required this.category});
 
   final RecipeCategory category;
 
@@ -3313,10 +3339,10 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
               onChanged: (value) => setState(() => _searchQuery = value.trim()),
               decoration: InputDecoration(
                 hintText: 'Buscar recetas en ${widget.category.displayName}...',
-                prefixIcon: const Icon(CupertinoIcons.search),
+                prefixIcon: Icon(CupertinoIcons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(CupertinoIcons.xmark_circle_fill),
+                        icon: Icon(CupertinoIcons.xmark_circle_fill),
                         onPressed: () {
                           setState(() {
                             _searchQuery = '';
@@ -3325,7 +3351,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                         },
                       )
                     : IconButton(
-                        icon: const Icon(CupertinoIcons.shuffle),
+                        icon: Icon(CupertinoIcons.shuffle),
                         tooltip: 'Receta aleatoria',
                         onPressed: () {
                           if (searchFiltered.isNotEmpty) {
@@ -3338,7 +3364,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No hay recetas disponibles')),
+                              SnackBar(content: Text('No hay recetas disponibles'.tr)),
                             );
                           }
                         },
@@ -3376,7 +3402,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
 }
 
 class _RecipeCategory {
-  const _RecipeCategory({required this.name, required this.icon, required this.matches});
+  _RecipeCategory({required this.name, required this.icon, required this.matches});
 
   final String name;
   final IconData icon;
@@ -3384,7 +3410,7 @@ class _RecipeCategory {
 }
 
 class IngredientSearchPage extends StatefulWidget {
-  const IngredientSearchPage({super.key});
+  IngredientSearchPage({super.key});
 
   @override
   State<IngredientSearchPage> createState() => _IngredientSearchPageState();
@@ -3465,12 +3491,12 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                   },
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    hintText: 'Búsqueda por ingredientes...',
-                    prefixIcon: const Icon(CupertinoIcons.search),
+                    hintText: 'Búsqueda por ingredientes...'.tr.tr,
+                    prefixIcon: Icon(CupertinoIcons.search),
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
-                            icon: const Icon(CupertinoIcons.xmark_circle_fill),
+                            icon: Icon(CupertinoIcons.xmark_circle_fill),
                             onPressed: () {
                               setState(() {
                                 _query = '';
@@ -3480,24 +3506,24 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 if (_selected.isNotEmpty) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Seleccionados', style: theme.textTheme.titleMedium),
+                      Text('Seleccionados'.tr, style: theme.textTheme.titleMedium),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton(
                             onPressed: () => setState(() => _selected.clear()),
-                            child: const Text('Borrar todo'),
+                            child: Text('Borrar todo'.tr),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           FilledButton.icon(
                             onPressed: () => _openResults(context),
-                            icon: const Icon(CupertinoIcons.search, size: 18),
-                            label: const Text('Buscar'),
+                            icon: Icon(CupertinoIcons.search, size: 18),
+                            label: Text('Buscar'.tr),
                             style: FilledButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             ),
@@ -3506,7 +3532,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -3518,21 +3544,21 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                             ))
                         .toList(),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                 ],
                 if (_query.isNotEmpty) ...[
-                  Text('Sugerencias', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  Text('Sugerencias'.tr, style: theme.textTheme.titleMedium),
+                  SizedBox(height: 8),
                 ],
               ],
             ),
           ),
           Expanded(
             child: _allIngredients.isEmpty
-                ? const _EmptyStateWidget(
+                ? _EmptyStateWidget(
                     icon: CupertinoIcons.search,
-                    title: 'No hay ingredientes',
-                    subtitle: 'Añade recetas para explorar sus ingredientes',
+                    title: 'No hay ingredientes'.tr.tr,
+                    subtitle: 'Añade recetas para explorar sus ingredientes'.tr.tr.tr,
                   )
                 : _query.isEmpty
                 ? _PopularIngredientsGrid(
@@ -3547,7 +3573,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                       return ListTile(
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 16),
-                        leading: const Icon(CupertinoIcons.plus_circled),
+                        leading: Icon(CupertinoIcons.plus_circled),
                         title: Text(item),
                         onTap: () => _add(item),
                       );
@@ -3572,7 +3598,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
 }
 
 class _PopularIngredientsGrid extends StatelessWidget {
-  const _PopularIngredientsGrid({
+  _PopularIngredientsGrid({
     required this.all,
     required this.onPick,
     required this.isSelected,
@@ -3599,7 +3625,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
     
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
@@ -3636,7 +3662,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -3665,7 +3691,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
                       size: 40,
                       color: theme.colorScheme.primary,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text(
                       category.displayName,
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -3687,7 +3713,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
 }
 
 class IngredientsByCategoryPage extends StatelessWidget {
-  const IngredientsByCategoryPage({
+  IngredientsByCategoryPage({
     super.key,
     required this.category,
     required this.onPick,
@@ -3715,7 +3741,7 @@ class IngredientsByCategoryPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: availableIngredients.isEmpty
-              ? const Center(child: Text('No hay ingredientes disponibles en esta categoría'))
+              ? Center(child: Text('No hay ingredientes disponibles en esta categoría'.tr))
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: SizedBox(
@@ -3727,7 +3753,7 @@ class IngredientsByCategoryPage extends StatelessWidget {
                       children: availableIngredients.map((text) {
                         return Material(
                           color: theme.brightness == Brightness.dark 
-                              ? const Color(0xFF16161C) 
+                              ? Color(0xFF16161C) 
                               : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -3771,7 +3797,7 @@ class IngredientsByCategoryPage extends StatelessWidget {
 }
 
 class RecipeResultsPage extends StatefulWidget {
-  const RecipeResultsPage({super.key, required this.selectedIngredients});
+  RecipeResultsPage({super.key, required this.selectedIngredients});
 
   final List<String> selectedIngredients;
 
@@ -3818,10 +3844,10 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recetas'),
+        title: Text('Recetas'.tr),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: Icon(Icons.filter_list),
             onPressed: () => _showFilterDialog(context),
           ),
         ],
@@ -3843,12 +3869,12 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                                _selectedFilters.clear();
                                _selectedCustomFilters.clear();
                             }),
-                            icon: const Icon(CupertinoIcons.xmark_circle, size: 16),
-                            label: const Text('Limpiar filtros'),
+                            icon: Icon(CupertinoIcons.xmark_circle, size: 16),
+                            label: Text('Limpiar filtros'.tr),
                           ),
                       ],
                     ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -3867,7 +3893,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                         ],
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     ...results.map(
                       (sr) => _RecipeCard(
                         recipe: sr.recipe,
@@ -3935,7 +3961,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
 }
 
 class _DietaryFilterDialog extends StatefulWidget {
-  const _DietaryFilterDialog({
+  _DietaryFilterDialog({
     required this.selectedFilters,
     required this.selectedCustomFilters,
     required this.onFiltersChanged,
@@ -3966,7 +3992,7 @@ class _DietaryFilterDialogState extends State<_DietaryFilterDialog> {
     final allCustomTags = RecipeManager.allCustomDietaryTags.toList()..sort();
 
     return AlertDialog(
-      title: const Text('Filtros dietéticos'),
+      title: Text('Filtros dietéticos'.tr),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -3975,10 +4001,10 @@ class _DietaryFilterDialogState extends State<_DietaryFilterDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Restricciones estándar:',
+                'Restricciones estándar:'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -4000,12 +4026,12 @@ class _DietaryFilterDialogState extends State<_DietaryFilterDialog> {
                 }).toList(),
               ),
               if (allCustomTags.isNotEmpty) ...[
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
-                  'Etiquetas personalizadas:',
+                  'Etiquetas personalizadas:'.tr,
                   style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -4034,14 +4060,14 @@ class _DietaryFilterDialogState extends State<_DietaryFilterDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text('Cancelar'.tr),
         ),
         FilledButton(
           onPressed: () {
             widget.onFiltersChanged(_selectedFilters, _selectedCustomFilters);
             Navigator.of(context).pop();
           },
-          child: const Text('Aplicar'),
+          child: Text('Aplicar'.tr),
         ),
       ],
     );
@@ -4049,7 +4075,7 @@ class _DietaryFilterDialogState extends State<_DietaryFilterDialog> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.selectedIngredients});
+  _EmptyState({required this.selectedIngredients});
 
   final List<String> selectedIngredients;
 
@@ -4060,13 +4086,13 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(CupertinoIcons.exclamationmark_circle, size: 42),
-          const SizedBox(height: 12),
-          const Text(
-            'No existen recetas',
+          Icon(CupertinoIcons.exclamationmark_circle, size: 42),
+          SizedBox(height: 12),
+          Text(
+            'No existen recetas'.tr,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Se intentó con: ${selectedIngredients.join(', ')}',
             style:
@@ -4081,7 +4107,7 @@ class _EmptyState extends StatelessWidget {
 
 
 class _RecipeCard extends StatelessWidget {
-  const _RecipeCard({
+  _RecipeCard({
     required this.recipe, 
     required this.matchCount,
     this.matchedIngredients = const [],
@@ -4116,12 +4142,12 @@ class _RecipeCard extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: OpenContainer(
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: Duration(milliseconds: 500),
         openBuilder: (context, _) => RecipeDetailPage(
           recipe: recipe,
           heroTag: heroTag,
@@ -4172,7 +4198,7 @@ class _RecipeCard extends StatelessWidget {
                       crossAxisAlignment: matchedIngredients.isEmpty ? CrossAxisAlignment.center : CrossAxisAlignment.start,
                       children: [
                         _RecipeAvatar(title: recipe.title, imagePath: displayImagePath, heroTag: recipe.title),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4192,7 +4218,7 @@ class _RecipeCard extends StatelessWidget {
                                 ],
                               ),
                               if (matchedIngredients.isNotEmpty) ...[
-                                const SizedBox(height: 6),
+                                SizedBox(height: 6),
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
@@ -4221,7 +4247,7 @@ class _RecipeCard extends StatelessWidget {
                                 ),
                               ],
                               if (showRating && (recipe.rating ?? 0) > 0) ...[
-                                const SizedBox(height: 8),
+                                SizedBox(height: 8),
                                 Row(
                                   children: [
                                     ...List.generate(5, (index) {
@@ -4233,7 +4259,7 @@ class _RecipeCard extends StatelessWidget {
                                         ),
                                       );
                                     }),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                     Text(
                                       recipe.rating!.toStringAsFixed(1),
                                       style: theme.textTheme.bodySmall?.copyWith(
@@ -4270,7 +4296,7 @@ class _RecipeCard extends StatelessWidget {
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.2),
                                   blurRadius: 2,
-                                  offset: const Offset(0, 1),
+                                  offset: Offset(0, 1),
                                 ),
                               ],
                             ),
@@ -4287,7 +4313,7 @@ class _RecipeCard extends StatelessWidget {
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.2),
                                   blurRadius: 2,
-                                  offset: const Offset(0, 1),
+                                  offset: Offset(0, 1),
                                 ),
                               ],
                             ),
@@ -4307,12 +4333,12 @@ class _RecipeCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar receta'),
+        title: Text('Eliminar receta'.tr),
         content: Text('¿Estás seguro de que quieres eliminar "${recipe.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'.tr),
           ),
           FilledButton(
             onPressed: () async {
@@ -4325,11 +4351,11 @@ class _RecipeCard extends StatelessWidget {
               } catch (e) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Error al eliminar la receta')),
+                  SnackBar(content: Text('Error al eliminar la receta'.tr)),
                 );
               }
             },
-            child: const Text('Eliminar'),
+            child: Text('Eliminar'.tr),
           ),
         ],
       ),
@@ -4345,7 +4371,7 @@ class _RecipeCard extends StatelessWidget {
 }
 
 class _RecipeAvatar extends StatelessWidget {
-  const _RecipeAvatar({required this.title, this.imagePath, this.heroTag});
+  _RecipeAvatar({required this.title, this.imagePath, this.heroTag});
 
   final String title;
   final String? imagePath;
@@ -4420,14 +4446,14 @@ class _RecipeAvatar extends StatelessWidget {
     return Center(
       child: Text(
         title.substring(0, 1).toUpperCase(),
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
       ),
     );
   }
 }
 
 class _NutritionFactCard extends StatelessWidget {
-  const _NutritionFactCard({required this.fact});
+  _NutritionFactCard({required this.fact});
 
   final NutritionFact fact;
 
@@ -4450,7 +4476,7 @@ class _NutritionFactCard extends StatelessWidget {
             fact.label,
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             '${fact.formattedAmount} ${fact.unit}',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -4462,7 +4488,7 @@ class _NutritionFactCard extends StatelessWidget {
 }
 
 class RecipeDetailPage extends StatefulWidget {
-  const RecipeDetailPage({super.key, required this.recipe, this.heroTag});
+  RecipeDetailPage({super.key, required this.recipe, this.heroTag});
 
   final Recipe recipe;
   final String? heroTag;
@@ -4518,12 +4544,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar receta'),
+        title: Text('Eliminar receta'.tr),
         content: Text('¿Estás seguro de que quieres eliminar "${_currentRecipe.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'.tr),
           ),
           FilledButton(
             onPressed: () async {
@@ -4546,12 +4572,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 if (mounted) {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Error al eliminar la receta')),
+                    SnackBar(content: Text('Error al eliminar la receta'.tr)),
                   );
                 }
               }
             },
-            child: const Text('Eliminar'),
+            child: Text('Eliminar'.tr),
           ),
         ],
       ),
@@ -4570,7 +4596,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     });
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
@@ -4593,7 +4619,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       if (mounted) {
         setState(() {}); // Refresh UI
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagen actualizada')),
+          SnackBar(content: Text('Imagen actualizada'.tr)),
         );
       }
     }
@@ -4606,12 +4632,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         },
       );
 
       // Wait a bit to ensure the off-screen widget is rendered
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 100));
 
       final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       
@@ -4654,12 +4680,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Valorar receta'),
+        title: Text('Valorar receta'.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Toca una estrella para valorar:'),
-            const SizedBox(height: 16),
+            Text('Toca una estrella para valorar:'.tr),
+            SizedBox(height: 16),
             StatefulBuilder(
               builder: (context, setDialogState) {
                 return Row(
@@ -4674,7 +4700,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       },
                       starSize: 36,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       (widget.recipe.rating ?? 0).toStringAsFixed(1),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -4691,7 +4717,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
+            child: Text('Cerrar'.tr),
           ),
         ],
       ),
@@ -4713,7 +4739,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'favorite') _toggleFavorite();
               if (value == 'edit') {
@@ -4734,7 +4760,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       color: _isFavorite ? Colors.red : theme.iconTheme.color,
                       size: 20,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Text(_isFavorite ? 'Quitar de favoritos' : 'Favoritos'),
                   ],
                 ),
@@ -4744,8 +4770,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Row(
                   children: [
                     Icon(CupertinoIcons.pencil, size: 20, color: theme.iconTheme.color),
-                    const SizedBox(width: 12),
-                    const Text('Editar'),
+                    SizedBox(width: 12),
+                    Text('Editar'.tr),
                   ],
                 ),
               ),
@@ -4754,8 +4780,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Row(
                   children: [
                     Icon(CupertinoIcons.share, size: 20, color: theme.iconTheme.color),
-                    const SizedBox(width: 12),
-                    const Text('Compartir'),
+                    SizedBox(width: 12),
+                    Text('Compartir'.tr),
                   ],
                 ),
               ),
@@ -4765,8 +4791,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   child: Row(
                     children: [
                       Icon(CupertinoIcons.trash, size: 20, color: theme.colorScheme.error),
-                      const SizedBox(width: 12),
-                      Text('Eliminar', style: TextStyle(color: theme.colorScheme.error)),
+                      SizedBox(width: 12),
+                      Text('Eliminar'.tr, style: TextStyle(color: theme.colorScheme.error)),
                     ],
                   ),
                 ),
@@ -4778,7 +4804,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         children: [
             // Off-screen widget for capture
             Transform.translate(
-              offset: const Offset(-9999, -9999),
+              offset: Offset(-9999, -9999),
                child: OverflowBox(
                  minWidth: 0, 
                  maxWidth: double.infinity, 
@@ -4808,7 +4834,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   height: 250,
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark 
-                        ? const Color(0xFF16161C) 
+                        ? Color(0xFF16161C) 
                         : Colors.grey[200],
                   ),
                   child: displayImagePath.startsWith('assets/')
@@ -4845,7 +4871,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   height: 250,
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark 
-                        ? const Color(0xFF16161C) 
+                        ? Color(0xFF16161C) 
                         : Colors.grey[200],
                   ),
                   child: _buildPlaceholder(),
@@ -4868,7 +4894,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(CupertinoIcons.clock, color: theme.colorScheme.onPrimary, size: 16),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
                         _currentRecipe.prepTime!,
                         style: TextStyle(
@@ -4893,7 +4919,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 controller: _pageController,
                 selectedIndex: _selectedIndex,
                 onTap: _onSegmentChanged,
-                tabs: const ['Ingredientes', 'Instrucciones', 'Info'],
+                tabs: ['Ingredientes'.tr, 'Instrucciones'.tr, 'Info'.tr],
               ),
             ),
           
@@ -4929,9 +4955,9 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               size: 64,
               color: theme.colorScheme.primary.withOpacity(0.5),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
-              'Toca para añadir foto',
+              'Toca para añadir foto'.tr,
               style: TextStyle(color: theme.colorScheme.primary.withOpacity(0.5), fontWeight: FontWeight.bold),
             ),
           ],
@@ -4942,7 +4968,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 }
 
 class _SlidingSegmentedControl extends StatelessWidget {
-  const _SlidingSegmentedControl({
+  _SlidingSegmentedControl({
     required this.controller,
     required this.selectedIndex,
     required this.onTap,
@@ -4996,7 +5022,7 @@ class _SlidingSegmentedControl extends StatelessWidget {
                           BoxShadow(
                             color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                             blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
@@ -5049,7 +5075,7 @@ class _SlidingSegmentedControl extends StatelessWidget {
 }
 
 class _IngredientsView extends StatefulWidget {
-  const _IngredientsView({required this.recipe});
+  _IngredientsView({required this.recipe});
 
   final Recipe recipe;
 
@@ -5131,7 +5157,7 @@ class _IngredientsViewState extends State<_IngredientsView> with AutomaticKeepAl
 }
 
 class _LikeButton extends StatefulWidget {
-  const _LikeButton({required this.isFavorite, required this.onTap});
+  _LikeButton({required this.isFavorite, required this.onTap});
   final bool isFavorite;
   final VoidCallback onTap;
 
@@ -5146,7 +5172,7 @@ class _LikeButtonState extends State<_LikeButton> with SingleTickerProviderState
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 200));
     _scaleAnimation = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
@@ -5193,7 +5219,7 @@ class _LikeButtonState extends State<_LikeButton> with SingleTickerProviderState
 }
 
 class _IngredientRow extends StatelessWidget {
-  const _IngredientRow({
+  _IngredientRow({
     required this.name,
     required this.quantity,
     required this.isChecked,
@@ -5215,7 +5241,7 @@ class _IngredientRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 300),
+          duration: Duration(milliseconds: 300),
           opacity: isChecked ? 0.6 : 1.0,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -5232,7 +5258,7 @@ class _IngredientRow extends StatelessWidget {
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5), width: 1.5),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: RichText(
                   text: TextSpan(
@@ -5245,7 +5271,7 @@ class _IngredientRow extends StatelessWidget {
                     children: [
                       TextSpan(
                           text: name,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       if (quantity.isNotEmpty)
                         TextSpan(
                             text: '  $quantity',
@@ -5265,7 +5291,7 @@ class _IngredientRow extends StatelessWidget {
 }
 
 class _InstructionsView extends StatelessWidget {
-  const _InstructionsView({required this.recipe});
+  _InstructionsView({required this.recipe});
 
   final Recipe recipe;
 
@@ -5307,7 +5333,7 @@ class _InstructionsView extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: _buildStepText(step, theme),
                             ),
@@ -5317,14 +5343,14 @@ class _InstructionsView extends StatelessWidget {
                 }).toList()
               : [
                     Text(
-                      'No hay pasos disponibles para esta receta.',
+                      'No hay pasos disponibles para esta receta.'.tr,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withOpacity(0.6),
                       ),
                     ),
                 ],
             
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             Center(
               child: FilledButton.tonalIcon(
                 onPressed: () async {
@@ -5335,19 +5361,19 @@ class _InstructionsView extends StatelessWidget {
                   } catch (e) {
                      if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No se pudo abrir el navegador')),
+                          SnackBar(content: Text('No se pudo abrir el navegador'.tr)),
                         );
                      }
                   }
                 },
-                icon: const Icon(CupertinoIcons.globe),
-                label: const Text('Buscar en Internet'),
+                icon: Icon(CupertinoIcons.globe),
+                label: Text('Buscar en Internet'.tr),
                 style: FilledButton.styleFrom(
                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
           ],
         ),
       ),
@@ -5370,7 +5396,7 @@ class _InstructionsView extends StatelessWidget {
           children: [
             TextSpan(
               text: prefix,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             TextSpan(text: rest),
           ],
@@ -5390,7 +5416,7 @@ class _InstructionsView extends StatelessWidget {
 
 
 class _InfoView extends StatelessWidget {
-  const _InfoView({required this.recipe});
+  _InfoView({required this.recipe});
 
   final Recipe recipe;
 
@@ -5408,12 +5434,12 @@ class _InfoView extends StatelessWidget {
             // Dietary Restrictions
             if (recipe.dietaryRestrictions.isNotEmpty || recipe.customDietaryTags.isNotEmpty) ...[
               Text(
-                'Restricciones dietéticas',
+                'Restricciones dietéticas'.tr,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -5454,18 +5480,18 @@ class _InfoView extends StatelessWidget {
                         )),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
             ],
 
             // Nutrition Facts
             if (recipe.nutritionFacts.isNotEmpty) ...[
               Text(
-                'Información nutricional',
+                'Información nutricional'.tr,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -5477,7 +5503,7 @@ class _InfoView extends StatelessWidget {
               ),
             ],
             
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             
             // Rating Row
             // Rating Row
@@ -5485,7 +5511,7 @@ class _InfoView extends StatelessWidget {
               recipe: recipe,
             ),
             
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
           ],
         ),
       ),
@@ -5501,9 +5527,9 @@ class _InfoView extends StatelessWidget {
             size: 64,
             color: Colors.white.withOpacity(0.3),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
-            'Toca para añadir foto',
+            'Toca para añadir foto'.tr,
             style: TextStyle(color: Colors.white.withOpacity(0.3)),
           ),
         ],
@@ -5513,7 +5539,7 @@ class _InfoView extends StatelessWidget {
 }
 
 class DetailedIngredient {
-  const DetailedIngredient({
+  DetailedIngredient({
     required this.name,
     required this.quantity,
   });
@@ -5535,7 +5561,7 @@ class DetailedIngredient {
 }
 
 class Recipe {
-  const Recipe({
+  Recipe({
     required this.title, 
     required this.ingredients,
     this.dietaryRestrictions = const [],
@@ -5600,10 +5626,10 @@ class Recipe {
               })
               .whereType<DietaryRestriction>()
               .toList()
-          : const [],
+          : [],
       customDietaryTags: (json['customDietaryTags'] != null)
           ? List<String>.from(json['customDietaryTags'])
-          : const [],
+          : [],
       categories: _parseCategories(json['categories']),
       imagePath: json['imagePath'] as String?,
       prepTime: json['prepTime'] as String?,
@@ -5611,15 +5637,15 @@ class Recipe {
           ? (json['detailedIngredients'] as List)
               .map((i) => DetailedIngredient.fromJson(i as Map<String, dynamic>))
               .toList()
-          : const [],
+          : [],
       steps: (json['steps'] != null)
           ? List<String>.from(json['steps'])
-          : const [],
+          : [],
       nutritionFacts: (json['nutritionFacts'] != null)
           ? (json['nutritionFacts'] as List)
               .map((item) => NutritionFact.fromJson(item as Map<String, dynamic>))
               .toList()
-          : const [],
+          : [],
       rating: (json['rating'] as num?)?.toDouble(),
       dateRated: json['dateRated'] != null ? DateTime.parse(json['dateRated']) : null,
     );
@@ -5689,7 +5715,7 @@ class Recipe {
 }
 
 class NutritionFact {
-  const NutritionFact({
+  NutritionFact({
     required this.label,
     required this.value,
     required this.unit,
@@ -5727,7 +5753,7 @@ class NutritionFact {
 }
 
 class FavoriteFolder {
-  const FavoriteFolder({
+  FavoriteFolder({
     required this.id,
     required this.name,
     required this.icon,
@@ -5766,10 +5792,10 @@ class FavoriteFolder {
       id: json['id'] as String,
       name: json['name'] as String,
       icon: icon,
-      recipeTitles: (json['recipeTitles'] as List?)?.cast<String>() ?? const [],
+      recipeTitles: (json['recipeTitles'] as List?)?.cast<String>() ?? [],
       subFolders: (json['subFolders'] as List?)
           ?.map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>))
-          .toList() ?? const [],
+          .toList() ?? [],
       parentId: json['parentId'] as String?,
     );
   }
@@ -6010,7 +6036,8 @@ class RecipeManager {
   // Load default recipes from JSON asset
   static Future<void> loadDefaultRecipes() async {
     try {
-      final String jsonString = await rootBundle.loadString('assets/data/recipes.json');
+      final isEnglish = SettingsManager.language.value == 'en';
+      final String jsonString = await rootBundle.loadString(isEnglish ? 'assets/data/recipes_en.json' : 'assets/data/recipes.json');
       final List<dynamic> jsonData = json.decode(jsonString);
       
       _defaultRecipes.clear();
@@ -6376,7 +6403,7 @@ class RecipeManager {
 }
 
 class _ScoredRecipe {
-  const _ScoredRecipe({
+  _ScoredRecipe({
     required this.recipe, 
     required this.matchCount,
     required this.remainingIngredients,
@@ -6455,7 +6482,7 @@ List<String> _getIngredientsForCategory(IngredientCategory category, List<String
 }
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -6466,7 +6493,7 @@ class SettingsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
             child: Text(
-              'Ajustes',
+              'Ajustes'.tr,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -6474,28 +6501,40 @@ class SettingsPage extends StatelessWidget {
           ),
           
           _SettingsSection(
-            title: 'GENERAL',
+            title: 'GENERAL'.tr.tr,
             children: [
               ValueListenableBuilder<int>(
                 valueListenable: SettingsManager.startScreenIndex,
                 builder: (context, index, child) {
                   return _SettingsTile(
-                    title: 'Pantalla predeterminada',
-                    subtitle: index == 0 ? 'Buscador' : 'Mis Recetas',
-                    trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                    title: 'Pantalla predeterminada'.tr.tr,
+                    subtitle: index == 0 ? 'Buscador'.tr : 'Mis Recetas'.tr,
+                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                     onTap: () => _showStartScreenDialog(context, index),
                   );
                 },
               ),
               _SettingsTile(
-                title: 'Filtros dietéticos permanentes',
-                subtitle: 'Excluir siempre recetas incompatibles',
+                title: 'Filtros dietéticos permanentes'.tr.tr,
+                subtitle: 'Excluir siempre recetas incompatibles'.tr.tr.tr,
                 icon: Icons.no_food,
-                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
                   Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (_) => const _DietarySettingsPage()),
+                    MaterialPageRoute(builder: (_) => _DietarySettingsPage()),
+                  );
+                },
+              ),
+              ValueListenableBuilder<String>(
+                valueListenable: SettingsManager.language,
+                builder: (context, lang, child) {
+                  return _SettingsTile(
+                    title: 'Idioma / Language'.tr.tr,
+                    icon: CupertinoIcons.globe,
+                    subtitle: lang == 'en' ? 'English' : 'Español',
+                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                    onTap: () => _showLanguageScreenDialog(context, lang),
                   );
                 },
               ),
@@ -6503,7 +6542,7 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.isDarkMode,
                 builder: (context, isDark, child) {
                   return _SettingsTile(
-                    title: 'Modo Oscuro',
+                    title: 'Modo Oscuro'.tr.tr,
                     isSwitch: true,
                     switchValue: isDark,
                     onSwitchChanged: (value) => SettingsManager.setDarkMode(value),
@@ -6515,7 +6554,7 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.showDefaultRecipes,
                 builder: (context, showDefaults, child) {
                   return _SettingsTile(
-                    title: 'Mostrar Recetas Predeterminadas',
+                    title: 'Mostrar Recetas Predeterminadas'.tr.tr,
                     isSwitch: true,
                     switchValue: showDefaults,
                     onSwitchChanged: (value) => SettingsManager.setShowDefaults(value),
@@ -6527,7 +6566,7 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.preventSleep,
                 builder: (context, prevent, child) {
                   return _SettingsTile(
-                    title: 'Mantener pantalla encendida',
+                    title: 'Mantener pantalla encendida'.tr.tr,
                     isSwitch: true,
                     switchValue: prevent,
                     onSwitchChanged: (value) => SettingsManager.setPreventSleep(value),
@@ -6540,20 +6579,20 @@ class SettingsPage extends StatelessWidget {
           ),
 
           _SettingsSection(
-            title: 'DATOS',
+            title: 'DATOS'.tr.tr,
             children: [
               _SettingsTile(
-                title: 'Exportar recetas',
+                title: 'Exportar recetas'.tr.tr,
                 icon: CupertinoIcons.share,
                 onTap: () => SettingsManager.exportRecipes(context),
               ),
               _SettingsTile(
-                title: 'Importar recetas',
+                title: 'Importar recetas'.tr.tr,
                 icon: CupertinoIcons.arrow_down_doc,
                 onTap: () => SettingsManager.importRecipes(context),
               ),
                _SettingsTile(
-                title: 'Borrar todos los datos',
+                title: 'Borrar todos los datos'.tr.tr,
                 icon: CupertinoIcons.delete,
                 iconColor: Colors.red,
                 textColor: Colors.red,
@@ -6564,17 +6603,17 @@ class SettingsPage extends StatelessWidget {
           ),
           
           _SettingsSection(
-            title: 'INFORMACIÓN',
+            title: 'INFORMACIÓN'.tr.tr,
             children: [
                _SettingsTile(
-                title: 'Legal',
-                subtitle: 'Política de Privacidad y Términos',
+                title: 'Legal'.tr.tr,
+                subtitle: 'Política de Privacidad y Términos'.tr.tr.tr,
                 icon: CupertinoIcons.doc_text,
-                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const _LegalPage()),
+                    MaterialPageRoute(builder: (context) => _LegalPage()),
                   );
                 },
                 lastItem: true,
@@ -6582,7 +6621,7 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
           
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
         ],
       ),
     );
@@ -6595,6 +6634,77 @@ class SettingsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.dark 
+              ? Color(0xFF1C1C1E) // iOS Dark Gray
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12),
+              // Drag Handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 24),
+              
+              Text(
+                'Elegir pantalla predeterminada'.tr,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 24),
+              
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _SelectionOption(
+                      title: 'Buscador'.tr.tr,
+                      icon: CupertinoIcons.search,
+                      isSelected: currentIndex == 0,
+                      onTap: () {
+                         SettingsManager.setStartScreenIndex(0);
+                         Navigator.pop(context);
+                      },
+                    ),
+                    SizedBox(height: 12),
+                    _SelectionOption(
+                      title: 'Mis Recetas'.tr.tr,
+                      icon: CupertinoIcons.book,
+                      isSelected: currentIndex == 1,
+                      onTap: () {
+                         SettingsManager.setStartScreenIndex(1);
+                         Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 48), // Bottom spacing
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageScreenDialog(BuildContext context, String currentLanguage) {
+    final theme = Theme.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
         decoration: BoxDecoration(
           color: theme.brightness == Brightness.dark 
               ? const Color(0xFF1C1C1E) // iOS Dark Gray
@@ -6617,8 +6727,7 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
-              Text(
-                'Elegir pantalla predeterminada',
+              Text('Idioma / Language'.tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -6630,22 +6739,22 @@ class SettingsPage extends StatelessWidget {
                 child: Column(
                   children: [
                     _SelectionOption(
-                      title: 'Buscador',
-                      icon: CupertinoIcons.search,
-                      isSelected: currentIndex == 0,
+                      title: 'Español'.tr,
+                      icon: CupertinoIcons.globe,
+                      isSelected: currentLanguage == 'es',
                       onTap: () {
-                         SettingsManager.setStartScreenIndex(0);
-                         Navigator.pop(context);
+                         Navigator.pop(sheetContext);
+                         _changeLanguage(context, 'es');
                       },
                     ),
                     const SizedBox(height: 12),
                     _SelectionOption(
-                      title: 'Mis Recetas',
-                      icon: CupertinoIcons.book,
-                      isSelected: currentIndex == 1,
+                      title: 'English'.tr,
+                      icon: CupertinoIcons.globe,
+                      isSelected: currentLanguage == 'en',
                       onTap: () {
-                         SettingsManager.setStartScreenIndex(1);
-                         Navigator.pop(context);
+                         Navigator.pop(sheetContext);
+                         _changeLanguage(context, 'en');
                       },
                     ),
                   ],
@@ -6658,6 +6767,52 @@ class SettingsPage extends StatelessWidget {
       ),
     );
   }
+
+  void _changeLanguage(BuildContext context, String lang) async {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark 
+                ? const Color(0xFF1C1C1E) 
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16)
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: theme.colorScheme.primary),
+              const SizedBox(height: 24),
+              DefaultTextStyle(
+                style: theme.textTheme.titleMedium!.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                child: Text(
+                  lang == 'en' ? 'Applying language...' : 'Aplicando idioma...',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(decoration: TextDecoration.none),
+                ),
+              ),
+            ],
+          )
+        )
+      )
+    );
+    
+    // Store navigator before awaiting, so we can pop the dialog even if context unmounts
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    // Wait for the simulated loading & the actual language setting logic
+    await Future.delayed(const Duration(milliseconds: 1000));
+    await SettingsManager.setLanguage(lang);
+    
+    navigator.pop();
+  }
 }
 
 class _SelectionOption extends StatelessWidget {
@@ -6666,7 +6821,7 @@ class _SelectionOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SelectionOption({
+  _SelectionOption({
     required this.title,
     required this.icon,
     required this.isSelected,
@@ -6681,7 +6836,7 @@ class _SelectionOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected 
@@ -6711,7 +6866,7 @@ class _SelectionOption extends StatelessWidget {
                 color: isSelected ? Colors.black : theme.iconTheme.color,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
@@ -6733,7 +6888,7 @@ class _SettingsSection extends StatelessWidget {
   final String? title;
   final List<Widget> children;
 
-  const _SettingsSection({
+  _SettingsSection({
     this.title,
     required this.children,
   });
@@ -6773,7 +6928,7 @@ class _SettingsSection extends StatelessWidget {
               BoxShadow(
                 color: Colors.black.withOpacity(0.02),
                 blurRadius: 10,
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4),
               )
             ] : null,
           ),
@@ -6799,7 +6954,7 @@ class _SettingsTile extends StatelessWidget {
   final ValueChanged<bool>? onSwitchChanged;
   final bool lastItem;
 
-  const _SettingsTile({
+  _SettingsTile({
     required this.title,
     this.subtitle,
     this.icon,
@@ -6881,20 +7036,19 @@ class _SettingsTile extends StatelessWidget {
 }
 
 class _DietarySettingsPage extends StatelessWidget {
-  const _DietarySettingsPage();
+  _DietarySettingsPage();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Filtros Dietéticos')),
+      appBar: AppBar(title: Text('Filtros Dietéticos'.tr)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-             const Padding(
+             Padding(
                padding: EdgeInsets.only(bottom: 24),
-               child: Text(
-                 'Selecciona las restricciones que coincidan con tus preferencias (ej: si eres vegetariano, selecciona "vegetariano"). Añadirá un indicador rojo a las recetas que no cumplen con estas restricciones.',
+               child: Text('Selecciona las restricciones que coincidan con tus preferencias (ej: si eres vegetariano, selecciona "vegetariano"). Añadirá un indicador rojo a las recetas que no cumplen con estas restricciones.'.tr,
                  textAlign: TextAlign.center,
                  style: TextStyle(color: Colors.grey),
                ),
@@ -6905,7 +7059,7 @@ class _DietarySettingsPage extends StatelessWidget {
                 final restrictions = DietaryRestriction.values.toList();
                 
                 return _SettingsSection(
-                  title: 'RESTRICCIONES',
+                  title: 'RESTRICCIONES'.tr.tr,
                   children: List.generate(restrictions.length, (index) {
                     final restriction = restrictions[index];
                     final isSelected = defaults.contains(restriction);
@@ -6921,7 +7075,7 @@ class _DietarySettingsPage extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             ValueListenableBuilder<Set<String>>(
               valueListenable: SettingsManager.customDietaryDefaults,
               builder: (context, customDefaults, child) {
@@ -6931,7 +7085,7 @@ class _DietarySettingsPage extends StatelessWidget {
                 return Column(
                   children: [
                     _SettingsSection(
-                      title: 'ETIQUETAS PERSONALIZADAS',
+                      title: 'ETIQUETAS PERSONALIZADAS'.tr.tr,
                       children: List.generate(allCustomTags.length, (index) {
                         final tag = allCustomTags[index];
                         final isSelected = customDefaults.contains(tag);
@@ -6944,7 +7098,7 @@ class _DietarySettingsPage extends StatelessWidget {
                         );
                       }),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                   ],
                 );
               },
@@ -6956,19 +7110,19 @@ class _DietarySettingsPage extends StatelessWidget {
                   valueListenable: SettingsManager.hideIncompatibleRecipes,
                   builder: (context, hideIncompatible, _) {
                     return _SettingsSection(
-                      title: 'OPCIONES',
+                      title: 'OPCIONES'.tr.tr,
                       children: [
                         _SettingsTile(
-                          title: 'Aplicar a recetas predeterminadas',
-                          subtitle: 'Mostrar indicador rojo también en recetas incluidas en la app',
+                          title: 'Aplicar a recetas predeterminadas'.tr.tr,
+                          subtitle: 'Mostrar indicador rojo también en recetas incluidas en la app'.tr.tr.tr,
                           isSwitch: true,
                           switchValue: applyToDefaults,
                           onSwitchChanged: (value) => SettingsManager.setApplyDietaryToDefaults(value),
                           lastItem: false,
                         ),
                         _SettingsTile(
-                          title: 'Ocultar recetas incompatibles',
-                          subtitle: 'No mostrar recetas que no cumplan con los filtros',
+                          title: 'Ocultar recetas incompatibles'.tr.tr,
+                          subtitle: 'No mostrar recetas que no cumplan con los filtros'.tr.tr.tr,
                           isSwitch: true,
                           switchValue: hideIncompatible,
                           onSwitchChanged: (val) => SettingsManager.setHideIncompatibleRecipes(val),
@@ -6990,7 +7144,7 @@ class _DietarySettingsPage extends StatelessWidget {
 
 
 class _StarRating extends StatelessWidget {
-  const _StarRating({
+  _StarRating({
     required this.rating,
     required this.onRatingChanged,
     this.starSize = 28,
@@ -7035,7 +7189,7 @@ class _StarRating extends StatelessWidget {
 }
 
 class _PartialStar extends StatelessWidget {
-  const _PartialStar({
+  _PartialStar({
     required this.filledPercentage,
     required this.size,
   });
@@ -7083,7 +7237,7 @@ class _StarClipper extends CustomClipper<Rect> {
 }
 
 class RatedRecipesPage extends StatefulWidget {
-  const RatedRecipesPage({super.key});
+  RatedRecipesPage({super.key});
 
   @override
   State<RatedRecipesPage> createState() => _RatedRecipesPageState();
@@ -7131,10 +7285,17 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: ratedRecipes.isEmpty
-          ? const _EmptyStateWidget(
-              icon: CupertinoIcons.star_slash,
-              title: 'Sin valoraciones',
-              subtitle: 'Valora recetas para verlas aquí',
+          ? Column(
+              children: [
+                SizedBox(height: 72),
+                Expanded(
+                  child: _EmptyStateWidget(
+                    icon: CupertinoIcons.star_slash,
+                    title: 'Sin valoraciones'.tr.tr,
+                    subtitle: 'Valora recetas para verlas aquí'.tr.tr.tr,
+                  ),
+                ),
+              ],
             )
           : Column(
               children: [
@@ -7153,13 +7314,13 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
                           child: DropdownButton<String>(
                             value: _sortOption,
                             isDense: true,
-                            icon: const Icon(Icons.sort, size: 20),
+                            icon: Icon(Icons.sort, size: 20),
                             style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.onSurface),
-                            items: const [
-                              DropdownMenuItem(value: 'recent', child: Text('Más recientes')),
-                              DropdownMenuItem(value: 'highest', child: Text('Mejor valoradas')),
-                              DropdownMenuItem(value: 'lowest', child: Text('Peor valoradas')),
+                            items: [
+                              DropdownMenuItem(value: 'recent', child: Text('Más recientes'.tr)),
+                              DropdownMenuItem(value: 'highest', child: Text('Mejor valoradas'.tr)),
+                              DropdownMenuItem(value: 'lowest', child: Text('Peor valoradas'.tr)),
                             ],
                             borderRadius: BorderRadius.circular(16),
                             dropdownColor: theme.colorScheme.surfaceContainerHigh,
@@ -7199,7 +7360,7 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
 }
 
 class _EmptyStateWidget extends StatelessWidget {
-  const _EmptyStateWidget({
+  _EmptyStateWidget({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -7223,7 +7384,7 @@ class _EmptyStateWidget extends StatelessWidget {
               size: 64,
               color: theme.colorScheme.onSurface.withOpacity(0.2),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               title,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -7232,7 +7393,7 @@ class _EmptyStateWidget extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -7248,7 +7409,7 @@ class _EmptyStateWidget extends StatelessWidget {
 }
 
 class _LegalPage extends StatelessWidget {
-  const _LegalPage();
+  _LegalPage();
 
   @override
   Widget build(BuildContext context) {
@@ -7256,15 +7417,15 @@ class _LegalPage extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Legal'),
-          bottom: const TabBar(
+          title: Text('Legal'.tr),
+          bottom: TabBar(
             tabs: [
               Tab(text: 'Política de Privacidad'),
               Tab(text: 'Términos de Uso'),
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             _LegalContent(isPrivacy: true),
             _LegalContent(isPrivacy: false),
@@ -7276,7 +7437,7 @@ class _LegalPage extends StatelessWidget {
 }
 
 class _LegalContent extends StatelessWidget {
-  const _LegalContent({required this.isPrivacy});
+  _LegalContent({required this.isPrivacy});
 
   final bool isPrivacy;
 
@@ -7470,7 +7631,7 @@ class _InteractiveStarRating extends StatelessWidget {
   final double starSize;
   final ValueChanged<double> onRatingChanged;
 
-  const _InteractiveStarRating({
+  _InteractiveStarRating({
     required this.rating,
     required this.starSize,
     required this.onRatingChanged,
@@ -7508,7 +7669,7 @@ class _InteractiveStarRating extends StatelessWidget {
 class _PremiumRatingButton extends StatelessWidget {
   final Recipe recipe;
 
-  const _PremiumRatingButton({required this.recipe});
+  _PremiumRatingButton({required this.recipe});
 
   @override
   Widget build(BuildContext context) {
@@ -7531,13 +7692,13 @@ class _PremiumRatingButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                    Text(
-                     'Tu valoración',
+                     'Tu valoración'.tr,
                      style: theme.textTheme.titleMedium?.copyWith(
                        fontWeight: FontWeight.bold,
                      ),
                    ),
                    Text(
-                      rating > 0 ? rating.toStringAsFixed(1) : 'Sin valorar',
+                      rating > 0 ? rating.toStringAsFixed(1) : 'Sin valorar'.tr,
                       style: theme.textTheme.titleMedium?.copyWith(
                          color: theme.colorScheme.primary,
                          fontWeight: FontWeight.bold,
@@ -7545,7 +7706,7 @@ class _PremiumRatingButton extends StatelessWidget {
                    ),
                 ],
              ),
-             const SizedBox(height: 12),
+             SizedBox(height: 12),
              Center(
                child: _InteractiveStarRating(
                   rating: rating,
@@ -7575,7 +7736,7 @@ class _PremiumRatingButton extends StatelessWidget {
 // --- Onboarding Flow ---
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  OnboardingPage({super.key});
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -7589,7 +7750,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
+        duration: Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
@@ -7602,7 +7763,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Use pushReplacement to avoid going back to onboarding
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const MainNavigationPage(),
+        pageBuilder: (context, animation, secondaryAnimation) => MainNavigationPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -7628,7 +7789,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   children: List.generate(_totalPages, (index) {
                      final isActive = index <= _currentPage;
                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
+                        duration: Duration(milliseconds: 300),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         height: 4,
                         width: isActive ? 32 : 16, // Active step is wider
@@ -7644,7 +7805,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Enforce buttons
+                physics: NeverScrollableScrollPhysics(), // Enforce buttons
                 onPageChanged: (index) => setState(() => _currentPage = index),
                 children: [
                   _buildStep1Welcome(theme),
@@ -7668,8 +7829,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       foregroundColor: theme.colorScheme.onPrimary, // High contrast text
                    ),
                    child: Text(
-                      _currentPage == _totalPages - 1 ? 'Comenzar a cocinar' : 'Siguiente',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      _currentPage == _totalPages - 1 ? 'Comenzar a cocinar'.tr : 'Siguiente'.tr,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                    ),
                 ),
               ),
@@ -7697,9 +7858,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   fit: BoxFit.cover,
                ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             Text(
-               'Bienvenido a Recetas',
+               'Bienvenido a Recetas'.tr,
                style: theme.textTheme.headlineMedium?.copyWith(
                  fontWeight: FontWeight.bold,
                ),
@@ -7720,64 +7881,64 @@ class _OnboardingPageState extends State<OnboardingPage> {
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.search,
-               title: 'Búsqueda Inteligente',
-               desc: 'Encuentra recetas según los ingredientes que ya tengas en tu nevera.',
+               title: 'Búsqueda Inteligente'.tr.tr,
+               desc: 'Encuentra recetas según los ingredientes que ya tengas en tu nevera.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: Icons.auto_awesome, 
-               title: '+1000 Recetas',
-               desc: 'Una base de datos inmensa de recetas creativas y deliciosas.',
+               title: '+1000 Recetas'.tr.tr,
+               desc: 'Una base de datos inmensa de recetas creativas y deliciosas.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
              _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.add_circled,
-               title: 'Tus Propias Recetas',
-               desc: 'Añade y organiza tus creaciones culinarias en un solo lugar.',
+               title: 'Tus Propias Recetas'.tr.tr,
+               desc: 'Añade y organiza tus creaciones culinarias en un solo lugar.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.slider_horizontal_3,
-               title: 'Filtros Dietéticos',
-               desc: 'Vegetariano, vegano, sin gluten... Filtra según tus necesidades.',
+               title: 'Filtros Dietéticos'.tr.tr,
+               desc: 'Vegetariano, vegano, sin gluten... Filtra según tus necesidades.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.moon,
-               title: 'Modo Oscuro',
-               desc: 'Una interfaz elegante que cuida tus ojos.',
+               title: 'Modo Oscuro'.tr.tr,
+               desc: 'Una interfaz elegante que cuida tus ojos.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.cloud_upload,
-               title: 'Importar/Exportar',
-               desc: 'Haz copias de seguridad de tus recetas y compártelas.',
+               title: 'Importar/Exportar'.tr.tr,
+               desc: 'Haz copias de seguridad de tus recetas y compártelas.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.globe,
-               title: 'Búsqueda en Internet',
-               desc: 'Busca recetas en Google desdela aplicación.',
+               title: 'Búsqueda en Internet'.tr.tr,
+               desc: 'Busca recetas en Google desde la aplicación.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.star,
-               title: 'Valoración',
-               desc: 'Califica las recetas y organiza tus favoritas.',
+               title: 'Valoración'.tr.tr,
+               desc: 'Califica las recetas y organiza tus favoritas.'.tr,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildFeatureCard(
                theme, isDark,
                icon: CupertinoIcons.shuffle,
-               title: 'Receta Aleatoria',
-               desc: '¿Indeciso? Deja que el azar decida qué cocinar hoy.',
+               title: 'Receta Aleatoria'.tr.tr,
+               desc: '¿Indeciso? Deja que el azar decida qué cocinar hoy.'.tr,
             ),
          ],
        ),
@@ -7793,11 +7954,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
              Text(
-               'Personaliza tu experiencia',
+               'Personaliza tu experiencia'.tr,
                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                textAlign: TextAlign.center,
              ),
-             const SizedBox(height: 32),
+             SizedBox(height: 32),
              
              // Dark Mode Toggle
              ValueListenableBuilder<bool>(
@@ -7805,15 +7966,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 builder: (context, isDarkEnabled, _) {
                    return _buildSettingToggle(
                       theme, isDark,
-                      title: 'Modo Oscuro',
-                      subtitle: 'Activa el tema oscuro.',
+                      title: 'Modo Oscuro'.tr.tr,
+                      subtitle: 'Activa el tema oscuro.'.tr.tr.tr,
                       icon: isDarkEnabled ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
                       value: isDarkEnabled,
                       onChanged: (v) => SettingsManager.setDarkMode(v),
                    );
                 }
              ),
-             const SizedBox(height: 16),
+             SizedBox(height: 16),
              
              // Default Recipes
              ValueListenableBuilder<bool>(
@@ -7821,15 +7982,32 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 builder: (context, showDefaults, _) {
                    return _buildSettingToggle(
                       theme, isDark,
-                      title: 'Recetas Predeterminadas',
-                      subtitle: 'Carga nuestras +1000 recetas iniciales.',
+                      title: 'Recetas Predeterminadas'.tr.tr,
+                      subtitle: 'Carga nuestras +1000 recetas iniciales.'.tr.tr.tr,
                       icon: Icons.book, 
                       value: showDefaults,
                       onChanged: (v) => SettingsManager.setShowDefaults(v),
                    );
                 }
              ),
-             const SizedBox(height: 16),
+             SizedBox(height: 16),
+
+             // Language Setting
+             ValueListenableBuilder<String>(
+               valueListenable: SettingsManager.language,
+               builder: (context, lang, _) {
+                 final isEnglish = lang == 'en';
+                 return _buildSettingToggle(
+                   theme, isDark,
+                   title: 'Idioma / Language'.tr,
+                   subtitle: isEnglish ? 'App is in English' : 'La aplicación está en Español',
+                   icon: CupertinoIcons.globe,
+                   value: isEnglish,
+                   onChanged: (v) => SettingsManager.setLanguage(v ? 'en' : 'es'),
+                 );
+               }
+             ),
+             SizedBox(height: 16),
 
              // Dietary Filters
              Container(
@@ -7845,7 +8023,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                    BoxShadow(
                      color: Colors.black.withOpacity(0.02),
                      blurRadius: 10,
-                     offset: const Offset(0, 4),
+                     offset: Offset(0, 4),
                    )
                  ],
                ),
@@ -7862,19 +8040,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
                          ),
                          child: Icon(Icons.restaurant_menu, color: theme.colorScheme.primary, size: 24),
                        ),
-                       const SizedBox(width: 16),
+                       SizedBox(width: 16),
                        Expanded(
                          child: Column(
                            crossAxisAlignment: CrossAxisAlignment.start,
                            children: [
-                             Text('Filtros Dietéticos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                             Text('Excluye recetas incompatibles. Elige las que coincidan con tu dieta.', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                             Text('Filtros Dietéticos'.tr, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                             Text('Excluye recetas incompatibles. Elige las que coincidan con tu dieta.'.tr, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
                            ],
                          ),
                        ),
                      ],
                    ),
-                   const SizedBox(height: 16),
+                   SizedBox(height: 16),
                    ValueListenableBuilder<Set<DietaryRestriction>>(
                      valueListenable: SettingsManager.dietaryDefaults,
                      builder: (context, defaults, _) {
@@ -7923,7 +8101,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
            borderRadius: BorderRadius.circular(20),
            boxShadow: isDark ? [] : [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4)),
            ],
            border: isDark ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
         ),
@@ -7937,13 +8115,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                  ),
                  child: Icon(icon, color: theme.colorScheme.primary, size: 24),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                        Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                       const SizedBox(height: 4),
+                       SizedBox(height: 4),
                        Text(desc, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7))),
                     ],
                  ),
@@ -7968,7 +8146,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
              BoxShadow(
                color: Colors.black.withOpacity(0.02),
                blurRadius: 10,
-               offset: const Offset(0, 4),
+               offset: Offset(0, 4),
              )
            ],
         ),
@@ -7982,7 +8160,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                  ),
                  child: Icon(icon, color: theme.colorScheme.primary, size: 24),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -7993,7 +8171,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ],
                  ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Switch(
                  value: value, 
                  onChanged: onChanged,
@@ -8010,7 +8188,7 @@ class _RecipeShareCard extends StatelessWidget {
   final bool isDark;
   final String? imagePathOverride;
 
-  const _RecipeShareCard({
+  _RecipeShareCard({
     required this.recipe, 
     required this.isDark,
     this.imagePathOverride,
@@ -8024,12 +8202,12 @@ class _RecipeShareCard extends StatelessWidget {
     final effectiveImagePath = imagePathOverride ?? recipe.imagePath;
 
     // Theme Colors
-    final backgroundColor = isDark ? const Color(0xFF1E1E24) : Colors.white;
-    final titleColor = isDark ? Colors.white : const Color(0xFF333333);
-    final primaryColor = isDark ? const Color(0xFF9CCC65) : const Color(0xFF6B8E23); // Fresh Green vs Olive
-    final secondaryColor = const Color(0xFFC05832); // Terracotta
-    final chipColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F5F0);
-    final chipTextColor = isDark ? Colors.white.withOpacity(0.9) : const Color(0xFF444444);
+    final backgroundColor = isDark ? Color(0xFF1E1E24) : Colors.white;
+    final titleColor = isDark ? Colors.white : Color(0xFF333333);
+    final primaryColor = isDark ? Color(0xFF9CCC65) : Color(0xFF6B8E23); // Fresh Green vs Olive
+    final secondaryColor = Color(0xFFC05832); // Terracotta
+    final chipColor = isDark ? Colors.white.withOpacity(0.05) : Color(0xFFF5F5F0);
+    final chipTextColor = isDark ? Colors.white.withOpacity(0.9) : Color(0xFF444444);
     
     return Container(
       width: width,
@@ -8043,7 +8221,7 @@ class _RecipeShareCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
                Text(
-                  'RECETAS',
+                  'RECETAS'.tr,
                   style: TextStyle(
                      fontSize: 24,
                      fontWeight: FontWeight.w900,
@@ -8062,7 +8240,7 @@ class _RecipeShareCard extends StatelessWidget {
                      mainAxisSize: MainAxisSize.min,
                      children: [
                        Icon(Icons.timer_outlined, size: 16, color: primaryColor),
-                       const SizedBox(width: 6),
+                       SizedBox(width: 6),
                        Text(
                          recipe.prepTime!,
                          style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
@@ -8072,7 +8250,7 @@ class _RecipeShareCard extends StatelessWidget {
                  )
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           
           Text(
             recipe.title,
@@ -8085,7 +8263,7 @@ class _RecipeShareCard extends StatelessWidget {
           ),
           
           if (effectiveImagePath != null) ...[
-             const SizedBox(height: 24),
+             SizedBox(height: 24),
              ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: AspectRatio(
@@ -8103,9 +8281,9 @@ class _RecipeShareCard extends StatelessWidget {
                         ),
                 ),
              ),
-             const SizedBox(height: 32),
+             SizedBox(height: 32),
           ] else ...[
-             const SizedBox(height: 24),
+             SizedBox(height: 24),
              ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: AspectRatio(
@@ -8113,13 +8291,13 @@ class _RecipeShareCard extends StatelessWidget {
                   child: _buildPlaceholder(primaryColor),
                 ),
              ),
-             const SizedBox(height: 32),
+             SizedBox(height: 32),
           
           ],
           
           // Ingredients
           Text(
-             'INGREDIENTES',
+             'INGREDIENTES'.tr,
              style: GoogleFonts.nunito(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
@@ -8127,7 +8305,7 @@ class _RecipeShareCard extends StatelessWidget {
                 color: secondaryColor, 
              ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Wrap(
              spacing: 12,
              runSpacing: 12,
@@ -8150,11 +8328,11 @@ class _RecipeShareCard extends StatelessWidget {
           ),
           
            if (recipe.steps.isNotEmpty) ...[
-             const SizedBox(height: 32),
-             const Divider(thickness: 1, color: Colors.black12),
-             const SizedBox(height: 24),
+             SizedBox(height: 32),
+             Divider(thickness: 1, color: Colors.black12),
+             SizedBox(height: 24),
              Text(
-               'PREPARACIÓN',
+               'PREPARACIÓN'.tr,
                style: GoogleFonts.nunito(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -8162,7 +8340,7 @@ class _RecipeShareCard extends StatelessWidget {
                   color: secondaryColor, 
                ),
              ),
-             const SizedBox(height: 16),
+             SizedBox(height: 16),
              ...recipe.steps.asMap().entries.map((entry) {
                 final index = entry.key + 1;
                 final step = entry.value;
@@ -8179,7 +8357,7 @@ class _RecipeShareCard extends StatelessWidget {
                            color: primaryColor,
                          ),
                        ),
-                       const SizedBox(width: 12),
+                       SizedBox(width: 12),
                        Expanded(
                          child: Text(
                            step,
