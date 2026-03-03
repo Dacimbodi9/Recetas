@@ -35,7 +35,7 @@ class AppLocalization {
     "Añadir ingrediente": "Add ingredient",
     "Añadir paso": "Add step",
     "Bebidas": "Beverages",
-    "Bienvenido a Recetas": "Welcome to Recipes",
+    "Bienvenido a Recetas": "Welcome to Recetas",
     "Borrar TODOS los datos": "Delete ALL data",
     "Borrar todo": "Delete all",
     "Borrar todos los datos": "Delete all data",
