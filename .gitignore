@@ -33,9 +33,16 @@ migrate_working_dir/
 
 # Android related
 **/android/local.properties
+**/android/key.properties
+**/android/**/*.jks
+**/android/**/*.keystore
 **/android/.gradle
 **/android/app/build
 **/android/build
+
+# Environment Variables
+.env
+*.env
 
 # iOS related
 **/ios/Flutter/Generated.xcconfig
