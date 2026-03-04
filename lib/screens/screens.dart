@@ -2565,26 +2565,60 @@ class IngredientSearchPage extends StatefulWidget {
   State<IngredientSearchPage> createState() => _IngredientSearchPageState();
 }
 
-class _IngredientSearchPageState extends State<IngredientSearchPage> {
+class _IngredientSearchPageState extends State<IngredientSearchPage>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  List<String> get _allIngredients => _getAllCategoryIngredients();
+  List<String>? _cachedAllIngredients;
+  Map<IngredientCategory, List<String>>? _cachedCategoryIngredientsMap;
 
-  List<String> _getAllCategoryIngredients() {
-    final allIngredientsFromRecipes = RecipeManager.allIngredients;
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    RecipeManager.addListener(_onRecipesChanged);
+  }
+
+  void _onRecipesChanged() {
+    if (mounted) {
+      setState(() {
+        _cachedAllIngredients = null;
+        _cachedCategoryIngredientsMap = null;
+      });
+    }
+  }
+
+  List<String> get _allIngredients {
+    if (_cachedAllIngredients != null) return _cachedAllIngredients!;
     final allCategoryIngredients = <String>{};
+    for (final ingredients in _categoryIngredientsMap.values) {
+      allCategoryIngredients.addAll(ingredients);
+    }
+    _cachedAllIngredients = allCategoryIngredients.toList()..sort();
+    return _cachedAllIngredients!;
+  }
 
+  Map<IngredientCategory, List<String>> get _categoryIngredientsMap {
+    if (_cachedCategoryIngredientsMap != null) {
+      return _cachedCategoryIngredientsMap!;
+    }
+    
+    final allIngredientsFromRecipes = RecipeManager.allIngredients;
+    final map = <IngredientCategory, List<String>>{};
+    
     // Get ingredients from all categories
     for (final category in IngredientCategory.values) {
-      final categoryIngredients = _getIngredientsForCategory(
+      map[category] = _getIngredientsForCategory(
         category,
         allIngredientsFromRecipes,
       );
-      allCategoryIngredients.addAll(categoryIngredients);
     }
-
-    return allCategoryIngredients.toList()..sort();
+    
+    _cachedCategoryIngredientsMap = map;
+    return map;
   }
 
   final Set<String> _selected = <String>{};
@@ -2592,6 +2626,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
 
   @override
   void dispose() {
+    RecipeManager.removeListener(_onRecipesChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -2614,6 +2649,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
 
     // Use the smart sort logic
@@ -2724,7 +2760,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
                   )
                 : _query.isEmpty
                 ? _PopularIngredientsGrid(
-                    all: _allIngredients,
+                    categoryMap: _categoryIngredientsMap,
                     onPick: _add,
                     isSelected: (i) => _selected.contains(i),
                   )
@@ -2760,25 +2796,22 @@ class _IngredientSearchPageState extends State<IngredientSearchPage> {
 
 class _PopularIngredientsGrid extends StatelessWidget {
   const _PopularIngredientsGrid({
-    required this.all,
+    required this.categoryMap,
     required this.onPick,
     required this.isSelected,
   });
 
-  final List<String> all;
+  final Map<IngredientCategory, List<String>> categoryMap;
   final void Function(String) onPick;
   final bool Function(String) isSelected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final allIngredients = RecipeManager.allIngredients;
-    final categoriesWithIngredients = IngredientCategory.values
-        .map((category) {
-          final categoryIngredients = _getIngredientsForCategory(
-            category,
-            allIngredients,
-          );
+    final categoriesWithIngredients = categoryMap.entries
+        .map((entry) {
+          final category = entry.key;
+          final categoryIngredients = entry.value;
           final availableIngredients = categoryIngredients
               .where((ingredient) => !isSelected(ingredient.toLowerCase()))
               .toList();
