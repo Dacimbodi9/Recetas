@@ -1,0 +1,1 @@
+Offline, privacy-focused recipe manager with ingredient and diet search.

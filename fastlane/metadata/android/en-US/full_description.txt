@@ -1,0 +1,11 @@
+Recetas is a free, beautifully designed app to manage your recipes with privacy in mind.
+
+✨ Features
+
+*  **Offline & Private:** All your data stays on your device. No tracking, no servers.
+*  **Smart Search:** Fast fuzzy search by name, or select ingredients you have in your fridge to find matching recipes.
+*  **Dietary Compliance:** Permanent dietary filters (Vegan, Gluten-Free, Keto, etc.) with incompatible recipe warnings.
+*  **Organization:** Create folders, rate your recipes, and manage your favorites.
+*  **Premium Experience:** Beautiful dark mode aesthetics and highly customizable settings.
+
+Discover over 1,000 built-in recipes, create your own, and fully control your data.

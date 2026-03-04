@@ -1,0 +1,1 @@
+Gestor de recetas offline enfocado en privacidad con búsqueda por ingredientes y dieta.

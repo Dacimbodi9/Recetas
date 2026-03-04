@@ -1,0 +1,11 @@
+Recetas es una aplicación gratuita para gestionar tus recetas con privacidad por diseño.
+
+✨ Características
+
+*  **Offline y Privado:** Todos tus datos se guardan en el dispositivo, sin analíticas ni rastreo.
+*  **Búsqueda Inteligente:** Búsqueda rápida por nombre o por ingredientes para saber qué cocinar con lo que tienes.
+*  **Dietas:** Filtros personalizados vegano, vegetariano, sin gluten, sin lactosa, etc con avisos de incompatibilidad.
+*  **Organización:** Carpetas, valoraciones y favoritos.
+*  **Experiencia Premium:** Interfaz minimalista y personalizable centrada en el modo oscuro.
+
+Descubre más de 1000 recetas que vienen integradas y compártelas de forma rápida sin comprometer tu información personal.
