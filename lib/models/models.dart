@@ -235,9 +235,21 @@ class Recipe {
           ? (json['dietaryRestrictions'] as List)
                 .map((r) {
                   try {
-                    return DietaryRestriction.values.firstWhere(
-                      (e) => e.name == r,
-                    );
+                    final raw = r.toString().toLowerCase().replaceAll(' ', '').replaceAll('-', '');
+                    return DietaryRestriction.values.firstWhere((e) {
+                      if (e.name == raw) return true;
+                      if (e.displayName.toLowerCase().replaceAll(' ', '').replaceAll('-', '') == raw) return true;
+                      
+                      final Map<DietaryRestriction, List<String>> allNames = {
+                        DietaryRestriction.vegetariano: ['vegetariano', 'vegetarian'],
+                        DietaryRestriction.vegano: ['vegano', 'vegan'],
+                        DietaryRestriction.sinlactosa: ['sinlactosa', 'lactosefree', 'dairyfree'],
+                        DietaryRestriction.singluten: ['singluten', 'glutenfree'],
+                        DietaryRestriction.sinfrutossecos: ['sinfrutossecos', 'nutfree'],
+                        DietaryRestriction.sinmariscos: ['sinmariscos', 'seafoodfree'],
+                      };
+                      return allNames[e]?.contains(raw) ?? false;
+                    });
                   } catch (e) {
                     return null;
                   }
@@ -280,20 +292,23 @@ class Recipe {
     final list = (rawCategories as List)
         .map((c) {
           try {
-            final categoryStr = c.toString().toLowerCase().replaceAll(' ', '');
-            // First try to match by enum name
-            try {
-              return RecipeCategory.values.firstWhere(
-                (e) => e.name == categoryStr,
-              );
-            } catch (e) {
-              // If not found, try to match by displayName (normalized)
-              return RecipeCategory.values.firstWhere(
-                (e) =>
-                    e.displayName.toLowerCase().replaceAll(' ', '') ==
-                    categoryStr,
-              );
-            }
+            final categoryStr = c.toString().toLowerCase().replaceAll(' ', '').replaceAll('&', 'y').replaceAll('and', 'y');
+            return RecipeCategory.values.firstWhere((e) {
+               if (e.name == categoryStr) return true;
+               if (e.displayName.toLowerCase().replaceAll(' ', '').replaceAll('&', 'y') == categoryStr) return true;
+               
+               final Map<RecipeCategory, List<String>> allNames = {
+                  RecipeCategory.entrantes: ['entrantes', 'appetizers'],
+                  RecipeCategory.sopasycremas: ['sopasycremas', 'soupscreams', 'soups'],
+                  RecipeCategory.ensaladas: ['ensaladas', 'salads'],
+                  RecipeCategory.platosprincipales: ['platosprincipales', 'maindishes', 'maincourses'],
+                  RecipeCategory.guarniciones: ['guarniciones', 'sidedishes', 'sides'],
+                  RecipeCategory.postresydulces: ['postresydulces', 'dessertssweets', 'desserts'],
+                  RecipeCategory.bebidas: ['bebidas', 'beverages', 'drinks'],
+                  RecipeCategory.otros: ['otros', 'others', 'other'],
+               };
+               return allNames[e]?.contains(categoryStr) ?? false;
+            });
           } catch (e) {
             return null;
           }
