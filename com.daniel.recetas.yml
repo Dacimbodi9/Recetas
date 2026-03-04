@@ -1,0 +1,37 @@
+Categories:
+  - Food
+License: MIT
+AuthorName: Daniel Cimbollek Díaz
+WebSite: https://recetasinfo.netlify.app/
+SourceCode: https://github.com/dacimbdi/recetas
+IssueTracker: https://github.com/dacimbdi/recetas/issues
+Translation: https://github.com/dacimbdi/recetas/tree/main/lib/l10n.dart
+
+Summary: Offline, privacy-focused recipe manager
+Description: |-
+  Recetas is a free, beautifully designed app to manage your recipes with privacy in mind.
+  
+  * **Offline & Private:** All your data stays on your device. No tracking, no servers.
+  * **Smart Search:** Fast fuzzy search by name, or select ingredients you have in your fridge to find matching recipes.
+  * **Dietary Compliance:** Permanent dietary filters (Vegan, Gluten-Free, Keto, etc.) with incompatible recipe warnings.
+  * **Organization:** Create folders, rate your recipes, and manage your favorites.
+  * **Premium Experience:** Beautiful dark mode aesthetics and highly customizable settings.
+
+RepoType: git
+Repo: https://github.com/dacimbdi/recetas
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: main
+    subdir: app
+    output: build/app/outputs/flutter-apk/app-release.apk
+    sudo:
+      - apt-get update || true
+      - apt-get install -y wget unzip
+    build:
+      - flutter pub get
+      - flutter build apk --release
+
+AutoUpdateMode: None
+UpdateCheckMode: None
