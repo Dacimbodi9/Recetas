@@ -33,5 +33,5 @@ Builds:
       - flutter pub get
       - flutter build apk --release
 
-AutoUpdateMode: None
-UpdateCheckMode: None
+AutoUpdateMode: Version %v
+UpdateCheckMode: Tags
