@@ -4,7 +4,7 @@ A beautiful, privacy-focused recipe management application built with Flutter.  
 
 ## 🚀 Getting Started
 
-This project is not yet available for download in Google Play Store or Apple App Store.  However, you can download the APK file and install it on your Android device from my [website](https://recetasinfo.netlify.app/) or from this [github repository](https://github.com/dacimbdi/recetas/releases/tag/1.0.0).
+This project is not yet available for download in Google Play Store or Apple App Store.  However, you can download the APK file and install it on your Android device from my [website](https://recetasinfo.netlify.app/) or from this [github repository](https://github.com/dacimbdi/recetas/blob/main/app-release.apk).
 
 ## ✨ Features
 
