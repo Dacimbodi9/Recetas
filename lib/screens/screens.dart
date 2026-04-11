@@ -763,12 +763,15 @@ class _NewRecipePageState extends State<NewRecipePage> {
   final TextEditingController _proteinController = TextEditingController();
   final TextEditingController _carbsController = TextEditingController();
   final TextEditingController _fatController = TextEditingController();
+  Recipe? _initialRecipeSnapshot;
 
   @override
   void initState() {
     super.initState();
     if (widget.recipeToEdit != null) {
       _loadRecipeData(widget.recipeToEdit!);
+      // Snapshot the loaded state to detect real changes later
+      _initialRecipeSnapshot = _buildCurrentRecipe();
     }
   }
 
@@ -1299,8 +1302,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
     final newRecipe = _buildCurrentRecipe();
 
     // Check for changes if editing
-    if (widget.recipeToEdit != null) {
-      if (_areRecipesDifferent(widget.recipeToEdit!, newRecipe)) {
+    if (_initialRecipeSnapshot != null) {
+      if (_areRecipesDifferent(_initialRecipeSnapshot!, newRecipe)) {
         final choice = await showDialog<String>(
           context: context,
           builder: (context) => AlertDialog(
