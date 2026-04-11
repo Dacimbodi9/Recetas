@@ -20,6 +20,9 @@ class SettingsManager {
   );
   static final ValueNotifier<bool> hasSeenOnboarding = ValueNotifier(false);
   static final ValueNotifier<String> language = ValueNotifier('es');
+  static final ValueNotifier<String> aiApiKey = ValueNotifier('');
+  static final ValueNotifier<String> aiApiEndpoint = ValueNotifier('https://api.openai.com/v1/chat/completions');
+  static final ValueNotifier<String> aiProvider = ValueNotifier('gemini');
 
   static const _themeKey = 'is_dark_mode';
   static const _languageKey = 'app_language';
@@ -30,6 +33,9 @@ class SettingsManager {
 
   static const _customDietaryDefaultsKey = 'custom_dietary_defaults';
   static const _onboardingKey = 'has_seen_onboarding';
+  static const _aiApiKeyPref = 'ai_api_key';
+  static const _aiApiEndpointPref = 'ai_api_endpoint';
+  static const _aiProviderPref = 'ai_provider';
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -67,10 +73,32 @@ class SettingsManager {
     hideIncompatibleRecipes.value =
         prefs.getBool(_hideIncompatibleKey) ?? false;
     hasSeenOnboarding.value = prefs.getBool(_onboardingKey) ?? false;
+    aiApiKey.value = prefs.getString(_aiApiKeyPref) ?? '';
+    aiApiEndpoint.value = prefs.getString(_aiApiEndpointPref) ?? 'https://api.openai.com/v1/chat/completions';
+    aiProvider.value = prefs.getString(_aiProviderPref) ?? 'gemini';
+    
     final deviceLocale = Platform.localeName;
     final defaultLang = deviceLocale.startsWith('es') ? 'es' : 'en';
     language.value = prefs.getString(_languageKey) ?? defaultLang;
     AppLocalization.instance.setLanguage(language.value);
+  }
+
+  static Future<void> setAiApiKey(String key) async {
+    aiApiKey.value = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_aiApiKeyPref, key);
+  }
+
+  static Future<void> setAiApiEndpoint(String endpoint) async {
+    aiApiEndpoint.value = endpoint;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_aiApiEndpointPref, endpoint);
+  }
+
+  static Future<void> setAiProvider(String provider) async {
+    aiProvider.value = provider;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_aiProviderPref, provider);
   }
 
   static Future<void> setLanguage(String lang) async {
@@ -406,25 +434,29 @@ class RecipeManager {
 
   static const List<IconData> availableFolderIcons = [
     CupertinoIcons.folder,
-    CupertinoIcons.folder_fill,
     CupertinoIcons.book,
-    CupertinoIcons.book_fill,
     CupertinoIcons.star,
-    CupertinoIcons.star_fill,
     CupertinoIcons.heart,
-    CupertinoIcons.heart_fill,
     CupertinoIcons.flame,
-    CupertinoIcons.flame_fill,
-    Icons.cake,
-    Icons.cake_outlined,
+    CupertinoIcons.tag,
+    CupertinoIcons.collections,
+    CupertinoIcons.clock,
     Icons.restaurant,
     Icons.restaurant_menu,
-    CupertinoIcons.bell,
-    CupertinoIcons.bell_fill,
-    CupertinoIcons.tag,
-    CupertinoIcons.tag_fill,
-    CupertinoIcons.collections,
-    Icons.collections_bookmark,
+    Icons.cake,
+    Icons.fastfood,
+    Icons.local_pizza,
+    Icons.local_cafe,
+    Icons.local_bar,
+    Icons.set_meal,
+    Icons.soup_kitchen,
+    Icons.rice_bowl,
+    Icons.icecream,
+    Icons.bakery_dining,
+    Icons.breakfast_dining,
+    Icons.egg_alt,
+    Icons.kitchen,
+    Icons.eco,
   ];
 
   static final List<Recipe> _defaultRecipes = [];

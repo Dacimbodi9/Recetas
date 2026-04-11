@@ -353,19 +353,8 @@ class _RecetasView extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? null
-                            : Colors.white,
-                        gradient:
-                            Theme.of(context).brightness == Brightness.dark
-                            ? LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.09),
-                                  Colors.white.withValues(alpha: 0.03),
-                                ],
-                              )
-                            : null,
+                            ? Theme.of(context).cardColor
+                            : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.dark
@@ -373,13 +362,6 @@ class _RecetasView extends StatelessWidget {
                               : Colors.black.withValues(alpha: 0.05),
                           width: 1,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: Material(
                         color: Colors.transparent,
@@ -854,11 +836,37 @@ class _NewRecipePageState extends State<NewRecipePage> {
     }
   }
 
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(CupertinoIcons.camera),
+              title: Text('Cámara'.tr),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(CupertinoIcons.photo),
+              title: Text('Galería'.tr),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImage() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
     final ImagePicker picker = ImagePicker();
     try {
       final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
@@ -892,6 +900,249 @@ class _NewRecipePageState extends State<NewRecipePage> {
     }
   }
 
+  Future<void> _scanRecipeLocally() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: source);
+    if (image == null) return;
+
+    if (SettingsManager.aiApiKey.value.isEmpty) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Por favor configura un API Key de IA en Configuración primero.'
+                  .tr,
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    bool isDialogShowing = false;
+
+    if (mounted && context.mounted) {
+      isDialogShowing = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          return Dialog(
+            backgroundColor: theme.brightness == Brightness.dark
+                ? Color(0xFF1C1C1E)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.sparkles,
+                    size: 48,
+                    color: theme.colorScheme.primary,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Analizando Receta...'.tr,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  CircularProgressIndicator(strokeWidth: 3),
+                  SizedBox(height: 32),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          CupertinoIcons.info_circle_fill,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Aviso: La IA puede equivocarse o saltarse algunos ingredientes. Revisa siempre los resultados.'
+                                .tr,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    try {
+      final bytes = await image.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      final dio = Dio();
+      final provider = SettingsManager.aiProvider.value;
+      final apiKey = SettingsManager.aiApiKey.value;
+      final promptText =
+          'Extrae la receta de la imagen. Responde ÚNICAMENTE con un JSON válido con la estructura estricta: {"title": "String", "ingredients": [{"name": "String", "quantity": "String"}], "steps": ["String","String"]}. Extrae las cantidades al campo quantity y el nombre del ingrediente al campo name. No añadas texto fuera del JSON (ni bloques de código o markdown).';
+
+      Response response;
+      String responseText = '';
+
+      if (provider == 'gemini') {
+        final endpoint =
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey';
+        response = await dio.post(
+          endpoint,
+          options: Options(headers: {'Content-Type': 'application/json'}),
+          data: {
+            'contents': [
+              {
+                'parts': [
+                  {'text': promptText},
+                  {
+                    'inline_data': {
+                      'mime_type': 'image/jpeg',
+                      'data': base64Image,
+                    },
+                  },
+                ],
+              },
+            ],
+            'generationConfig': {'response_mime_type': 'application/json'},
+          },
+        );
+
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
+
+        // Clean markdown blocks if Gemini fails to omit them
+        if (responseText.startsWith('```json')) {
+          responseText = responseText
+              .replaceAll('```json', '')
+              .replaceAll('```', '')
+              .trim();
+        } else if (responseText.startsWith('```')) {
+          responseText = responseText.replaceAll('```', '').trim();
+        }
+      } else {
+        final endpoint = SettingsManager.aiApiEndpoint.value.isEmpty
+            ? 'https://api.openai.com/v1/chat/completions'
+            : SettingsManager.aiApiEndpoint.value;
+        response = await dio.post(
+          endpoint,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $apiKey',
+              'Content-Type': 'application/json',
+            },
+          ),
+          data: {
+            'model': 'gpt-4o',
+            'messages': [
+              {
+                'role': 'user',
+                'content': [
+                  {'type': 'text', 'text': promptText},
+                  {
+                    'type': 'image_url',
+                    'image_url': {'url': 'data:image/jpeg;base64,$base64Image'},
+                  },
+                ],
+              },
+            ],
+            'response_format': {'type': 'json_object'},
+          },
+        );
+        responseText = response.data['choices'][0]['message']['content'];
+      }
+      final Map<String, dynamic> recipeData = jsonDecode(responseText);
+
+      setState(() {
+        if (recipeData['title'] != null && _titleController.text.isEmpty) {
+          _titleController.text = recipeData['title'].toString();
+        }
+
+        if (recipeData['ingredients'] is List) {
+          for (var ing in (recipeData['ingredients'] as List)) {
+            if (ing is Map) {
+              _detailedIngredients.add(
+                DetailedIngredient(
+                  name: ing['name']?.toString() ?? '',
+                  quantity: ing['quantity']?.toString() ?? '',
+                ),
+              );
+            } else {
+              _detailedIngredients.add(
+                DetailedIngredient(name: ing.toString(), quantity: ''),
+              );
+            }
+          }
+        }
+
+        if (recipeData['steps'] is List) {
+          for (var step in (recipeData['steps'] as List)) {
+            _steps.add(step.toString());
+          }
+        }
+      });
+
+      if (isDialogShowing) {
+        navigator.pop();
+        isDialogShowing = false;
+      }
+
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('¡Importación completada con éxito!'.tr)),
+        );
+      }
+    } catch (e) {
+      if (isDialogShowing) {
+        navigator.pop();
+        isDialogShowing = false;
+      }
+
+      if (mounted && context.mounted) {
+        String errorMessage = 'Hubo un error con la IA'.tr + ': $e';
+        if (e is DioException) {
+          if (e.response?.statusCode == 401) {
+            errorMessage =
+                'La clave de API (API Key) es inválida o incorrecta. Por favor, revísala en Configuración.'
+                    .tr;
+          } else {
+            errorMessage =
+                'Error de conexión con la IA (Código ${e.response?.statusCode ?? "desconocido"}).'
+                    .tr;
+          }
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), duration: Duration(seconds: 5)),
+        );
+      }
+    }
+  }
+
   // --- Logic Helpers ---
 
   bool _areRecipesDifferent(Recipe oldR, Recipe newR) {
@@ -899,13 +1150,13 @@ class _NewRecipePageState extends State<NewRecipePage> {
     if (oldR.prepTime != newR.prepTime) return true;
     if (oldR.imagePath != newR.imagePath) return true;
 
-    if (!listEquals(oldR.ingredients, newR.ingredients)) return true;
-
+    // Compare detailed ingredients (the canonical source of truth)
     if (oldR.detailedIngredients.length != newR.detailedIngredients.length) {
       return true;
     }
     for (int i = 0; i < oldR.detailedIngredients.length; i++) {
-      if (oldR.detailedIngredients[i].name != newR.detailedIngredients[i].name) {
+      if (oldR.detailedIngredients[i].name !=
+          newR.detailedIngredients[i].name) {
         return true;
       }
       if (oldR.detailedIngredients[i].quantity !=
@@ -934,11 +1185,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
 
     // Simple Nutrition check
     if (oldR.nutritionFacts.length != newR.nutritionFacts.length) return true;
-    // To be safer, we could compare contents, but length + title/prep/ingredients covers 99% of edits.
-    // Let's do a deep check just in case.
     for (int i = 0; i < oldR.nutritionFacts.length; i++) {
       final f1 = oldR.nutritionFacts[i];
-      // Order might differ? Assuming strict order for now as they are generated in order.
       final f2 = newR.nutritionFacts[i];
       if (f1.label != f2.label || f1.value != f2.value || f1.unit != f2.unit) {
         return true;
@@ -948,24 +1196,9 @@ class _NewRecipePageState extends State<NewRecipePage> {
     return false;
   }
 
-  Future<void> _saveRecipe() async {
-    if (_titleController.text.trim().isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Por favor, escribe un nombre para la receta'.tr),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Normalize Ingredients
-    final normalizedIngredients = _detailedIngredients
-        .map((d) => d.name)
-        .toList();
-
-    // Nutrition
+  Recipe _buildCurrentRecipe() {
+    final normalizedIngredients =
+        _detailedIngredients.map((d) => d.name).toList();
     List<NutritionFact> nutritionFacts = [];
     void addFact(TextEditingController ctrl, String label, String unit) {
       final txt = ctrl.text.trim().replaceAll(',', '.');
@@ -984,10 +1217,10 @@ class _NewRecipePageState extends State<NewRecipePage> {
     addFact(_carbsController, 'Carbohidratos', 'g');
     addFact(_fatController, 'Grasas', 'g');
 
-    final newRecipe = Recipe(
+    return Recipe(
       title: _titleController.text.trim(),
       ingredients: normalizedIngredients,
-      detailedIngredients: _detailedIngredients,
+      detailedIngredients: List.of(_detailedIngredients),
       prepTime: _prepTimeController.text.trim().isNotEmpty
           ? _prepTimeController.text.trim()
           : null,
@@ -995,10 +1228,75 @@ class _NewRecipePageState extends State<NewRecipePage> {
       dietaryRestrictions: _selectedDietaryRestrictions.toList(),
       customDietaryTags: _selectedCustomTags.toList(),
       imagePath: _selectedImagePath,
-      steps: _steps,
+      steps: List.of(_steps),
       nutritionFacts: nutritionFacts,
-      rating: widget.recipeToEdit?.rating, // Preserve rating if editing
+      rating: widget.recipeToEdit?.rating,
     );
+  }
+
+  bool _hasUnsavedChanges() {
+    final current = _buildCurrentRecipe();
+    if (_initialRecipeSnapshot != null) {
+      return _areRecipesDifferent(_initialRecipeSnapshot!, current);
+    } else {
+      // New recipe: check if anything was entered
+      return current.title.isNotEmpty ||
+          current.detailedIngredients.isNotEmpty ||
+          current.steps.isNotEmpty ||
+          current.imagePath != null ||
+          current.prepTime != null ||
+          current.nutritionFacts.isNotEmpty ||
+          current.categories.isNotEmpty ||
+          current.dietaryRestrictions.isNotEmpty;
+    }
+  }
+
+  Future<void> _attemptClose() async {
+    if (!_hasUnsavedChanges()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Salir sin guardar?'.tr),
+        content: Text('Tienes cambios sin guardar. Si sales, los perderás.'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Salir'.tr),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true) {
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _saveRecipe() async {
+    if (_titleController.text.trim().isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Por favor, escribe un nombre para la receta'.tr),
+          ),
+        );
+      }
+      return;
+    }
+
+    final newRecipe = _buildCurrentRecipe();
 
     // Check for changes if editing
     if (widget.recipeToEdit != null) {
@@ -1295,8 +1593,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.white,
+                      ? Theme.of(context).cardColor
+                      : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Theme.of(context).brightness == Brightness.dark
                       ? Border.all(color: Colors.white.withValues(alpha: 0.1))
@@ -1365,154 +1663,184 @@ class _NewRecipePageState extends State<NewRecipePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      // backgroundColor: Use theme default
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar & Progress
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Close Button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: Icon(CupertinoIcons.xmark),
-                      onPressed: () => Navigator.of(context).pop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _attemptClose();
+      },
+      child: Scaffold(
+        // backgroundColor: Use theme default
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Bar & Progress
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Close Button
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        icon: Icon(CupertinoIcons.xmark),
+                        onPressed: _attemptClose,
+                      ),
                     ),
-                  ),
 
-                  // Center Content
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.recipeToEdit != null
-                            ? 'EDITAR RECETA'.tr
-                            : 'NUEVA RECETA'.tr,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          letterSpacing: 1.2,
-                          color: theme.colorScheme.primary,
+                    // Center Content
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.recipeToEdit != null
+                              ? 'EDITAR RECETA'.tr
+                              : 'NUEVA RECETA'.tr,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 1.2,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(_totalSteps, (index) {
+                            final isActive = index <= _currentStep;
+                            return Container(
+                              width: 32,
+                              height: 4,
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? theme.colorScheme.primary
+                                    : (isDark
+                                          ? Colors.white.withValues(alpha: 0.1)
+                                          : Colors.black.withValues(
+                                              alpha: 0.1,
+                                            )),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics:
+                      NeverScrollableScrollPhysics(), // Disable swipe, enforce buttons
+                  onPageChanged: (index) =>
+                      setState(() => _currentStep = index),
+                  children: [
+                    _buildStep1Overview(theme),
+                    _buildStep2Ingredients(theme),
+                    _buildStep3Instructions(theme),
+                    _buildStep4Details(theme),
+                  ],
+                ),
+              ),
+
+              // Bottom Action Bar (Back / Next)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    if (_currentStep > 0)
+                      Expanded(
+                        child: FilledButton.tonal(
+                          onPressed: _prevStep,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(CupertinoIcons.chevron_left, size: 18),
+                              SizedBox(width: 8),
+                              Text('Atrás'.tr),
+                            ],
+                          ),
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(_totalSteps, (index) {
-                          final isActive = index <= _currentStep;
-                          return Container(
-                            width: 32,
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? theme.colorScheme.primary
-                                  : (isDark
-                                        ? Colors.white.withValues(alpha: 0.1)
-                                        : Colors.black.withValues(alpha: 0.1)),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics:
-                    NeverScrollableScrollPhysics(), // Disable swipe, enforce buttons
-                onPageChanged: (index) => setState(() => _currentStep = index),
-                children: [
-                  _buildStep1Overview(theme),
-                  _buildStep2Ingredients(theme),
-                  _buildStep3Instructions(theme),
-                  _buildStep4Details(theme),
-                ],
-              ),
-            ),
-
-            // Bottom Action Bar (Back / Next)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  if (_currentStep > 0)
+                    if (_currentStep > 0) SizedBox(width: 12),
                     Expanded(
-                      child: FilledButton.tonal(
-                        onPressed: _prevStep,
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: _currentStep == _totalSteps - 1
+                            ? _saveRecipe
+                            : _nextStep,
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: Colors.black, // High contrast
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(CupertinoIcons.chevron_left, size: 18),
-                            SizedBox(width: 8),
-                            Text('Atrás'.tr),
-                          ],
-                        ),
-                      ),
-                    ),
-                  if (_currentStep > 0) SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: FilledButton(
-                      onPressed: _currentStep == _totalSteps - 1
-                          ? _saveRecipe
-                          : _nextStep,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: Colors.black, // High contrast
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _currentStep == _totalSteps - 1
-                                ? (widget.recipeToEdit != null
-                                      ? 'Guardar Cambios'.tr
-                                      : 'Finalizar Receta'.tr)
-                                : 'Siguiente'.tr,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                            Text(
+                              _currentStep == _totalSteps - 1
+                                  ? (widget.recipeToEdit != null
+                                        ? 'Guardar Cambios'.tr
+                                        : 'Finalizar Receta'.tr)
+                                  : 'Siguiente'.tr,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                          if (_currentStep < _totalSteps - 1) ...[
-                            SizedBox(width: 8),
-                            Icon(CupertinoIcons.chevron_right, size: 18),
+                            if (_currentStep < _totalSteps - 1) ...[
+                              SizedBox(width: 8),
+                              Icon(CupertinoIcons.chevron_right, size: 18),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   // --- Step 1: Basics ---
+  Widget _buildAddPhotoPlaceholder(ThemeData theme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(CupertinoIcons.camera, size: 48, color: theme.colorScheme.primary),
+        SizedBox(height: 12),
+        Text(
+          'Añadir foto'.tr,
+          style: TextStyle(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStep1Overview(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -1531,36 +1859,35 @@ class _NewRecipePageState extends State<NewRecipePage> {
                 border: Border.all(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                 ),
-                image: _selectedImagePath != null
-                    ? DecorationImage(
-                        image: FileImage(File(_selectedImagePath!)),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
               ),
+              clipBehavior: Clip.antiAlias,
               child: _selectedImagePath == null
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.camera,
-                          size: 48,
-                          color: theme.colorScheme.primary,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Añadir foto'.tr,
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : null,
+                  ? _buildAddPhotoPlaceholder(theme)
+                  : (_selectedImagePath!.startsWith('assets/')
+                        ? Image.asset(
+                            _selectedImagePath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildAddPhotoPlaceholder(theme),
+                          )
+                        : Image.file(
+                            File(_selectedImagePath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildAddPhotoPlaceholder(theme),
+                          )),
             ),
           ),
-          SizedBox(height: 32),
+          SizedBox(height: 16),
+          FilledButton.tonalIcon(
+            onPressed: _scanRecipeLocally,
+            icon: Icon(CupertinoIcons.doc_text_viewfinder),
+            label: Text('Escanear receta desde foto (Beta)'.tr),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+          SizedBox(height: 16),
 
           _buildInputSection(
             theme,
@@ -1701,8 +2028,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
           margin: const EdgeInsets.only(bottom: 24),
           child: Material(
             color: theme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.white,
+                ? theme.cardColor
+                : theme.cardColor,
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -2605,10 +2932,10 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
     if (_cachedCategoryIngredientsMap != null) {
       return _cachedCategoryIngredientsMap!;
     }
-    
+
     final allIngredientsFromRecipes = RecipeManager.allIngredients;
     final map = <IngredientCategory, List<String>>{};
-    
+
     // Get ingredients from all categories
     for (final category in IngredientCategory.values) {
       map[category] = _getIngredientsForCategory(
@@ -2616,7 +2943,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
         allIngredientsFromRecipes,
       );
     }
-    
+
     _cachedCategoryIngredientsMap = map;
     return map;
   }
@@ -2836,18 +3163,8 @@ class _PopularIngredientsGrid extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark
-                ? null
-                : Colors.white,
-            gradient: Theme.of(context).brightness == Brightness.dark
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.09),
-                      Colors.white.withValues(alpha: 0.03),
-                    ],
-                  )
-                : null,
+                ? Theme.of(context).cardColor
+                : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: Theme.of(context).brightness == Brightness.dark
@@ -2855,13 +3172,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
                   : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
+            boxShadow: [],
           ),
           child: Material(
             color: Colors.transparent,
@@ -2955,13 +3266,13 @@ class IngredientsByCategoryPage extends StatelessWidget {
                       children: availableIngredients.map((text) {
                         return Material(
                           color: theme.brightness == Brightness.dark
-                              ? Color(0xFF16161C)
-                              : Colors.white,
+                              ? theme.cardColor
+                              : theme.cardColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
                               color: theme.brightness == Brightness.dark
-                                  ? Colors.white.withValues(alpha: 0.06)
+                                  ? Colors.white.withValues(alpha: 0.1)
                                   : Colors.black.withValues(alpha: 0.05),
                             ),
                           ),
@@ -3198,7 +3509,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   int _selectedIndex = 0;
   bool _isFavorite = false;
   late Recipe _currentRecipe;
-  final GlobalKey _globalKey = GlobalKey();
 
   @override
   void initState() {
@@ -3313,9 +3623,35 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     await RecipeManager.toggleFavorite(widget.recipe);
   }
 
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(CupertinoIcons.camera),
+              title: Text('Cámara'.tr),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(CupertinoIcons.photo),
+              title: Text('Galería'.tr),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImage() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
       final appDir = await getApplicationDocumentsDirectory();
@@ -3337,59 +3673,30 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     }
   }
 
-  Future<void> _shareRecipe(BuildContext context, ThemeData theme) async {
-    try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Center(child: CircularProgressIndicator());
-        },
+  void _duplicateRecipe() async {
+    int counter = 1;
+    String newTitle = '${_currentRecipe.title} (Copia)';
+
+    // Ensure unique title
+    while (RecipeManager.recipes.any((r) => r.title == newTitle)) {
+      counter++;
+      newTitle = '${_currentRecipe.title} (Copia $counter)';
+    }
+
+    final duplicatedRecipe = _currentRecipe.copyWith(title: newTitle);
+
+    await RecipeManager.addRecipe(duplicatedRecipe);
+    await RecipeManager.toggleFavorite(duplicatedRecipe);
+
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Receta duplicada'.tr)));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => RecipeDetailPage(recipe: duplicatedRecipe),
+        ),
       );
-
-      // Wait a bit to ensure the off-screen widget is rendered
-      await Future.delayed(Duration(milliseconds: 100));
-
-      final boundary =
-          _globalKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
-
-      if (boundary == null) {
-        throw Exception("No se pudo encontrar el límite de repintado");
-      }
-
-      // Capture image
-      // pixelRatio 3.0 for high resolution
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final pngBytes = byteData!.buffer.asUint8List();
-
-      final directory = await getApplicationDocumentsDirectory();
-      final sanitizedTitle = _currentRecipe.title
-          .replaceAll(RegExp(r'[^\w\s]+'), '')
-          .trim();
-      final imagePath = '${directory.path}/${sanitizedTitle}_receta.png';
-      final imageFile = File(imagePath);
-      await imageFile.writeAsBytes(pngBytes);
-
-      if (mounted) {
-        Navigator.pop(context); // Hide loading
-
-        await Share.shareXFiles([
-          XFile(imagePath),
-        ], text: '¡Mira esta receta!\n${_currentRecipe.title}');
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Hide loading (if open)
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error al compartir: $e')));
-        }
-      }
-      print('Share error: $e');
     }
   }
 
@@ -3441,6 +3748,146 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 
+  void _showRecipeOptionsDialog(
+    BuildContext context,
+    ThemeData theme,
+    bool isPersonalized,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 24),
+                Text(
+                  'Opciones de la receta'.tr,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      _SelectionOption(
+                        title: _isFavorite
+                            ? 'Quitar de favoritos'.tr
+                            : 'Favoritos'.tr,
+                        icon: _isFavorite
+                            ? CupertinoIcons.heart_fill
+                            : CupertinoIcons.heart,
+                        isSelected: false,
+                        iconColor: _isFavorite
+                            ? Colors.red
+                            : theme.colorScheme.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _toggleFavorite();
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      _SelectionOption(
+                        title: 'Editar'.tr,
+                        icon: CupertinoIcons.pencil,
+                        isSelected: false,
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  NewRecipePage(recipeToEdit: _currentRecipe),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      _SelectionOption(
+                        title: 'Duplicar'.tr,
+                        icon: CupertinoIcons.doc_on_doc,
+                        isSelected: false,
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _duplicateRecipe();
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      _SelectionOption(
+                        title: 'Buscar en Internet'.tr,
+                        icon: CupertinoIcons.globe,
+                        isSelected: false,
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final query = Uri.encodeComponent(
+                            _currentRecipe.title,
+                          );
+                          final url = Uri.parse(
+                            'https://www.google.com/search?q=$query',
+                          );
+                          try {
+                            await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } catch (e) {
+                            if (mounted && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'No se pudo abrir el navegador'.tr,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      if (isPersonalized) ...[
+                        SizedBox(height: 12),
+                        _SelectionOption(
+                          title: 'Eliminar'.tr,
+                          icon: CupertinoIcons.trash,
+                          isSelected: false,
+                          isDestructive: true,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showDeleteDialog();
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(height: 48),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -3455,233 +3902,124 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           child: Text(_currentRecipe.title),
         ),
         actions: [
-          PopupMenuButton<String>(
+          IconButton(
             icon: Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'favorite') _toggleFavorite();
-              if (value == 'edit') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => NewRecipePage(recipeToEdit: _currentRecipe),
-                  ),
-                );
-              }
-              if (value == 'share') _shareRecipe(context, theme);
-              if (value == 'delete') _showDeleteDialog();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'favorite',
-                child: Row(
-                  children: [
-                    Icon(
-                      _isFavorite
-                          ? CupertinoIcons.heart_fill
-                          : CupertinoIcons.heart,
-                      color: _isFavorite ? Colors.red : theme.iconTheme.color,
-                      size: 20,
-                    ),
-                    SizedBox(width: 12),
-                    Text(_isFavorite ? 'Quitar de favoritos' : 'Favoritos'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.pencil,
-                      size: 20,
-                      color: theme.iconTheme.color,
-                    ),
-                    SizedBox(width: 12),
-                    Text('Editar'.tr),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.share,
-                      size: 20,
-                      color: theme.iconTheme.color,
-                    ),
-                    SizedBox(width: 12),
-                    Text('Compartir'.tr),
-                  ],
-                ),
-              ),
-              if (isPersonalized)
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(
-                        CupertinoIcons.trash,
-                        size: 20,
-                        color: theme.colorScheme.error,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Eliminar'.tr,
-                        style: TextStyle(color: theme.colorScheme.error),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+            onPressed: () =>
+                _showRecipeOptionsDialog(context, theme, isPersonalized),
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Off-screen widget for capture
-          Transform.translate(
-            offset: Offset(-9999, -9999),
-            child: OverflowBox(
-              minWidth: 0,
-              maxWidth: double.infinity,
-              minHeight: 0,
-              maxHeight: double.infinity,
-              alignment: Alignment.topLeft,
-              child: RepaintBoundary(
-                key: _globalKey,
-                child: _RecipeShareCard(
-                  recipe: _currentRecipe,
-                  isDark: theme.brightness == Brightness.dark,
-                  imagePathOverride: displayImagePath,
+          Stack(
+            children: [
+              // Recipe Image
+              if (displayImagePath != null)
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: double.infinity,
+                    height: 250,
+                    decoration: BoxDecoration(color: Colors.transparent),
+                    child: displayImagePath.startsWith('assets/')
+                        ? Hero(
+                            tag: widget.heroTag ?? widget.recipe.title,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Image.asset(
+                                displayImagePath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildPlaceholder(),
+                              ),
+                            ),
+                          )
+                        : Hero(
+                            tag: widget.heroTag ?? widget.recipe.title,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Image.file(
+                                File(displayImagePath),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildPlaceholder(),
+                              ),
+                            ),
+                          ),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: double.infinity,
+                    height: 250,
+                    decoration: BoxDecoration(color: Colors.transparent),
+                    child: _buildPlaceholder(),
+                  ),
                 ),
-              ),
+
+              // Floating Prep Time Chip
+              if (_currentRecipe.prepTime != null)
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      // border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.clock,
+                          color: theme.colorScheme.onPrimary,
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          _currentRecipe.prepTime!,
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Segmented Control
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _SlidingSegmentedControl(
+              controller: _pageController,
+              selectedIndex: _selectedIndex,
+              onTap: _onSegmentChanged,
+              tabs: ['Ingredientes'.tr, 'Instrucciones'.tr, 'Info'.tr],
             ),
           ),
-          Column(
-            children: [
-              Stack(
-                children: [
-                  // Recipe Image
-                  if (displayImagePath != null)
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: double.infinity,
-                        height: 250,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Color(0xFF16161C)
-                              : Colors.grey[200],
-                        ),
-                        child: displayImagePath.startsWith('assets/')
-                            ? Hero(
-                                tag: widget.heroTag ?? widget.recipe.title,
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: Image.asset(
-                                    displayImagePath,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _buildPlaceholder(),
-                                  ),
-                                ),
-                              )
-                            : Hero(
-                                tag: widget.heroTag ?? widget.recipe.title,
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: Image.file(
-                                    File(displayImagePath),
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _buildPlaceholder(),
-                                  ),
-                                ),
-                              ),
-                      ),
-                    )
-                  else
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: double.infinity,
-                        height: 250,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Color(0xFF16161C)
-                              : Colors.grey[200],
-                        ),
-                        child: _buildPlaceholder(),
-                      ),
-                    ),
 
-                  // Floating Prep Time Chip
-                  if (_currentRecipe.prepTime != null)
-                    Positioned(
-                      bottom: 16,
-                      right: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.9,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          // border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              CupertinoIcons.clock,
-                              color: theme.colorScheme.onPrimary,
-                              size: 16,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              _currentRecipe.prepTime!,
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              // Segmented Control
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: _SlidingSegmentedControl(
-                  controller: _pageController,
-                  selectedIndex: _selectedIndex,
-                  onTap: _onSegmentChanged,
-                  tabs: ['Ingredientes'.tr, 'Instrucciones'.tr, 'Info'.tr],
-                ),
-              ),
-
-              // PageView for sliding content
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
-                  children: [
-                    _IngredientsView(recipe: _currentRecipe),
-                    _InstructionsView(recipe: _currentRecipe),
-                    _InfoView(recipe: _currentRecipe),
-                  ],
-                ),
-              ),
-            ],
+          // PageView for sliding content
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              children: [
+                _IngredientsView(recipe: _currentRecipe),
+                _InstructionsView(recipe: _currentRecipe),
+                _InfoView(recipe: _currentRecipe),
+              ],
+            ),
           ),
         ],
       ),
@@ -3743,6 +4081,7 @@ class SettingsPage extends StatelessWidget {
                 builder: (context, index, child) {
                   return _SettingsTile(
                     title: 'Pantalla predeterminada'.tr.tr,
+                    icon: CupertinoIcons.home,
                     subtitle: index == 0 ? 'Buscador'.tr : 'Mis Recetas'.tr,
                     trailing: Icon(
                       CupertinoIcons.chevron_right,
@@ -3826,6 +4165,33 @@ class SettingsPage extends StatelessWidget {
                     lastItem: true,
                   );
                 },
+              ),
+            ],
+          ),
+
+          _SettingsSection(
+            title: 'INTELIGENCIA ARTIFICIAL'.tr.tr,
+            children: [
+              _SettingsTile(
+                title: 'Configurar API Key'.tr.tr,
+                subtitle: 'Usar IA para extraer recetas de imágenes'.tr.tr,
+                icon: CupertinoIcons.sparkles,
+                trailing: Icon(
+                  CupertinoIcons.chevron_right,
+                  size: 20,
+                  color: Colors.grey,
+                ),
+                onTap: () {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => _AiSettingsPage(),
+                      ),
+                    );
+                  }
+                },
+                lastItem: true,
               ),
             ],
           ),
@@ -4079,18 +4445,22 @@ class _SelectionOption extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDestructive;
+  final Color? iconColor;
 
   const _SelectionOption({
     required this.title,
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.isDestructive = false,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final activeColor = theme.colorScheme.primary;
+    final activeColor = isDestructive ? Colors.red : theme.colorScheme.primary;
 
     return GestureDetector(
       onTap: onTap,
@@ -4101,8 +4471,8 @@ class _SelectionOption extends StatelessWidget {
           color: isSelected
               ? activeColor.withValues(alpha: 0.15)
               : theme.brightness == Brightness.dark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.grey.withValues(alpha: 0.05),
+              ? theme.cardColor
+              : theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
@@ -4118,13 +4488,21 @@ class _SelectionOption extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? activeColor
+                    : isDestructive
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : (iconColor != null)
+                    ? iconColor!.withValues(alpha: 0.15)
                     : Colors.grey.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color: isSelected ? Colors.black : theme.iconTheme.color,
+                color: isSelected
+                    ? (isDestructive ? Colors.white : Colors.black)
+                    : (isDestructive
+                          ? Colors.red
+                          : (iconColor ?? theme.iconTheme.color)),
               ),
             ),
             SizedBox(width: 16),
@@ -4133,7 +4511,9 @@ class _SelectionOption extends StatelessWidget {
                 title,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? activeColor : null,
+                  color: isSelected
+                      ? activeColor
+                      : (isDestructive ? Colors.red : null),
                 ),
               ),
             ),
@@ -4400,6 +4780,235 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _AiSettingsPage extends StatefulWidget {
+  @override
+  State<_AiSettingsPage> createState() => _AiSettingsPageState();
+}
+
+class _AiSettingsPageState extends State<_AiSettingsPage> {
+  final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _apiEndpointController = TextEditingController();
+  String _provider = 'gemini';
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = SettingsManager.aiProvider.value.isEmpty
+        ? 'gemini'
+        : SettingsManager.aiProvider.value;
+    _apiKeyController.text = SettingsManager.aiApiKey.value;
+    _apiEndpointController.text = SettingsManager.aiApiEndpoint.value.isEmpty
+        ? 'https://api.openai.com/v1/chat/completions'
+        : SettingsManager.aiApiEndpoint.value;
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _apiEndpointController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    await SettingsManager.setAiProvider(_provider);
+    await SettingsManager.setAiApiKey(_apiKeyController.text.trim());
+    await SettingsManager.setAiApiEndpoint(_apiEndpointController.text.trim());
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _openLink(String urlString) async {
+    final url = Uri.parse(urlString);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo abrir el enlace'.tr)),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Configuración de IA'.tr),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: _save,
+            tooltip: 'Guardar'.tr,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Icon(
+            CupertinoIcons.sparkles,
+            size: 64,
+            color: theme.colorScheme.primary,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Escaneo de Recetas Inteligente'.tr,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Para que la aplicación pueda leer fotos de recetas y convertirlas automáticamente en texto, necesitas conectar un servicio de Inteligencia Artificial.'
+                .tr,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+          SizedBox(height: 32),
+
+          Text(
+            '1. Elige tu proveedor de IA'.tr,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  title: Text('Google Gemini (Recomendado, Gratis)'.tr),
+                  value: 'gemini',
+                  groupValue: _provider,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (val) {
+                    setState(() => _provider = val!);
+                  },
+                ),
+                RadioListTile<String>(
+                  title: Text('OpenAI / Otros compatibles'.tr),
+                  value: 'openai',
+                  groupValue: _provider,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (val) {
+                    setState(() => _provider = val!);
+                  },
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 32),
+
+          Text(
+            '2. Consigue tu Clave (API Key)'.tr,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          if (_provider == 'gemini') ...[
+            Text(
+              'Gemini ofrece una clave gratuita y es muy fácil de obtener. Solo entra a Google AI Studio pulsando el botón de abajo, inicia sesión con tu cuenta de Google, y pulsa en "Get API key" o "Crear clave de API".'
+                  .tr,
+              style: theme.textTheme.bodyMedium,
+            ),
+            SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () =>
+                  _openLink('https://aistudio.google.com/app/apikey'),
+              icon: Icon(Icons.open_in_new),
+              label: Text('Obtener clave de Gemini'.tr),
+            ),
+          ] else ...[
+            Text(
+              'Para usar OpenAI (ChatGPT) necesitas una cuenta de desarrollador de pago con saldo en platform.openai.com. También puedes usar servicios compatibles como OpenRouter editando el Endpoint.'
+                  .tr,
+              style: theme.textTheme.bodyMedium,
+            ),
+            SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () =>
+                  _openLink('https://platform.openai.com/api-keys'),
+              icon: Icon(Icons.open_in_new),
+              label: Text('Obtener clave de OpenAI'.tr),
+            ),
+          ],
+          SizedBox(height: 32),
+
+          Text(
+            '3. Pega tu API Key aquí'.tr,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          TextField(
+            controller: _apiKeyController,
+            decoration: InputDecoration(
+              labelText: 'Clave de API (API Key)'.tr,
+              hintText: _provider == 'gemini' ? 'AIzaSy...' : 'sk-...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+            ),
+            obscureText: true,
+          ),
+
+          if (_provider != 'gemini') ...[
+            SizedBox(height: 24),
+            Text(
+              'Opciones Avanzadas'.tr,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            SizedBox(height: 12),
+            TextField(
+              controller: _apiEndpointController,
+              decoration: InputDecoration(
+                labelText: 'API Endpoint Url (Opcional)'.tr,
+                hintText: 'https://api.openai.com/v1/chat/completions',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+              ),
+            ),
+          ],
+
+          SizedBox(height: 48),
+          FilledButton(
+            onPressed: _save,
+            style: FilledButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              backgroundColor:
+                  theme.colorScheme.primary, // using simple primary
+            ),
+            child: Text(
+              'Guardar Configuración'.tr,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: 32),
+        ],
+      ),
     );
   }
 }
@@ -4746,9 +5355,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white,
+                color: isDark ? theme.cardColor : theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isDark
@@ -4874,19 +5481,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? theme.cardColor : theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
+        boxShadow: [],
         border: isDark
-            ? Border.all(color: Colors.white.withValues(alpha: 0.05))
+            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
             : null,
       ),
       child: Row(
@@ -4937,7 +5536,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? theme.cardColor : theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark

@@ -58,3 +58,6 @@ app.*.symbols
 
 # Obfuscation related
 app.*.map.json
+
+# Large files
+app-release.apk

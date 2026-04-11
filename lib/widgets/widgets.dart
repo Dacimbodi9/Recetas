@@ -29,18 +29,8 @@ class _FolderCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
-            ? null
-            : Colors.white,
-        gradient: Theme.of(context).brightness == Brightness.dark
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.09),
-                  Colors.white.withValues(alpha: 0.03),
-                ],
-              )
-            : null,
+            ? Theme.of(context).cardColor
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Theme.of(context).brightness == Brightness.dark
@@ -48,13 +38,7 @@ class _FolderCard extends StatelessWidget {
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: [],
       ),
       child: InkWell(
         onTap: onTap,
@@ -211,12 +195,14 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? theme.colorScheme.primary.withValues(alpha: 0.3)
-                          : Colors.white.withValues(alpha: 0.05),
+                          : theme.cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
                             ? theme.colorScheme.primary
-                            : Colors.white.withValues(alpha: 0.1),
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.1,
+                              ),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -224,7 +210,7 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
                       icon,
                       color: isSelected
                           ? theme.colorScheme.primary
-                          : Colors.white70,
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       size: 24,
                     ),
                   ),
@@ -600,13 +586,7 @@ class _RecipeCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: [],
       ),
       child: OpenContainer(
         transitionDuration: Duration(milliseconds: 500),
@@ -625,17 +605,7 @@ class _RecipeCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
                   ? theme.cardColor
-                  : Colors.white,
-              gradient: Theme.of(context).brightness == Brightness.dark
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.09),
-                        Colors.white.withValues(alpha: 0.03),
-                      ],
-                    )
-                  : null,
+                  : theme.cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: Theme.of(context).brightness == Brightness.dark
@@ -1013,8 +983,8 @@ class _SlidingSegmentedControl extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.05),
+            ? Theme.of(context).cardColor
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -1145,16 +1115,18 @@ class _IngredientsViewState extends State<_IngredientsView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Text(
-                '${widget.recipe.ingredients.length} Ingredientes',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            if (widget.recipe.detailedIngredients.isNotEmpty ||
+                widget.recipe.ingredients.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  '${widget.recipe.detailedIngredients.isNotEmpty ? widget.recipe.detailedIngredients.length : widget.recipe.ingredients.length} ${'Ingredientes'.tr}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
-            ),
             if (widget.recipe.detailedIngredients.isNotEmpty)
               ...widget.recipe.detailedIngredients.map((ingredient) {
                 final key = ingredient.name;
@@ -1175,7 +1147,7 @@ class _IngredientsViewState extends State<_IngredientsView>
                   },
                 );
               })
-            else
+            else if (widget.recipe.ingredients.isNotEmpty)
               // Fallback for old simple string list
               ...widget.recipe.ingredients.map((ingredient) {
                 final isChecked = _checkedIngredients.contains(ingredient);
@@ -1193,7 +1165,35 @@ class _IngredientsViewState extends State<_IngredientsView>
                     });
                   },
                 );
-              }),
+              })
+            else
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.cart,
+                        size: 48,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.2,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No hay ingredientes'.tr,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1402,46 +1402,35 @@ class _InstructionsView extends StatelessWidget {
                     );
                   }).toList()
                 : [
-                    Text(
-                      'No hay pasos disponibles para esta receta.'.tr,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.6),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              CupertinoIcons.square_list,
+                              size: 48,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay pasos disponibles para esta receta.'.tr,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
 
-            SizedBox(height: 32),
-            Center(
-              child: FilledButton.tonalIcon(
-                onPressed: () async {
-                  final query = Uri.encodeComponent(recipe.title);
-                  final url = Uri.parse(
-                    'https://www.google.com/search?q=$query',
-                  );
-                  try {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } catch (e) {
-                    if (context.mounted) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('No se pudo abrir el navegador'.tr),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-                icon: Icon(CupertinoIcons.globe),
-                label: Text('Buscar en Internet'.tr),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
             SizedBox(height: 32),
           ],
         ),
@@ -1646,8 +1635,8 @@ class _SettingsSection extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 24),
           decoration: BoxDecoration(
             color: theme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.white,
+                ? theme.cardColor
+                : theme.cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: theme.brightness == Brightness.dark
@@ -2232,243 +2221,3 @@ class _PremiumRatingButton extends StatelessWidget {
 }
 
 // --- Onboarding Flow ---
-
-class _RecipeShareCard extends StatelessWidget {
-  final Recipe recipe;
-  final bool isDark;
-  final String? imagePathOverride;
-
-  const _RecipeShareCard({
-    required this.recipe,
-    required this.isDark,
-    this.imagePathOverride,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const double width = 600;
-
-    // Determine effective image path
-    final effectiveImagePath = imagePathOverride ?? recipe.imagePath;
-
-    // Theme Colors
-    final backgroundColor = isDark ? Color(0xFF1E1E24) : Colors.white;
-    final titleColor = isDark ? Colors.white : Color(0xFF333333);
-    final primaryColor = isDark
-        ? Color(0xFF9CCC65)
-        : Color(0xFF6B8E23); // Fresh Green vs Olive
-    final secondaryColor = Color(0xFFC05832); // Terracotta
-    final chipColor = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : Color(0xFFF5F5F0);
-    final chipTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.9)
-        : Color(0xFF444444);
-
-    return Container(
-      width: width,
-      color: backgroundColor,
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'RECETAS'.tr,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 4,
-                  color: primaryColor,
-                ),
-              ),
-              if (recipe.prepTime != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.timer_outlined, size: 16, color: primaryColor),
-                      SizedBox(width: 6),
-                      Text(
-                        recipe.prepTime!,
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 24),
-
-          Text(
-            recipe.title,
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              color: titleColor,
-              height: 1.1,
-            ),
-          ),
-
-          if (effectiveImagePath != null) ...[
-            SizedBox(height: 24),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: effectiveImagePath.startsWith('assets/')
-                    ? Image.asset(
-                        effectiveImagePath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildPlaceholder(primaryColor),
-                      )
-                    : Image.file(
-                        File(effectiveImagePath),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildPlaceholder(primaryColor),
-                      ),
-              ),
-            ),
-            SizedBox(height: 32),
-          ] else ...[
-            SizedBox(height: 24),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: _buildPlaceholder(primaryColor),
-              ),
-            ),
-            SizedBox(height: 32),
-          ],
-
-          // Ingredients
-          Text(
-            'INGREDIENTES'.tr,
-            style: GoogleFonts.nunito(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-              color: secondaryColor,
-            ),
-          ),
-          SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: recipe.ingredients
-                .map(
-                  (ing) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: chipColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white10
-                            : Colors.black.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: Text(
-                      ing,
-                      style: GoogleFonts.nunito(
-                        fontSize: 16,
-                        color: chipTextColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-
-          if (recipe.steps.isNotEmpty) ...[
-            SizedBox(height: 32),
-            Divider(thickness: 1, color: Colors.black12),
-            SizedBox(height: 24),
-            Text(
-              'PREPARACIÓN'.tr,
-              style: GoogleFonts.nunito(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                color: secondaryColor,
-              ),
-            ),
-            SizedBox(height: 16),
-            ...recipe.steps.asMap().entries.map((entry) {
-              final index = entry.key + 1;
-              final step = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$index.',
-                      style: GoogleFonts.nunito(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        step,
-                        style: GoogleFonts.nunito(
-                          fontSize: 16,
-                          color: chipTextColor,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder(Color primaryColor) {
-    return Container(
-      color: primaryColor.withValues(alpha: 0.05),
-      child: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Image.asset(
-            isDark
-                ? 'assets/images/onboarding_logo_dark.png'
-                : 'assets/images/onboarding_logo_light.jpg',
-            width: 120,
-            height: 120,
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
-    );
-  }
-}
