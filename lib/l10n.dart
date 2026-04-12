@@ -171,7 +171,6 @@ class AppLocalization {
     "Nombre de la receta": "Recipe name",
     "Nombre del ingrediente": "Ingredient name",
     "OPCIONES": "OPTIONS",
-    "Opciones de la receta": "Recipe options",
     "Ocultar recetas incompatibles": "Hide incompatible recipes",
     "Otros": "Others",
     "PASOS A SEGUIR": "STEPS TO FOLLOW",

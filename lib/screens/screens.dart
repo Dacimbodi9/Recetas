@@ -3780,13 +3780,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   ),
                 ),
                 SizedBox(height: 24),
-                Text(
-                  'Opciones de la receta'.tr,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
