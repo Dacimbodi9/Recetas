@@ -30,7 +30,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         return Scaffold(
           body: IndexedStack(
             index: _currentIndex,
-            children: [SearchPage(), FavoritesPage(), SettingsPage()],
+            children: [SearchPage(), SavedPage(), SettingsPage()],
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _currentIndex,
@@ -167,14 +167,14 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-class FavoritesPage extends StatefulWidget {
-  const FavoritesPage({super.key});
+class SavedPage extends StatefulWidget {
+  const SavedPage({super.key});
 
   @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
+  State<SavedPage> createState() => _SavedPageState();
 }
 
-class _FavoritesPageState extends State<FavoritesPage> {
+class _SavedPageState extends State<SavedPage> {
   final TextEditingController _searchController = TextEditingController();
   final PageController _pageController = PageController();
   String _searchQuery = '';
@@ -219,7 +219,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               controller: _pageController,
               selectedIndex: _selectedIndex,
               onTap: _onSegmentChanged,
-              tabs: ['Favoritos'.tr, 'Valoraciones'.tr],
+              tabs: ['Guardados'.tr, 'Valoraciones'.tr],
             ),
           ),
 
@@ -228,7 +228,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: [
-                _FavoritosView(
+                _SavedRecipesView(
                   searchController: _searchController,
                   searchQuery: _searchQuery,
                   onSearchChanged: (value) =>
@@ -408,8 +408,8 @@ class _RecetasView extends StatelessWidget {
   }
 }
 
-class _FavoritosView extends StatefulWidget {
-  const _FavoritosView({
+class _SavedRecipesView extends StatefulWidget {
+  const _SavedRecipesView({
     required this.searchController,
     required this.searchQuery,
     required this.onSearchChanged,
@@ -422,10 +422,10 @@ class _FavoritosView extends StatefulWidget {
   final bool showAppBar;
 
   @override
-  State<_FavoritosView> createState() => _FavoritosViewState();
+  State<_SavedRecipesView> createState() => _SavedRecipesViewState();
 }
 
-class _FavoritosViewState extends State<_FavoritosView> {
+class _SavedRecipesViewState extends State<_SavedRecipesView> {
   String? _currentFolderId;
   final List<String> _folderPath = [];
 
@@ -517,7 +517,7 @@ class _FavoritosViewState extends State<_FavoritosView> {
                     onChanged: widget.onSearchChanged,
                     textAlignVertical: TextAlignVertical.center,
                     decoration: InputDecoration(
-                      hintText: 'Buscar en favoritos...'.tr.tr,
+                      hintText: 'Buscar en guardados...'.tr.tr,
                       prefixIcon: Icon(CupertinoIcons.search),
                       suffixIcon: widget.searchQuery.isNotEmpty
                           ? IconButton(
@@ -556,10 +556,10 @@ class _FavoritosViewState extends State<_FavoritosView> {
             child: foldersToShow.isEmpty && recipesToShow.isEmpty
                 ? _EmptyStateWidget(
                     icon: widget.searchQuery.isEmpty
-                        ? CupertinoIcons.heart
+                        ? CupertinoIcons.bookmark
                         : CupertinoIcons.search,
                     title: widget.searchQuery.isEmpty
-                        ? 'No tienes favoritos'.tr
+                        ? 'No tienes guardados'.tr
                         : 'Sin resultados'.tr,
                     subtitle: widget.searchQuery.isEmpty
                         ? 'Tus recetas guardadas aparecerán aquí'.tr
@@ -3793,14 +3793,14 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     children: [
                       _SelectionOption(
                         title: _isFavorite
-                            ? 'Quitar de favoritos'.tr
-                            : 'Favoritos'.tr,
+                            ? 'Quitar de guardados'.tr
+                            : 'Guardados'.tr,
                         icon: _isFavorite
-                            ? CupertinoIcons.heart_fill
-                            : CupertinoIcons.heart,
+                            ? CupertinoIcons.bookmark_fill
+                            : CupertinoIcons.bookmark,
                         isSelected: false,
                         iconColor: _isFavorite
-                            ? Colors.red
+                            ? Colors.amber
                             : theme.colorScheme.primary,
                         onTap: () {
                           Navigator.pop(context);

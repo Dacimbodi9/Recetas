@@ -436,7 +436,7 @@ class RecipeManager {
     CupertinoIcons.folder,
     CupertinoIcons.book,
     CupertinoIcons.star,
-    CupertinoIcons.heart,
+    CupertinoIcons.bookmark,
     CupertinoIcons.flame,
     CupertinoIcons.tag,
     CupertinoIcons.collections,

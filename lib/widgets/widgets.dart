@@ -1244,12 +1244,15 @@ class _LikeButtonState extends State<_LikeButton>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ScaleTransition(
       scale: _scaleAnimation,
       child: IconButton(
         icon: Icon(
-          widget.isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-          color: widget.isFavorite ? Colors.red : null,
+          widget.isFavorite
+              ? CupertinoIcons.bookmark_fill
+              : CupertinoIcons.bookmark,
+          color: widget.isFavorite ? Colors.amber : null,
         ),
         onPressed: () {
           // Trigger animation if turning ON, or just toggle
@@ -1953,7 +1956,7 @@ Estamos comprometidos con la protección de su privacidad. El principio fundamen
 2. Recopilación y Uso de Datos
 No recopilamos información personal, estadísticas de uso ni datos analíticos.
 
-Datos del Usuario (Recetas y Preferencias): Todas las recetas, ingredientes, configuraciones dietéticas y favoritos creados dentro de la aplicación se almacenan localmente en la memoria interna de su dispositivo (utilizando SharedPreferences y almacenamiento de archivos local). Estos datos nunca se transmiten a nosotros ni a terceros.
+Datos del Usuario (Recetas y Preferencias): Todas las recetas, ingredientes, configuraciones dietéticas y guardados creados dentro de la aplicación se almacenan localmente en la memoria interna de su dispositivo (utilizando SharedPreferences y almacenamiento de archivos local). Estos datos nunca se transmiten a nosotros ni a terceros.
 
 Copias de Seguridad Voluntarias: Si decide utilizar la función de "Exportar" o "Copia de seguridad", se generará un archivo JSON. Usted tiene el control total sobre dónde almacenar o con quién compartir este archivo. Nosotros no tenemos acceso a estos archivos.
 
@@ -2000,7 +2003,7 @@ We are committed to protecting your privacy. The core principle of "Recetas" is 
 2. Data Collection and Usage
 We do not collect any personal information, usage statistics, or analytics.
 
-User Data (Recipes & Preferences): All recipes, ingredients, dietary settings, and favorites created within the app are stored locally on your device’s internal memory using SharedPreferences and local file storage. This data is never transmitted to us or any third party.
+User Data (Recipes & Preferences): All recipes, ingredients, dietary settings, and saved recipes created within the app are stored locally on your device’s internal memory using SharedPreferences and local file storage. This data is never transmitted to us or any third party.
 
 Voluntary Backups: If you choose to use the "Export" or "Backup" feature, a JSON file is generated. You control where this file is stored or shared. We do not have access to these files.
 
