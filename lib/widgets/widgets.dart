@@ -1109,7 +1109,8 @@ class _IngredientsViewState extends State<_IngredientsView>
     super.build(context);
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
+    return SizedBox(
+      width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1360,7 +1361,8 @@ class _InstructionsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
+    return SizedBox(
+      width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1483,7 +1485,8 @@ class _InfoView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
+    return SizedBox(
+      width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

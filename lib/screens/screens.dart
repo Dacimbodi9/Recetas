@@ -24,6 +24,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Safety clamp in case it ever goes out of bounds
+    if (_currentIndex >= 3) _currentIndex = 0;
+
     return ValueListenableBuilder<String>(
       valueListenable: SettingsManager.language,
       builder: (context, lang, child) {
@@ -3509,6 +3512,7 @@ class RecipeDetailPage extends StatefulWidget {
 
 class _RecipeDetailPageState extends State<RecipeDetailPage> {
   late PageController _pageController;
+  final ScrollController _scrollController = ScrollController();
   int _selectedIndex = 0;
   bool _isFavorite = false;
   late Recipe _currentRecipe;
@@ -3542,6 +3546,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _pageController.dispose();
     RecipeManager.removeListener(_onRecipesChanged);
     super.dispose();
@@ -3703,53 +3708,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     }
   }
 
-  void _showRatingDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Valorar receta'.tr),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Toca una estrella para valorar:'.tr),
-            SizedBox(height: 16),
-            StatefulBuilder(
-              builder: (context, setDialogState) {
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _StarRating(
-                      rating: widget.recipe.rating ?? 0,
-                      onRatingChanged: (rating) {
-                        RecipeManager.rateRecipe(widget.recipe, rating);
-                        setState(() {}); // Update Page UI
-                        setDialogState(() {}); // Update Dialog UI
-                      },
-                      starSize: 36,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      (widget.recipe.rating ?? 0).toStringAsFixed(1),
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.amber,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cerrar'.tr),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showRecipeOptionsDialog(
     BuildContext context,
@@ -3784,23 +3743,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: [
-                      _SelectionOption(
-                        title: _isFavorite
-                            ? 'Quitar de guardados'.tr
-                            : 'Guardados'.tr,
-                        icon: _isFavorite
-                            ? CupertinoIcons.bookmark_fill
-                            : CupertinoIcons.bookmark,
-                        isSelected: false,
-                        iconColor: _isFavorite
-                            ? Colors.amber
-                            : theme.colorScheme.primary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _toggleFavorite();
-                        },
-                      ),
-                      SizedBox(height: 12),
+
                       _SelectionOption(
                         title: 'Editar'.tr,
                         icon: CupertinoIcons.pencil,
@@ -3892,129 +3835,202 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     final displayImagePath = customImagePath ?? _currentRecipe.imagePath;
 
     return Scaffold(
-      appBar: AppBar(
-        title: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Text(_currentRecipe.title),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.more_vert),
-            onPressed: () =>
-                _showRecipeOptionsDialog(context, theme, isPersonalized),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Stack(
-            children: [
-              // Recipe Image
-              if (displayImagePath != null)
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: double.infinity,
-                    height: 250,
-                    decoration: BoxDecoration(color: Colors.transparent),
-                    child: displayImagePath.startsWith('assets/')
-                        ? Hero(
-                            tag: widget.heroTag ?? widget.recipe.title,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Image.asset(
-                                displayImagePath,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    _buildPlaceholder(),
-                              ),
-                            ),
-                          )
-                        : Hero(
-                            tag: widget.heroTag ?? widget.recipe.title,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Image.file(
-                                File(displayImagePath),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    _buildPlaceholder(),
-                              ),
-                            ),
-                          ),
-                  ),
-                )
-              else
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: double.infinity,
-                    height: 250,
-                    decoration: BoxDecoration(color: Colors.transparent),
-                    child: _buildPlaceholder(),
-                  ),
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back),
+              style: IconButton.styleFrom(
+                backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  _isFavorite ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+                  color: _isFavorite ? Colors.amber : null,
                 ),
-
-              // Floating Prep Time Chip
-              if (_currentRecipe.prepTime != null)
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
+                ),
+                onPressed: _toggleFavorite,
+              ),
+              IconButton(
+                icon: Icon(CupertinoIcons.share),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Compartir próximamente...'.tr))
+                  );
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.more_vert),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
+                ),
+                onPressed: () => _showRecipeOptionsDialog(context, theme, isPersonalized),
+              ),
+              SizedBox(width: 8),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Image
+                  if (displayImagePath != null)
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: displayImagePath.startsWith('assets/')
+                          ? Hero(
+                              tag: widget.heroTag ?? widget.recipe.title,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Image.asset(
+                                  displayImagePath,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                                ),
+                              ),
+                            )
+                          : Hero(
+                              tag: widget.heroTag ?? widget.recipe.title,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Image.file(
+                                  File(displayImagePath),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                                ),
+                              ),
+                            ),
+                    )
+                  else
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: _buildPlaceholder(),
                     ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(20),
-                      // border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          CupertinoIcons.clock,
-                          color: theme.colorScheme.onPrimary,
-                          size: 16,
+                  // Gradient over image for text readability
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 120,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            theme.scaffoldBackgroundColor,
+                            theme.scaffoldBackgroundColor.withValues(alpha: 0.0),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          _currentRecipe.prepTime!,
-                          style: TextStyle(
-                            color: theme.colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 16),
+                  // Title
+                  Text(
+                    _currentRecipe.title,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  
+                  // Meta Row (Time, Rating)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        if (_currentRecipe.prepTime != null) ...[
+                          _buildMetaChip(
+                            theme,
+                            icon: CupertinoIcons.clock,
+                            label: _currentRecipe.prepTime!,
+                          ),
+                          SizedBox(width: 8),
+                        ],
+                        GestureDetector(
+                          onTap: () {
+                            if (_scrollController.hasClients) {
+                              _scrollController.animateTo(
+                                _scrollController.position.maxScrollExtent,
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeOutCubic,
+                              );
+                            }
+                          },
+                          child: _buildMetaChip(
+                            theme,
+                            icon: CupertinoIcons.star_fill,
+                            iconColor: Colors.amber,
+                            label: (_currentRecipe.rating ?? 0) > 0 
+                                ? (_currentRecipe.rating!).toStringAsFixed(1)
+                                : 'Sin valorar'.tr,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-            ],
-          ),
-
-          // Segmented Control
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _SlidingSegmentedControl(
-              controller: _pageController,
-              selectedIndex: _selectedIndex,
-              onTap: _onSegmentChanged,
-              tabs: ['Ingredientes'.tr, 'Instrucciones'.tr, 'Info'.tr],
+                  SizedBox(height: 16),
+                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  
+                  // Continuous continuous views
+                  _IngredientsView(recipe: _currentRecipe),
+                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  _InstructionsView(recipe: _currentRecipe),
+                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  _InfoView(recipe: _currentRecipe),
+                  
+                  SizedBox(height: 80), // spacing for FAB
+                ],
+              ),
             ),
           ),
+        ],
+      ),
 
-          // PageView for sliding content
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: [
-                _IngredientsView(recipe: _currentRecipe),
-                _InstructionsView(recipe: _currentRecipe),
-                _InfoView(recipe: _currentRecipe),
-              ],
+    );
+  }
+
+  Widget _buildMetaChip(ThemeData theme, {required IconData icon, required String label, Color? iconColor}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: iconColor ?? theme.colorScheme.primary),
+          SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ],
