@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 // ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,13 +19,17 @@ import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animations/animations.dart';
 import 'package:dio/dio.dart';
-// import 'shopping_list.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:app_links/app_links.dart';
 
 part 'models/models.dart';
 part 'services/services.dart';
 part 'utils/utils.dart';
 part 'widgets/widgets.dart';
 part 'screens/screens.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +38,7 @@ void main() async {
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
   runApp(RecetasApp());
+  DeepLinkHandler.instance.init();
 }
 
 class RecetasApp extends StatefulWidget {
@@ -43,7 +49,6 @@ class RecetasApp extends StatefulWidget {
 }
 
 class _RecetasAppState extends State<RecetasApp> {
-  @override
   @override
   Widget build(BuildContext context) {
     // Light Mode Palette - Vibe: "Artisan Bakery" (Parchment, Thick Cream, Dark Olive)
@@ -164,6 +169,7 @@ class _RecetasAppState extends State<RecetasApp> {
                 systemStatusBarContrastEnforced: false,
               ),
               child: MaterialApp(
+                navigatorKey: navigatorKey,
                 debugShowCheckedModeBanner: false,
                 title: 'Recetas'.tr.tr,
                 themeMode: isDark ? ThemeMode.dark : ThemeMode.light,

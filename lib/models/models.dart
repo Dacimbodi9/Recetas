@@ -203,6 +203,33 @@ class Recipe {
   final double? rating;
   final DateTime? dateRated;
 
+  String toShareableData() {
+    final map = toJson();
+    map.remove('imagePath');
+    map.remove('rating');
+    map.remove('dateRated');
+    final jsonString = jsonEncode(map);
+    final bytes = utf8.encode(jsonString);
+    final gzipped = gzip.encode(bytes);
+    return base64UrlEncode(gzipped);
+  }
+
+  static Recipe? fromShareableData(String data) {
+    try {
+      var rawPayload = data;
+      if (rawPayload.contains('?data=')) {
+        rawPayload = rawPayload.split('?data=').last;
+      }
+      final bytes = base64Url.decode(rawPayload);
+      final unzipped = gzip.decode(bytes);
+      final jsonStr = utf8.decode(unzipped);
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      return Recipe.fromJson(map);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // JSON serialization
   Map<String, dynamic> toJson() {
     return {

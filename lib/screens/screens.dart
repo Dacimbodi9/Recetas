@@ -3710,6 +3710,94 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 
 
 
+  void _showShareOptions() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Compartir receta'.tr,
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(CupertinoIcons.paperplane),
+                title: Text('Compartir archivo'.tr),
+                subtitle: Text('Envía un archivo .receta por WhatsApp, Telegram...'.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _shareAsFile();
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.qrcode),
+                title: Text('Mostrar código QR'.tr),
+                subtitle: Text('Muestra un QR para que otros lo escaneen'.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _shareAsQR();
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareAsFile() async {
+    try {
+      final data = _currentRecipe.toShareableData();
+      final tempDir = await getTemporaryDirectory();
+      final safeTitle = _currentRecipe.title.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+      final fileName = '$safeTitle.receta';
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsString(data);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '${'¡Mira esta receta de'.tr} ${_currentRecipe.title}!',
+        subject: _currentRecipe.title,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al compartir'.tr)),
+        );
+      }
+    }
+  }
+
+  void _shareAsQR() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _ShareQRCodePage(recipe: _currentRecipe),
+      ),
+    );
+  }
+
   void _showRecipeOptionsDialog(
     BuildContext context,
     ThemeData theme,
@@ -3864,11 +3952,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 style: IconButton.styleFrom(
                   backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Compartir próximamente...'.tr))
-                  );
-                },
+                onPressed: _showShareOptions,
               ),
               IconButton(
                 icon: Icon(Icons.more_vert),
@@ -4086,54 +4170,70 @@ class SettingsPage extends StatelessWidget {
           ),
 
           _SettingsSection(
-            title: 'GENERAL'.tr.tr,
+            title: 'GENERAL'.tr,
+            children: [
+              _SettingsTile(
+                title: 'Escanear código QR'.tr,
+                subtitle: 'Importar una receta escaneando un código QR'.tr,
+                icon: CupertinoIcons.qrcode_viewfinder,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const _QrScannerPage()),
+                  );
+                },
+              ),
+
+              _SettingsTile(
+                title: 'Filtros dietéticos permanentes'.tr,
+                subtitle: 'Excluir siempre recetas incompatibles'.tr,
+                icon: Icons.no_food,
+                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  if (context.mounted) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => _DietarySettingsPage()));
+                  }
+                },
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: SettingsManager.showDefaultRecipes,
+                builder: (context, showDefaults, child) {
+                  return _SettingsTile(
+                    title: 'Mostrar Recetas Predeterminadas'.tr,
+                    isSwitch: true,
+                    switchValue: showDefaults,
+                    onSwitchChanged: (value) => SettingsManager.setShowDefaults(value),
+                    icon: CupertinoIcons.book_fill,
+                    lastItem: true,
+                  );
+                },
+              ),
+            ],
+          ),
+
+          _SettingsSection(
+            title: 'APARIENCIA Y NAVEGACIÓN'.tr,
             children: [
               ValueListenableBuilder<int>(
                 valueListenable: SettingsManager.startScreenIndex,
                 builder: (context, index, child) {
                   return _SettingsTile(
-                    title: 'Pantalla predeterminada'.tr.tr,
+                    title: 'Pantalla predeterminada'.tr,
                     icon: CupertinoIcons.home,
                     subtitle: index == 0 ? 'Buscador'.tr : 'Mis Recetas'.tr,
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
+                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                     onTap: () => _showStartScreenDialog(context, index),
                   );
-                },
-              ),
-              _SettingsTile(
-                title: 'Filtros dietéticos permanentes'.tr.tr,
-                subtitle: 'Excluir siempre recetas incompatibles'.tr.tr.tr,
-                icon: Icons.no_food,
-                trailing: Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 20,
-                  color: Colors.grey,
-                ),
-                onTap: () {
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => _DietarySettingsPage()),
-                    );
-                  }
                 },
               ),
               ValueListenableBuilder<String>(
                 valueListenable: SettingsManager.language,
                 builder: (context, lang, child) {
                   return _SettingsTile(
-                    title: 'Idioma / Language'.tr.tr,
+                    title: 'Idioma / Language'.tr,
                     icon: CupertinoIcons.globe,
                     subtitle: lang == 'en' ? 'English' : 'Español',
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
+                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                     onTap: () => _showLanguageScreenDialog(context, lang),
                   );
                 },
@@ -4142,25 +4242,11 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.isDarkMode,
                 builder: (context, isDark, child) {
                   return _SettingsTile(
-                    title: 'Modo Oscuro'.tr.tr,
+                    title: 'Modo Oscuro'.tr,
                     isSwitch: true,
                     switchValue: isDark,
-                    onSwitchChanged: (value) =>
-                        SettingsManager.setDarkMode(value),
+                    onSwitchChanged: (value) => SettingsManager.setDarkMode(value),
                     icon: CupertinoIcons.moon_fill,
-                  );
-                },
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: SettingsManager.showDefaultRecipes,
-                builder: (context, showDefaults, child) {
-                  return _SettingsTile(
-                    title: 'Mostrar Recetas Predeterminadas'.tr.tr,
-                    isSwitch: true,
-                    switchValue: showDefaults,
-                    onSwitchChanged: (value) =>
-                        SettingsManager.setShowDefaults(value),
-                    icon: CupertinoIcons.book_fill,
                   );
                 },
               ),
@@ -4168,11 +4254,10 @@ class SettingsPage extends StatelessWidget {
                 valueListenable: SettingsManager.preventSleep,
                 builder: (context, prevent, child) {
                   return _SettingsTile(
-                    title: 'Mantener pantalla encendida'.tr.tr,
+                    title: 'Mantener pantalla encendida'.tr,
                     isSwitch: true,
                     switchValue: prevent,
-                    onSwitchChanged: (value) =>
-                        SettingsManager.setPreventSleep(value),
+                    onSwitchChanged: (value) => SettingsManager.setPreventSleep(value),
                     icon: CupertinoIcons.eye,
                     lastItem: true,
                   );
@@ -4182,74 +4267,47 @@ class SettingsPage extends StatelessWidget {
           ),
 
           _SettingsSection(
-            title: 'INTELIGENCIA ARTIFICIAL'.tr.tr,
+            title: 'MIS DATOS'.tr,
             children: [
               _SettingsTile(
-                title: 'Configurar API Key'.tr.tr,
-                subtitle: 'Usar IA para extraer recetas de imágenes'.tr.tr,
+                title: 'Configurar API Key'.tr,
+                subtitle: 'Usar IA para extraer recetas de imágenes'.tr,
                 icon: CupertinoIcons.sparkles,
-                trailing: Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 20,
-                  color: Colors.grey,
-                ),
+                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
                   if (context.mounted) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => _AiSettingsPage(),
-                      ),
+                      MaterialPageRoute(builder: (context) => _AiSettingsPage()),
                     );
                   }
                 },
-                lastItem: true,
               ),
-            ],
-          ),
-
-          _SettingsSection(
-            title: 'DATOS'.tr.tr,
-            children: [
               _SettingsTile(
-                title: 'Exportar recetas'.tr.tr,
+                title: 'Exportar recetas'.tr,
                 icon: CupertinoIcons.share,
                 onTap: () => SettingsManager.exportRecipes(context),
               ),
               _SettingsTile(
-                title: 'Importar recetas'.tr.tr,
+                title: 'Importar recetas'.tr,
                 icon: CupertinoIcons.arrow_down_doc,
                 onTap: () => SettingsManager.importRecipes(context),
               ),
               _SettingsTile(
-                title: 'Borrar todos los datos'.tr.tr,
+                title: 'Borrar todos los datos'.tr,
                 icon: CupertinoIcons.delete,
                 iconColor: Colors.red,
                 textColor: Colors.red,
                 onTap: () => SettingsManager.clearData(context),
-                lastItem: true,
               ),
-            ],
-          ),
-
-          _SettingsSection(
-            title: 'INFORMACIÓN'.tr.tr,
-            children: [
               _SettingsTile(
-                title: 'Legal'.tr.tr,
-                subtitle: 'Política de Privacidad y Términos'.tr.tr.tr,
+                title: 'Legal'.tr,
+                subtitle: 'Política de Privacidad y Términos'.tr,
                 icon: CupertinoIcons.doc_text,
-                trailing: Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 20,
-                  color: Colors.grey,
-                ),
+                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
                   if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => _LegalPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => _LegalPage()));
                   }
                 },
                 lastItem: true,
@@ -4449,6 +4507,52 @@ class SettingsPage extends StatelessWidget {
     await SettingsManager.setLanguage(lang);
 
     navigator.pop();
+  }
+
+
+
+  void _showImportDialog(BuildContext context, Recipe recipe) {
+    final exists = RecipeManager.recipes.any((r) => r.title == recipe.title);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Receta detectada'.tr),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${'¿Quieres importar la receta'.tr} "${recipe.title}"?'),
+            if (exists) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Nota: Ya tienes una receta con este nombre.'.tr,
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await RecipeManager.addRecipe(recipe);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Receta importada correctamente'.tr)),
+                );
+              }
+            },
+            child: Text('Importar'.tr),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -4854,13 +4958,6 @@ class _AiSettingsPageState extends State<_AiSettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Configuración de IA'.tr),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.check),
-            onPressed: _save,
-            tooltip: 'Guardar'.tr,
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
@@ -5601,6 +5698,205 @@ class _OnboardingPageState extends State<OnboardingPage> {
             value: value,
             onChanged: onChanged,
             activeThumbColor: theme.colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareQRCodePage extends StatelessWidget {
+  final Recipe recipe;
+
+  const _ShareQRCodePage({required this.recipe});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final data = recipe.toShareableData();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Código QR'.tr),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                recipe.title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Otros pueden escanear este código para añadir la receta a su aplicación'.tr,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              ),
+              const SizedBox(height: 48),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: data,
+                  version: QrVersions.auto,
+                  size: 250.0,
+                  gapless: false,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Colors.black,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 48),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.check),
+                label: Text('Listo'.tr),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QrScannerPage extends StatefulWidget {
+  const _QrScannerPage();
+
+  @override
+  State<_QrScannerPage> createState() => _QrScannerPageState();
+}
+
+class _QrScannerPageState extends State<_QrScannerPage> {
+  final MobileScannerController controller = MobileScannerController();
+  bool _isScanning = true;
+
+  void _onDetect(BarcodeCapture capture) {
+    if (!_isScanning) return;
+    final List<Barcode> barcodes = capture.barcodes;
+    for (final barcode in barcodes) {
+      final String? code = barcode.rawValue;
+      if (code != null) {
+        final recipe = Recipe.fromShareableData(code);
+        if (recipe != null) {
+          setState(() => _isScanning = false);
+          _importRecipe(recipe);
+          break;
+        }
+      }
+    }
+  }
+
+  Future<void> _importRecipe(Recipe recipe) async {
+    final theme = Theme.of(context);
+    final exists = RecipeManager.recipes.any((r) => r.title == recipe.title);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Receta detectada'.tr),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${'¿Quieres importar la receta'.tr} "${recipe.title}"?'),
+            if (exists) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Nota: Ya tienes una receta con este nombre.'.tr,
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _isScanning = true);
+            },
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await RecipeManager.addRecipe(recipe);
+              if (mounted) {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Close scanner
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Receta importada correctamente'.tr)),
+                );
+              }
+            },
+            child: Text('Importar'.tr),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Escanear código QR'.tr),
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: controller,
+            onDetect: _onDetect,
+          ),
+          // Scanner Overlay
+          Center(
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: 2),
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 48,
+            left: 0,
+            right: 0,
+            child: Text(
+              'Apunta al código QR de la receta'.tr,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                shadows: [Shadow(blurRadius: 10)],
+              ),
+            ),
           ),
         ],
       ),
