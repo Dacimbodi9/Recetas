@@ -33,7 +33,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         return Scaffold(
           body: IndexedStack(
             index: _currentIndex,
-            children: [SearchPage(), SavedPage(), SettingsPage()],
+            children: [SearchPage(), SavedPage(), ProfilePage()],
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _currentIndex,
@@ -55,8 +55,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               ),
               */
               NavigationDestination(
-                icon: Icon(CupertinoIcons.settings),
-                label: 'Ajustes'.tr,
+                icon: Icon(CupertinoIcons.person),
+                label: 'Perfil'.tr,
               ),
             ],
           ),
@@ -2182,14 +2182,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
         ),
         Expanded(
           child: _detailedIngredients.isEmpty
-              ? Center(
-                  child: Text(
-                    'Añade los ingredientes necesarios'.tr,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                )
+              ? const SizedBox.shrink()
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   itemCount: _detailedIngredients.length,
@@ -2299,27 +2292,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
         ),
         Expanded(
           child: _steps.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.list_bullet,
-                        size: 48,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.2,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        '¿Cómo se prepara?'.tr,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? const SizedBox.shrink()
               : _isReorderingSteps
               ? ReorderableListView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -3928,6 +3901,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     final customImagePath = RecipeManager.getCustomImage(_currentRecipe.title);
     final displayImagePath = customImagePath ?? _currentRecipe.imagePath;
 
+    final hasIngredients = _currentRecipe.detailedIngredients.isNotEmpty || _currentRecipe.ingredients.isNotEmpty;
+    final hasInstructions = _currentRecipe.steps.isNotEmpty;
+    final hasInfo = _currentRecipe.dietaryRestrictions.isNotEmpty || 
+                    _currentRecipe.customDietaryTags.isNotEmpty || 
+                    _currentRecipe.nutritionFacts.isNotEmpty;
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
@@ -4093,13 +4072,22 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   SizedBox(height: 16),
                   Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
                   
-                  // Continuous continuous views
-                  _IngredientsView(recipe: _currentRecipe),
-                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
-                  _InstructionsView(recipe: _currentRecipe),
-                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
-                  _InfoView(recipe: _currentRecipe),
+                  if (hasIngredients) _IngredientsView(recipe: _currentRecipe),
+                  if (hasIngredients && (hasInstructions || hasInfo)) 
+                    Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  if (hasInstructions) _InstructionsView(recipe: _currentRecipe),
+                  if (hasInstructions && hasInfo) 
+                    Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  if (hasInfo) _InfoView(recipe: _currentRecipe),
                   
+                  if (hasIngredients || hasInstructions || hasInfo) 
+                    Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.1)),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: PremiumRatingButton(recipe: _currentRecipe),
+                  ),
+
                   SizedBox(height: 80), // spacing for FAB
                 ],
               ),
@@ -4170,19 +4158,10 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('Ajustes'.tr)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Text(
-              'Ajustes'.tr,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-
           _SettingsSection(
             title: 'GENERAL'.tr,
             children: [
@@ -5920,6 +5899,362 @@ class _QrScannerPageState extends State<_QrScannerPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isEditingName = false;
+  late TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: SettingsManager.userName.value);
+    RecipeManager.addListener(_onRecipesChanged);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    RecipeManager.removeListener(_onRecipesChanged);
+    super.dispose();
+  }
+
+  void _onRecipesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: source);
+    if (image != null) {
+      await SettingsManager.setUserPhotoPath(image.path);
+    }
+  }
+
+  void _showEditProfileMenu() {
+    final theme = Theme.of(context);
+    _nameController.text = SettingsManager.userName.value;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark ? const Color(0xFF1C1C1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Editar perfil'.tr, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              
+              // Editing photo
+              GestureDetector(
+                onTap: () => _showPhotoOptions(context),
+                child: ValueListenableBuilder<String?>(
+                  valueListenable: SettingsManager.userPhotoPath,
+                  builder: (context, photoPath, _) {
+                    return CircleAvatar(
+                      radius: 50,
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      backgroundImage: (photoPath != null && photoPath.isNotEmpty) ? FileImage(File(photoPath)) : null,
+                      child: (photoPath == null || photoPath.isEmpty)
+                        ? Icon(CupertinoIcons.person_fill, size: 50, color: theme.colorScheme.primary)
+                        : null,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('Toca para cambiar'.tr, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+              const SizedBox(height: 24),
+
+              // Editing name
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Nombre de usuario'.tr,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Toggle stats
+              ValueListenableBuilder<bool>(
+                valueListenable: SettingsManager.showProfileStats,
+                builder: (context, show, _) {
+                  return SwitchListTile(
+                    title: Text('Mostrar estadísticas'.tr),
+                    subtitle: Text('Recetas y guardados en tu tarjeta'.tr),
+                    value: show,
+                    activeColor: theme.colorScheme.primary,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) => SettingsManager.setShowProfileStats(val),
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    SettingsManager.setUserName(_nameController.text);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Guardar perfil'.tr),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPhotoOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(CupertinoIcons.photo),
+              title: Text('Galería'.tr),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(CupertinoIcons.camera),
+              title: Text('Cámara'.tr),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Perfil'.tr),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Profile Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Avatar (Centered vertically)
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: _showEditProfileMenu,
+                          child: Stack(
+                            children: [
+                              ValueListenableBuilder<String?>(
+                                valueListenable: SettingsManager.userPhotoPath,
+                                builder: (context, photoPath, _) {
+                                  return CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                    backgroundImage: (photoPath != null && photoPath.isNotEmpty) 
+                                      ? FileImage(File(photoPath)) 
+                                      : null,
+                                    child: (photoPath == null || photoPath.isEmpty)
+                                      ? Icon(CupertinoIcons.person_fill, size: 36, color: theme.colorScheme.primary)
+                                      : null,
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: theme.cardColor, width: 2),
+                                  ),
+                                  child: const Icon(CupertinoIcons.camera_fill, color: Colors.white, size: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    
+                    // Name display
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: ValueListenableBuilder<String>(
+                                valueListenable: SettingsManager.userName,
+                                builder: (context, name, _) {
+                                  return Text(
+                                    name,
+                                    maxLines: 1,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: GoogleFonts.playfairDisplay().fontFamily,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    ValueListenableBuilder<bool>(
+                      valueListenable: SettingsManager.showProfileStats,
+                      builder: (context, show, _) {
+                        if (!show) return const SizedBox.shrink();
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(width: 4),
+                            // First Vertical Divider before stats
+                            VerticalDivider(
+                              width: 1, 
+                              thickness: 1, 
+                              color: Colors.grey.withValues(alpha: 0.2),
+                              indent: 8, 
+                              endIndent: 8,
+                            ),
+
+                            // Stats Area
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  _buildStat(
+                                    context, 
+                                    'Recetas'.tr, 
+                                    RecipeManager.recipes.where((r) => !RecipeManager.isDefaultRecipe(r)).length.toString()
+                                  ),
+                                  const SizedBox(width: 16),
+                                  VerticalDivider(
+                                    width: 1, 
+                                    thickness: 1, 
+                                    color: Colors.grey.withValues(alpha: 0.2),
+                                    indent: 14, 
+                                    endIndent: 14,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildStat(
+                                    context, 
+                                    'Guardados'.tr, 
+                                    RecipeManager.favoriteRecipes.length.toString()
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStat(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

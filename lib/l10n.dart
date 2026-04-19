@@ -296,6 +296,16 @@ class AppLocalization {
     "Error al compartir archivo": "Error sharing file",
     "Error al importar archivo": "Error importing file",
     "Error al compartir": "Error sharing",
+    "Perfil": "Profile",
+    "Chef": "Chef",
+    "Nombre de usuario": "Username",
+    "Editar perfil": "Edit Profile",
+    "Guardar perfil": "Save Profile",
+    "Foto de perfil": "Profile Photo",
+    "Toca para cambiar": "Tap to change",
+    "Escribe tu nombre": "Type your name",
+    "Mostrar estadísticas": "Show statistics",
+    "Recetas y guardados en tu tarjeta": "Recipes and saved in your card",
   };
 }
 
