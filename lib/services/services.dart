@@ -528,8 +528,8 @@ class RecipeManager {
       return _recipes.where((r) {
         final isTitleDefault = defaultTitles.contains(r.title);
         if (!isTitleDefault) return true; // It's a purely custom recipe
-        // It has a default title. Keep it ONLY if it is modified (i.e., not just a default copy).
-        return !isDefaultRecipe(r);
+        // It has a default title. Keep it ONLY if it is modified (i.e., not just a default copy) OR favorited.
+        return !isDefaultRecipe(r) || isFavorite(r);
       }).toList();
     }
 
@@ -1187,6 +1187,9 @@ class DeepLinkHandler {
           FilledButton(
             onPressed: () async {
               await RecipeManager.addRecipe(recipe);
+              if (!RecipeManager.isFavorite(recipe)) {
+                await RecipeManager.toggleFavorite(recipe);
+              }
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

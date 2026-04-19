@@ -191,6 +191,7 @@ class AppLocalization {
     "Receta guardada como nueva": "Recipe saved as new",
     "Recetas": "Recipes",
     "Recetas Predeterminadas": "Default Recipes",
+    "Predeterminada": "Default",
     "Recetas guardadas exitosamente": "Recipes saved successfully",
     "Repostería y Harinas": "Baking & Flours",
     "Restricciones dietéticas": "Dietary restrictions",

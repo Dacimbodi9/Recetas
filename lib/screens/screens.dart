@@ -3694,6 +3694,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     final duplicatedRecipe = _currentRecipe.copyWith(title: newTitle);
 
     await RecipeManager.addRecipe(duplicatedRecipe);
+    
+    // Copy custom image if the original has one
+    final customImage = RecipeManager.getCustomImage(_currentRecipe.title);
+    if (customImage != null) {
+      await RecipeManager.setCustomImage(newTitle, customImage);
+    }
     await RecipeManager.toggleFavorite(duplicatedRecipe);
 
     if (mounted) {
@@ -4073,6 +4079,14 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                                 : 'Sin valorar'.tr,
                           ),
                         ),
+                        if (!isPersonalized) ...[
+                          SizedBox(width: 8),
+                          _buildMetaChip(
+                            theme,
+                            icon: CupertinoIcons.checkmark_seal_fill,
+                            label: 'Predeterminada'.tr,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -4541,6 +4555,9 @@ class SettingsPage extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               await RecipeManager.addRecipe(recipe);
+              if (!RecipeManager.isFavorite(recipe)) {
+                await RecipeManager.toggleFavorite(recipe);
+              }
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -5840,6 +5857,9 @@ class _QrScannerPageState extends State<_QrScannerPage> {
           FilledButton(
             onPressed: () async {
               await RecipeManager.addRecipe(recipe);
+              if (!RecipeManager.isFavorite(recipe)) {
+                await RecipeManager.toggleFavorite(recipe);
+              }
               if (mounted) {
                 Navigator.pop(context); // Close dialog
                 Navigator.pop(context); // Close scanner
