@@ -33,7 +33,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         return Scaffold(
           body: IndexedStack(
             index: _currentIndex,
-            children: [SearchPage(), SavedPage(), ProfilePage()],
+            children: [
+              SearchPage(key: ValueKey(lang)),
+              SavedPage(key: ValueKey(lang)),
+              ProfilePage(key: ValueKey(lang)),
+            ],
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _currentIndex,
@@ -4157,7 +4161,10 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ValueListenableBuilder<String>(
+      valueListenable: SettingsManager.language,
+      builder: (context, lang, child) {
+        return Scaffold(
       appBar: AppBar(title: Text('Ajustes'.tr)),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -4213,7 +4220,7 @@ class SettingsPage extends StatelessWidget {
                   return _SettingsTile(
                     title: 'Pantalla predeterminada'.tr,
                     icon: CupertinoIcons.home,
-                    subtitle: index == 0 ? 'Buscador'.tr : 'Mis Recetas'.tr,
+                    subtitle: index == 0 ? 'Buscador'.tr : (index == 1 ? 'Mis Recetas'.tr : 'Perfil'.tr),
                     trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                     onTap: () => _showStartScreenDialog(context, index),
                   );
@@ -4312,6 +4319,8 @@ class SettingsPage extends StatelessWidget {
         ],
       ),
     );
+      },
+    );
   }
 
   void _showStartScreenDialog(BuildContext context, int currentIndex) {
@@ -4371,6 +4380,16 @@ class SettingsPage extends StatelessWidget {
                       isSelected: currentIndex == 1,
                       onTap: () {
                         SettingsManager.setStartScreenIndex(1);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    SizedBox(height: 12),
+                    _SelectionOption(
+                      title: 'Perfil'.tr,
+                      icon: CupertinoIcons.person,
+                      isSelected: currentIndex == 2,
+                      onTap: () {
+                        SettingsManager.setStartScreenIndex(2);
                         Navigator.pop(context);
                       },
                     ),
@@ -5991,22 +6010,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-              const SizedBox(height: 16),
-              
-              // Toggle stats
-              ValueListenableBuilder<bool>(
-                valueListenable: SettingsManager.showProfileStats,
-                builder: (context, show, _) {
-                  return SwitchListTile(
-                    title: Text('Mostrar estadísticas'.tr),
-                    subtitle: Text('Recetas y guardados en tu tarjeta'.tr),
-                    value: show,
-                    activeColor: theme.colorScheme.primary,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) => SettingsManager.setShowProfileStats(val),
-                  );
-                },
-              ),
+
               
               const SizedBox(height: 24),
               
@@ -6061,22 +6065,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Perfil'.tr),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -6177,58 +6167,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     
-                    ValueListenableBuilder<bool>(
-                      valueListenable: SettingsManager.showProfileStats,
-                      builder: (context, show, _) {
-                        if (!show) return const SizedBox.shrink();
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(width: 4),
-                            // First Vertical Divider before stats
-                            VerticalDivider(
-                              width: 1, 
-                              thickness: 1, 
-                              color: Colors.grey.withValues(alpha: 0.2),
-                              indent: 8, 
-                              endIndent: 8,
-                            ),
 
-                            // Stats Area
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  _buildStat(
-                                    context, 
-                                    'Recetas'.tr, 
-                                    RecipeManager.recipes.where((r) => !RecipeManager.isDefaultRecipe(r)).length.toString()
-                                  ),
-                                  const SizedBox(width: 16),
-                                  VerticalDivider(
-                                    width: 1, 
-                                    thickness: 1, 
-                                    color: Colors.grey.withValues(alpha: 0.2),
-                                    indent: 14, 
-                                    endIndent: 14,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  _buildStat(
-                                    context, 
-                                    'Guardados'.tr, 
-                                    RecipeManager.favoriteRecipes.length.toString()
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                    // Settings button
+                    IconButton(
+                      icon: Icon(CupertinoIcons.settings, size: 20, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SettingsPage()),
                         );
                       },
                     ),
-                    const SizedBox(width: 4),
                   ],
                 ),
               ),
@@ -6236,25 +6185,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStat(BuildContext context, String label, String value) {
-    final theme = Theme.of(context);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
+    ),
+  );
   }
 }

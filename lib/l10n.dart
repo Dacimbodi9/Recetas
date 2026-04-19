@@ -305,7 +305,7 @@ class AppLocalization {
     "Toca para cambiar": "Tap to change",
     "Escribe tu nombre": "Type your name",
     "Mostrar estadísticas": "Show statistics",
-    "Recetas y guardados en tu tarjeta": "Recipes and saved in your card",
+    "Recetas y guardados en tu tarjeta": "Recipes and saved items in your card",
   };
 }
 

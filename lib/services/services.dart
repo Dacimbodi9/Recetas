@@ -8,7 +8,6 @@ part of '../main.dart';
 class SettingsManager {
   static final ValueNotifier<String> userName = ValueNotifier('Chef');
   static final ValueNotifier<String?> userPhotoPath = ValueNotifier(null);
-  static final ValueNotifier<bool> showProfileStats = ValueNotifier(true);
   static final ValueNotifier<bool> isDarkMode = ValueNotifier(true);
   static final ValueNotifier<bool> showDefaultRecipes = ValueNotifier(false);
   static final ValueNotifier<bool> preventSleep = ValueNotifier(false);
@@ -29,7 +28,6 @@ class SettingsManager {
   static const _dietaryDefaultsKey = 'dietary_defaults';
   static const _userNameKey = 'user_name';
   static const _userPhotoKey = 'user_photo_path';
-  static const _showStatsKey = 'show_profile_stats';
 
   static const _customDietaryDefaultsKey = 'custom_dietary_defaults';
   static const _onboardingKey = 'has_seen_onboarding';
@@ -42,7 +40,6 @@ class SettingsManager {
     final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     isDarkMode.value = prefs.getBool(_themeKey) ?? (systemBrightness == Brightness.dark);
     showDefaultRecipes.value = prefs.getBool(_defaultsKey) ?? true;
-    showProfileStats.value = prefs.getBool(_showStatsKey) ?? true;
     preventSleep.value = prefs.getBool(_preventSleepKey) ?? false;
     if (preventSleep.value) {
       WakelockPlus.enable();
@@ -140,11 +137,7 @@ class SettingsManager {
     }
   }
 
-  static Future<void> setShowProfileStats(bool value) async {
-    showProfileStats.value = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_showStatsKey, value);
-  }
+
 
   static Future<void> toggleDietaryDefault(DietaryRestriction restriction) async {
     final current = Set<DietaryRestriction>.from(dietaryDefaults.value);

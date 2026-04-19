@@ -1142,7 +1142,33 @@ class _IngredientsViewState extends State<_IngredientsView>
                 );
               })
             else
-              const SizedBox.shrink(),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.cart,
+                        size: 48,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.2,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No hay ingredientes'.tr,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1354,7 +1380,35 @@ class _InstructionsView extends StatelessWidget {
                       ),
                     );
                   }).toList()
-                : [const SizedBox.shrink()],
+                : [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              CupertinoIcons.square_list,
+                              size: 48,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay pasos disponibles para esta receta.'.tr,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
 
             SizedBox(height: 32),
           ],
@@ -1412,6 +1466,7 @@ class _InfoView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Dietary Restrictions
             // Dietary Restrictions
             if (recipe.dietaryRestrictions.isNotEmpty ||
                 recipe.customDietaryTags.isNotEmpty) ...[
@@ -1495,8 +1550,15 @@ class _InfoView extends StatelessWidget {
                     .map((fact) => _NutritionFactCard(fact: fact))
                     .toList(),
               ),
-              SizedBox(height: 24),
             ],
+
+            SizedBox(height: 24),
+
+            // Rating Row
+            // Rating Row
+            PremiumRatingButton(recipe: recipe),
+
+            SizedBox(height: 32),
           ],
         ),
       ),
