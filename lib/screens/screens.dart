@@ -263,8 +263,42 @@ class _RecetasView extends StatelessWidget {
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
 
+  List<Recipe> _getSuggestedRecipes() {
+    final allRecipes = RecipeManager.recipes;
+    if (allRecipes.isEmpty) return [];
+
+    // Prioritize: favorites first, then highly rated, then random fill
+    final favorites = RecipeManager.favoriteRecipes.toList();
+    final rated = RecipeManager.ratedRecipes
+        .where((r) => (r.rating ?? 0) >= 4)
+        .toList()
+      ..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+
+    final seen = <String>{};
+    final suggestions = <Recipe>[];
+
+    for (final r in [...favorites, ...rated]) {
+      if (seen.add(r.title) && suggestions.length < 10) {
+        suggestions.add(r);
+      }
+    }
+
+    // Fill remaining with random picks
+    if (suggestions.length < 10) {
+      final remaining = allRecipes.where((r) => !seen.contains(r.title)).toList();
+      remaining.shuffle(Random(DateTime.now().day)); // stable within same day
+      for (final r in remaining) {
+        if (suggestions.length >= 10) break;
+        suggestions.add(r);
+      }
+    }
+
+    return suggestions;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final allRecipes = RecipeManager.recipes;
     final categories = RecipeCategory.values
         .where((c) => allRecipes.any((r) => r.categories.contains(c)))
@@ -343,74 +377,186 @@ class _RecetasView extends StatelessWidget {
                   subtitle:
                       'Añade tus propias recetas para verlas aquí'.tr.tr.tr,
                 )
-              : GridView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final c = categories[index];
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Theme.of(context).cardColor
-                            : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.05),
-                          width: 1,
-                        ),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RecipesByCategoryPage(category: c),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  c.icon,
-                                  size: 40,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                SizedBox(height: 12),
-                                Text(
-                                  c.displayName,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    // Suggested Recipes Section
+                    if (_getSuggestedRecipes().isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 12),
+                        child: Text(
+                          'Sugerencias'.tr,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    );
-                  },
+                      SizedBox(
+                        height: 170,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _getSuggestedRecipes().length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final recipe = _getSuggestedRecipes()[index];
+                            final customImagePath = RecipeManager.getCustomImage(recipe.title);
+                            final displayImagePath = customImagePath ?? recipe.imagePath;
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => RecipeDetailPage(recipe: recipe),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: 140,
+                                decoration: BoxDecoration(
+                                  color: theme.cardColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : Colors.black.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                      child: SizedBox(
+                                        height: 100,
+                                        width: double.infinity,
+                                        child: displayImagePath != null
+                                            ? (displayImagePath.startsWith('assets/')
+                                                ? Image.asset(displayImagePath, fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => _buildSuggestionPlaceholder(theme, recipe))
+                                                : Image.file(File(displayImagePath), fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => _buildSuggestionPlaceholder(theme, recipe)))
+                                            : _buildSuggestionPlaceholder(theme, recipe),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Text(
+                                        recipe.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // Categories Section
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'CATEGORÍA'.tr,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
+                        boxShadow: theme.brightness == Brightness.light
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        children: List.generate(categories.length, (index) {
+                          final c = categories[index];
+                          final count = allRecipes.where((r) => r.categories.contains(c)).length;
+                          final isLast = index == categories.length - 1;
+                          return Column(
+                            children: [
+                              ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(c.icon, color: theme.colorScheme.primary, size: 18),
+                                ),
+                                title: Text(
+                                  c.displayName,
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text(
+                                  '$count ${'Recetas'.tr.toLowerCase()}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => RecipesByCategoryPage(category: c),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (!isLast)
+                                Divider(
+                                  height: 1,
+                                  indent: 56,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.black.withValues(alpha: 0.05),
+                                ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(height: 80),
+                  ],
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSuggestionPlaceholder(ThemeData theme, Recipe recipe) {
+    return Container(
+      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+      child: Center(
+        child: Icon(
+          recipe.categories.isNotEmpty ? recipe.categories.first.icon : Icons.restaurant,
+          size: 32,
+          color: theme.colorScheme.primary.withValues(alpha: 0.4),
+        ),
+      ),
     );
   }
 }
@@ -3115,6 +3261,27 @@ class _PopularIngredientsGrid extends StatelessWidget {
   final void Function(String) onPick;
   final bool Function(String) isSelected;
 
+  List<String> _getPopularIngredients() {
+    // Count frequency of each ingredient across all recipes
+    final freq = <String, int>{};
+    for (final recipe in RecipeManager.recipes) {
+      for (final ingredient in recipe.ingredients) {
+        final normalized = ingredient.trim().toLowerCase();
+        if (normalized.isNotEmpty) {
+          freq[normalized] = (freq[normalized] ?? 0) + 1;
+        }
+      }
+    }
+    // Sort by frequency descending, take top 20
+    final sorted = freq.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted
+        .map((e) => e.key)
+        .where((i) => !isSelected(i))
+        .take(20)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -3130,75 +3297,125 @@ class _PopularIngredientsGrid extends StatelessWidget {
         .where((entry) => entry.value.isNotEmpty)
         .toList();
 
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: categoriesWithIngredients.length,
-      itemBuilder: (context, index) {
-        final entry = categoriesWithIngredients[index];
-        final category = entry.key;
+    final popular = _getPopularIngredients();
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).cardColor
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1,
-            ),
-            boxShadow: [],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => IngredientsByCategoryPage(
-                      category: category,
-                      onPick: onPick,
-                      isSelected: isSelected,
-                    ),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      category.icon,
-                      size: 40,
-                      color: theme.colorScheme.primary,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      category.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      children: [
+        // Suggested Ingredients Section
+        if (popular.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Sugerencias'.tr,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-        );
-      },
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: popular.map((ingredient) {
+              return ActionChip(
+                label: Text(ingredient),
+                avatar: Icon(CupertinoIcons.plus, size: 16, color: theme.colorScheme.primary),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+                onPressed: () => onPick(ingredient),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // Categories Section
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            'CATEGORÍA'.tr,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.05),
+            ),
+            boxShadow: theme.brightness == Brightness.light
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: List.generate(categoriesWithIngredients.length, (index) {
+              final entry = categoriesWithIngredients[index];
+              final category = entry.key;
+              final count = entry.value.length;
+              final isLast = index == categoriesWithIngredients.length - 1;
+              return Column(
+                children: [
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(category.icon, color: theme.colorScheme.primary, size: 18),
+                    ),
+                    title: Text(
+                      category.displayName,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text(
+                      '$count ${'Ingredientes'.tr.toLowerCase()}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => IngredientsByCategoryPage(
+                            category: category,
+                            onPick: onPick,
+                            isSelected: isSelected,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (!isLast)
+                    Divider(
+                      height: 1,
+                      indent: 56,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
+                    ),
+                ],
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 80),
+      ],
     );
   }
 }
