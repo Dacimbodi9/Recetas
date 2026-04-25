@@ -168,8 +168,8 @@ class DetailedIngredient {
 
   factory DetailedIngredient.fromJson(Map<String, dynamic> json) {
     return DetailedIngredient(
-      name: json['name'] as String,
-      quantity: json['quantity'] as String,
+      name: json['name']?.toString() ?? 'Unknown',
+      quantity: json['quantity']?.toString() ?? '',
     );
   }
 }
@@ -254,11 +254,11 @@ class Recipe {
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
-      title: json['title'] as String,
-      ingredients: (json['ingredients'] != null)
-          ? List<String>.from(json['ingredients'])
+      title: json['title']?.toString() ?? 'Untitled' ,
+      ingredients: (json['ingredients'] is List)
+          ? (json['ingredients'] as List).map((e) => e.toString()).toList()
           : <String>[],
-      dietaryRestrictions: (json['dietaryRestrictions'] != null)
+      dietaryRestrictions: (json['dietaryRestrictions'] != null && json['dietaryRestrictions'] is List)
           ? (json['dietaryRestrictions'] as List)
                 .map((r) {
                   try {
@@ -284,20 +284,21 @@ class Recipe {
                 .whereType<DietaryRestriction>()
                 .toList()
           : [],
-      customDietaryTags: (json['customDietaryTags'] != null)
-          ? List<String>.from(json['customDietaryTags'])
+      customDietaryTags: (json['customDietaryTags'] is List)
+          ? (json['customDietaryTags'] as List).map((e) => e.toString()).toList()
           : [],
       categories: _parseCategories(json['categories']),
-      imagePath: json['imagePath'] as String?,
-      prepTime: json['prepTime'] as String?,
-      detailedIngredients: (json['detailedIngredients'] != null)
+      imagePath: json['imagePath']?.toString(),
+      prepTime: json['prepTime']?.toString(),
+      detailedIngredients: (json['detailedIngredients'] is List)
           ? (json['detailedIngredients'] as List)
                 .map(
-                  (i) => DetailedIngredient.fromJson(i as Map<String, dynamic>),
+                  (i) => i is Map<String, dynamic> ? DetailedIngredient.fromJson(i) : null,
                 )
+                .whereType<DetailedIngredient>()
                 .toList()
           : [],
-      steps: (json['steps'] != null) ? List<String>.from(json['steps']) : [],
+      steps: (json['steps'] is List) ? (json['steps'] as List).map((e) => e.toString()).toList() : [],
       nutritionFacts: (json['nutritionFacts'] != null)
           ? (json['nutritionFacts'] as List)
                 .map(
@@ -314,10 +315,11 @@ class Recipe {
   }
 
   static List<RecipeCategory> _parseCategories(dynamic rawCategories) {
-    if (rawCategories == null) return [RecipeCategory.otros];
+    if (rawCategories == null || rawCategories is! List) return [RecipeCategory.otros];
 
     final list = (rawCategories as List)
         .map((c) {
+          if (c == null) return null;
           try {
             final categoryStr = c.toString().toLowerCase().replaceAll(' ', '').replaceAll('&', 'y').replaceAll('and', 'y');
             return RecipeCategory.values.firstWhere((e) {

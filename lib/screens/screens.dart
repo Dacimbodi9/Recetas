@@ -263,39 +263,6 @@ class _RecetasView extends StatelessWidget {
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
 
-  List<Recipe> _getSuggestedRecipes() {
-    final allRecipes = RecipeManager.recipes;
-    if (allRecipes.isEmpty) return [];
-
-    // Prioritize: favorites first, then highly rated, then random fill
-    final favorites = RecipeManager.favoriteRecipes.toList();
-    final rated = RecipeManager.ratedRecipes
-        .where((r) => (r.rating ?? 0) >= 4)
-        .toList()
-      ..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
-
-    final seen = <String>{};
-    final suggestions = <Recipe>[];
-
-    for (final r in [...favorites, ...rated]) {
-      if (seen.add(r.title) && suggestions.length < 10) {
-        suggestions.add(r);
-      }
-    }
-
-    // Fill remaining with random picks
-    if (suggestions.length < 10) {
-      final remaining = allRecipes.where((r) => !seen.contains(r.title)).toList();
-      remaining.shuffle(Random(DateTime.now().day)); // stable within same day
-      for (final r in remaining) {
-        if (suggestions.length >= 10) break;
-        suggestions.add(r);
-      }
-    }
-
-    return suggestions;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -380,95 +347,27 @@ class _RecetasView extends StatelessWidget {
               : ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    // Suggested Recipes Section
-                    if (_getSuggestedRecipes().isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 12),
-                        child: Text(
-                          'Sugerencias'.tr,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 170,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _getSuggestedRecipes().length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final recipe = _getSuggestedRecipes()[index];
-                            final customImagePath = RecipeManager.getCustomImage(recipe.title);
-                            final displayImagePath = customImagePath ?? recipe.imagePath;
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => RecipeDetailPage(recipe: recipe),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                width: 140,
-                                decoration: BoxDecoration(
-                                  color: theme.cardColor,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: theme.brightness == Brightness.dark
-                                        ? Colors.white.withValues(alpha: 0.1)
-                                        : Colors.black.withValues(alpha: 0.05),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                      child: SizedBox(
-                                        height: 100,
-                                        width: double.infinity,
-                                        child: displayImagePath != null
-                                            ? (displayImagePath.startsWith('assets/')
-                                                ? Image.asset(displayImagePath, fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => _buildSuggestionPlaceholder(theme, recipe))
-                                                : Image.file(File(displayImagePath), fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => _buildSuggestionPlaceholder(theme, recipe)))
-                                            : _buildSuggestionPlaceholder(theme, recipe),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(
-                                        recipe.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
                     // Categories Section
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        'CATEGORÍA'.tr,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
+                      padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4, right: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'CATEGORÍA'.tr,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            '${allRecipes.length} ' + 'recetas'.tr,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.grey.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Container(
@@ -544,19 +443,6 @@ class _RecetasView extends StatelessWidget {
                 ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSuggestionPlaceholder(ThemeData theme, Recipe recipe) {
-    return Container(
-      color: theme.colorScheme.primary.withValues(alpha: 0.08),
-      child: Center(
-        child: Icon(
-          recipe.categories.isNotEmpty ? recipe.categories.first.icon : Icons.restaurant,
-          size: 32,
-          color: theme.colorScheme.primary.withValues(alpha: 0.4),
-        ),
-      ),
     );
   }
 }
@@ -806,7 +692,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                 controller: widget.searchController,
                 onChanged: widget.onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Buscar en ${currentFolder.name}...',
+                  hintText: 'Buscar en @fld...'.tr.replaceAll('@fld', currentFolder.name),
                   prefixIcon: Icon(CupertinoIcons.search),
                   suffixIcon: widget.searchQuery.isNotEmpty
                       ? IconButton(
@@ -2929,7 +2815,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
               controller: _searchController,
               onChanged: (value) => setState(() => _searchQuery = value.trim()),
               decoration: InputDecoration(
-                hintText: 'Buscar recetas en ${widget.category.displayName}...',
+                hintText: 'Buscar recetas en @cat...'.tr.replaceAll('@cat', widget.category.displayName),
                 prefixIcon: Icon(CupertinoIcons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
