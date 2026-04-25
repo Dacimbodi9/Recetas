@@ -1552,12 +1552,6 @@ class _InfoView extends StatelessWidget {
               ),
             ],
 
-            SizedBox(height: 24),
-
-            // Rating Row
-            // Rating Row
-            PremiumRatingButton(recipe: recipe),
-
             SizedBox(height: 32),
           ],
         ),
