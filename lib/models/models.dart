@@ -608,3 +608,131 @@ List<String> _getIngredientsForCategory(
     return categoryKeywords.any((keyword) => lower.contains(keyword));
   }).toList();
 }
+
+enum MealType {
+  desayuno,
+  almuerzo,
+  cena,
+  snack;
+
+  String get displayName {
+    switch (this) {
+      case MealType.desayuno:
+        return 'Desayuno'.tr;
+      case MealType.almuerzo:
+        return 'Almuerzo'.tr;
+      case MealType.cena:
+        return 'Cena'.tr;
+      case MealType.snack:
+        return 'Snack'.tr;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case MealType.desayuno:
+        return Icons.wb_sunny_outlined;
+      case MealType.almuerzo:
+        return Icons.restaurant;
+      case MealType.cena:
+        return Icons.nightlight_outlined;
+      case MealType.snack:
+        return Icons.cookie_outlined;
+    }
+  }
+}
+
+class PlannedMeal {
+  PlannedMeal({
+    required this.date,
+    required this.mealType,
+    required this.recipeTitle,
+    this.completed = false,
+  });
+
+  final DateTime date;
+  final MealType mealType;
+  final String recipeTitle;
+  final bool completed;
+
+  /// Normalized date key (yyyy-MM-dd) for grouping
+  String get dateKey =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  PlannedMeal copyWith({bool? completed}) => PlannedMeal(
+        date: date,
+        mealType: mealType,
+        recipeTitle: recipeTitle,
+        completed: completed ?? this.completed,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'date': dateKey,
+        'mealType': mealType.name,
+        'recipeTitle': recipeTitle,
+        'completed': completed,
+      };
+
+  factory PlannedMeal.fromJson(Map<String, dynamic> json) {
+    final parts = (json['date'] as String).split('-');
+    return PlannedMeal(
+      date: DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2])),
+      mealType: MealType.values.firstWhere(
+        (e) => e.name == json['mealType'],
+        orElse: () => MealType.almuerzo,
+      ),
+      recipeTitle: json['recipeTitle'] as String,
+      completed: json['completed'] as bool? ?? false,
+    );
+  }
+}
+
+class TemplateMealEntry {
+  final MealType mealType;
+  final String recipeTitle;
+
+  const TemplateMealEntry({required this.mealType, required this.recipeTitle});
+
+  Map<String, dynamic> toJson() => {
+    'mealType': mealType.name,
+    'recipeTitle': recipeTitle,
+  };
+
+  factory TemplateMealEntry.fromJson(Map<String, dynamic> json) => TemplateMealEntry(
+    mealType: MealType.values.firstWhere(
+      (e) => e.name == json['mealType'], orElse: () => MealType.almuerzo),
+    recipeTitle: json['recipeTitle'] as String,
+  );
+}
+
+class MealTemplate {
+  MealTemplate({required this.name, Map<int, List<TemplateMealEntry>>? days})
+      : days = days ?? {};
+
+  final String name;
+  /// weekday 1 (Mon) – 7 (Sun) → list of meals for that day
+  final Map<int, List<TemplateMealEntry>> days;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'days': days.map((k, v) => MapEntry(k.toString(), v.map((e) => e.toJson()).toList())),
+  };
+
+  factory MealTemplate.fromJson(Map<String, dynamic> json) {
+    final rawDays = json['days'] as Map<String, dynamic>? ?? {};
+    final days = <int, List<TemplateMealEntry>>{};
+    rawDays.forEach((k, v) {
+      final dayNum = int.tryParse(k);
+      if (dayNum != null && v is List) {
+        days[dayNum] = v
+            .whereType<Map<String, dynamic>>()
+            .map((e) => TemplateMealEntry.fromJson(e))
+            .toList();
+      }
+    });
+    return MealTemplate(name: json['name'] as String, days: days);
+  }
+
+  MealTemplate copyWith({String? name, Map<int, List<TemplateMealEntry>>? days}) =>
+      MealTemplate(name: name ?? this.name, days: days ?? this.days);
+}

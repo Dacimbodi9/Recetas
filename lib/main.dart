@@ -37,6 +37,8 @@ void main() async {
   await SettingsManager.loadSettings();
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
+  await MealPlanManager.load();
+  MealPlanManager.cleanOldMeals();
   runApp(RecetasApp());
   DeepLinkHandler.instance.init();
 }

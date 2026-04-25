@@ -964,3 +964,160 @@ class DeepLinkHandler {
     );
   }
 }
+
+class MealPlanManager {
+  static const String _mealsKey = 'planned_meals';
+  static final List<PlannedMeal> _meals = [];
+  static final List<Function()> _listeners = [];
+
+  static List<PlannedMeal> get meals => List.unmodifiable(_meals);
+
+  static void addListener(Function() listener) => _listeners.add(listener);
+  static void removeListener(Function() listener) => _listeners.remove(listener);
+  static void _notifyListeners() {
+    for (final listener in _listeners) {
+      listener();
+    }
+  }
+
+  static Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_mealsKey);
+    _meals.clear();
+    if (raw != null) {
+      try {
+        final List<dynamic> decoded = json.decode(raw);
+        for (final item in decoded) {
+          if (item is Map<String, dynamic>) {
+            _meals.add(PlannedMeal.fromJson(item));
+          }
+        }
+      } catch (e) {
+        print('Error loading meal plan: $e');
+      }
+    }
+    await _loadTemplates();
+  }
+
+  static Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_mealsKey, json.encode(_meals.map((m) => m.toJson()).toList()));
+  }
+
+  static Future<void> addMeal(PlannedMeal meal) async {
+    _meals.add(meal);
+    await _save();
+    _notifyListeners();
+  }
+
+  static Future<void> removeMeal(PlannedMeal meal) async {
+    _meals.removeWhere((m) =>
+        m.dateKey == meal.dateKey &&
+        m.mealType == meal.mealType &&
+        m.recipeTitle == meal.recipeTitle);
+    await _save();
+    _notifyListeners();
+  }
+
+  static Future<void> toggleCompleted(PlannedMeal meal) async {
+    final index = _meals.indexWhere((m) =>
+        m.dateKey == meal.dateKey &&
+        m.mealType == meal.mealType &&
+        m.recipeTitle == meal.recipeTitle);
+    if (index != -1) {
+      _meals[index] = _meals[index].copyWith(completed: !_meals[index].completed);
+      await _save();
+      _notifyListeners();
+    }
+  }
+
+  static List<PlannedMeal> getMealsForDate(DateTime date) {
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return _meals.where((m) => m.dateKey == key).toList()
+      ..sort((a, b) => a.mealType.index.compareTo(b.mealType.index));
+  }
+
+  /// Clean up meals older than 30 days to keep storage tidy
+  static Future<void> cleanOldMeals() async {
+    final cutoff = DateTime.now().subtract(const Duration(days: 30));
+    _meals.removeWhere((m) => m.date.isBefore(cutoff));
+    await _save();
+  }
+
+  // ── Templates ──
+  static const String _templatesKey = 'meal_templates';
+  static final List<MealTemplate> _templates = [];
+
+  static List<MealTemplate> get templates => List.unmodifiable(_templates);
+
+  static Future<void> _loadTemplates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_templatesKey);
+    _templates.clear();
+    if (raw != null) {
+      try {
+        final List<dynamic> decoded = json.decode(raw);
+        for (final item in decoded) {
+          if (item is Map<String, dynamic>) {
+            _templates.add(MealTemplate.fromJson(item));
+          }
+        }
+      } catch (e) {
+        print('Error loading meal templates: $e');
+      }
+    }
+  }
+
+  static Future<void> _saveTemplates() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _templatesKey, json.encode(_templates.map((t) => t.toJson()).toList()));
+  }
+
+  static Future<void> addTemplate(MealTemplate template) async {
+    _templates.add(template);
+    await _saveTemplates();
+    _notifyListeners();
+  }
+
+  static Future<void> updateTemplate(int index, MealTemplate template) async {
+    if (index >= 0 && index < _templates.length) {
+      _templates[index] = template;
+      await _saveTemplates();
+      _notifyListeners();
+    }
+  }
+
+  static Future<void> deleteTemplate(int index) async {
+    if (index >= 0 && index < _templates.length) {
+      _templates.removeAt(index);
+      await _saveTemplates();
+      _notifyListeners();
+    }
+  }
+
+  /// Apply a template to a week starting at [weekMonday].
+  /// Clears all existing meals for that week first.
+  static Future<void> applyTemplate(MealTemplate template, DateTime weekMonday) async {
+    // Remove existing meals for Mon-Sun of that week
+    for (int d = 0; d < 7; d++) {
+      final date = weekMonday.add(Duration(days: d));
+      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      _meals.removeWhere((m) => m.dateKey == key);
+    }
+    // Add template meals
+    template.days.forEach((weekday, entries) {
+      // weekday: 1=Mon .. 7=Sun → offset = weekday - 1
+      final date = weekMonday.add(Duration(days: weekday - 1));
+      for (final entry in entries) {
+        _meals.add(PlannedMeal(
+          date: date,
+          mealType: entry.mealType,
+          recipeTitle: entry.recipeTitle,
+        ));
+      }
+    });
+    await _save();
+    _notifyListeners();
+  }
+}
