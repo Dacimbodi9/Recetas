@@ -306,6 +306,13 @@ class AppLocalization {
     "Escribe tu nombre": "Type your name",
     "Mostrar estadísticas": "Show statistics",
     "Recetas y guardados en tu tarjeta": "Recipes and saved items in your card",
+    "Calorías": "Calories",
+    "Proteínas": "Proteins",
+    "Carbohidratos": "Carbs",
+    "Grasas": "Fats",
+    "Semana": "Week",
+    "Mes": "Month",
+    "Año": "Year",
   };
 }
 

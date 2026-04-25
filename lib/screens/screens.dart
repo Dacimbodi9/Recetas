@@ -6182,10 +6182,162 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const _NutritionalGraphCard(),
           ],
         ),
       ),
     ),
   );
+  }
+}
+
+class _NutritionalGraphCard extends StatefulWidget {
+  const _NutritionalGraphCard();
+
+  @override
+  State<_NutritionalGraphCard> createState() => _NutritionalGraphCardState();
+}
+
+class _NutritionalGraphCardState extends State<_NutritionalGraphCard> {
+  String _selectedNutrient = 'Calorías';
+  final List<String> _nutrients = ['Calorías', 'Proteínas', 'Carbohidratos', 'Grasas'];
+
+  String _selectedInterval = 'Semana';
+  final List<String> _intervals = ['Semana', 'Mes', 'Año'];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Generate mock graph data depending on interval
+    int dataCount;
+    List<String> labels;
+    if (_selectedInterval == 'Semana') {
+      dataCount = 7;
+      labels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    } else if (_selectedInterval == 'Mes') {
+      dataCount = 4;
+      labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    } else {
+      dataCount = 12;
+      labels = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    }
+
+    final double maxVal = _selectedNutrient == 'Calorías' ? 2500 : 150;
+    
+    // stable pseudorandom data
+    final random = Random(_selectedNutrient.hashCode ^ _selectedInterval.hashCode);
+    final List<double> values = List.generate(dataCount, (i) => maxVal * 0.4 + random.nextDouble() * (maxVal * 0.6));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with dropdowns
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildDropdown(_nutrients, _selectedNutrient, (val) => setState(() => _selectedNutrient = val!), theme),
+              _buildDropdown(_intervals, _selectedInterval, (val) => setState(() => _selectedInterval = val!), theme),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Graph area
+          SizedBox(
+            height: 150,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(dataCount, (index) {
+                final ratio = values[index] / maxVal;
+                final isToday = _selectedInterval == 'Semana' && index == 5; // Fake "today" for accent
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: dataCount > 7 ? 2.0 : 6.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: FractionallySizedBox(
+                            heightFactor: ratio,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isToday 
+                                  ? theme.colorScheme.primary 
+                                  : theme.colorScheme.primary.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          labels[index],
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isToday ? theme.colorScheme.primary : Colors.grey,
+                            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                            fontSize: dataCount > 7 ? 10 : 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown(List<String> items, String value, ValueChanged<String?> onChanged, ThemeData theme) {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: theme.brightness == Brightness.dark 
+            ? Colors.white.withValues(alpha: 0.05) 
+            : Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          icon: const Icon(CupertinoIcons.chevron_down, size: 14),
+          iconEnabledColor: Colors.grey,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          dropdownColor: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          onChanged: onChanged,
+          items: items.map<DropdownMenuItem<String>>((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(item.tr),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 }
