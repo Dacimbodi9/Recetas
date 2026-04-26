@@ -350,6 +350,12 @@ class AppLocalization {
     "Grasas": "Fats",
     "Mes": "Month",
     "Año": "Year",
+    "Menú principal": "Main Menu",
+    "Personalizar botones inferiores": "Customize bottom buttons",
+    "Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.": "Choose which features you want handy in the bottom bar. Those not selected will appear on the home screen.",
+    "Búsqueda": "Search",
+    "Busca recetas e ingredientes": "Search for recipes and ingredients",
+    "Planificador": "Planner",
   };
 }
 

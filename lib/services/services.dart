@@ -19,7 +19,7 @@ class SettingsManager {
   static final ValueNotifier<String> aiApiKey = ValueNotifier('');
   static final ValueNotifier<String> aiApiEndpoint = ValueNotifier('https://api.openai.com/v1/chat/completions');
   static final ValueNotifier<String> aiProvider = ValueNotifier('gemini');
-
+  static final ValueNotifier<List<String>> bottomMenuFeatures = ValueNotifier(['search', 'saved']);
   static const _themeKey = 'is_dark_mode';
   static const _languageKey = 'app_language';
   static const _defaultsKey = 'show_default_recipes';
@@ -34,6 +34,7 @@ class SettingsManager {
   static const _aiApiKeyPref = 'ai_api_key';
   static const _aiApiEndpointPref = 'ai_api_endpoint';
   static const _aiProviderPref = 'ai_provider';
+  static const _bottomMenuFeaturesKey = 'bottom_menu_features';
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -59,6 +60,7 @@ class SettingsManager {
     aiProvider.value = prefs.getString(_aiProviderPref) ?? 'gemini';
     userName.value = prefs.getString(_userNameKey) ?? 'Chef';
     userPhotoPath.value = prefs.getString(_userPhotoKey);
+    bottomMenuFeatures.value = prefs.getStringList(_bottomMenuFeaturesKey) ?? ['search', 'saved'];
     final deviceLocale = Platform.localeName;
     final defaultLang = deviceLocale.startsWith('es') ? 'es' : 'en';
     language.value = prefs.getString(_languageKey) ?? defaultLang;
@@ -112,6 +114,12 @@ class SettingsManager {
     hasSeenOnboarding.value = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onboardingKey, true);
+  }
+
+  static Future<void> setBottomMenuFeatures(List<String> features) async {
+    bottomMenuFeatures.value = features;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_bottomMenuFeaturesKey, features);
   }
 
   static Future<void> setDarkMode(bool value) async {

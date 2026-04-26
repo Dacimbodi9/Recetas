@@ -24,46 +24,64 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Safety clamp in case it ever goes out of bounds
-    if (_currentIndex >= 3) _currentIndex = 0;
-
     return ValueListenableBuilder<String>(
       valueListenable: SettingsManager.language,
       builder: (context, lang, child) {
-        return Scaffold(
-          body: IndexedStack(
-            index: _currentIndex,
-            children: [
-              SearchPage(key: ValueKey(lang)),
-              SavedPage(key: ValueKey(lang)),
-              ProfilePage(key: ValueKey(lang)),
-            ],
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (index) =>
-                setState(() => _currentIndex = index),
-            destinations: [
-              NavigationDestination(
-                icon: Icon(CupertinoIcons.search),
-                label: 'Buscar'.tr,
+        return ValueListenableBuilder<List<String>>(
+          valueListenable: SettingsManager.bottomMenuFeatures,
+          builder: (context, features, child) {
+            final List<Widget> pages = [];
+            final List<NavigationDestination> destinations = [];
+
+            for (final feature in features) {
+              if (feature == 'search') {
+                pages.add(SearchPage(key: ValueKey('search_$lang')));
+                destinations.add(NavigationDestination(
+                  icon: const Icon(CupertinoIcons.search),
+                  label: 'Buscar'.tr,
+                ));
+              } else if (feature == 'saved') {
+                pages.add(SavedPage(key: ValueKey('saved_$lang')));
+                destinations.add(NavigationDestination(
+                  icon: const Icon(CupertinoIcons.book),
+                  label: 'Mis Recetas'.tr,
+                ));
+              } else if (feature == 'mealPlanner') {
+                pages.add(const _MealPlannerPage());
+                destinations.add(NavigationDestination(
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: 'Planificador'.tr,
+                ));
+              }
+            }
+
+            // Always add ProfilePage (Inicio) at the end
+            pages.add(ProfilePage(key: ValueKey('profile_$lang')));
+            destinations.add(NavigationDestination(
+              icon: const Icon(CupertinoIcons.house),
+              label: 'Inicio'.tr,
+            ));
+
+            // Safety clamp in case it ever goes out of bounds
+            if (_currentIndex >= pages.length) {
+              _currentIndex = 0;
+            }
+
+            return Scaffold(
+              body: IndexedStack(
+                index: _currentIndex,
+                children: pages,
               ),
-              NavigationDestination(
-                icon: Icon(CupertinoIcons.book),
-                label: 'Mis Recetas'.tr,
-              ),
-              /*
-              NavigationDestination(
-                icon: Icon(CupertinoIcons.calendar),
-                label: 'Calendario'.tr,
-              ),
-              */
-              NavigationDestination(
-                icon: Icon(CupertinoIcons.house),
-                label: 'Inicio'.tr,
-              ),
-            ],
-          ),
+              bottomNavigationBar: destinations.length >= 2
+                  ? NavigationBar(
+                      selectedIndex: _currentIndex,
+                      onDestinationSelected: (index) =>
+                          setState(() => _currentIndex = index),
+                      destinations: destinations,
+                    )
+                  : null,
+            );
+          },
         );
       },
     );
@@ -286,7 +304,7 @@ class _RecetasView extends StatelessWidget {
             controller: searchController,
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Buscar recetas por nombre...'.tr.tr,
+              hintText: 'Buscar recetas por nombre...'.tr,
               prefixIcon: Icon(CupertinoIcons.search),
               suffixIcon: searchQuery.isNotEmpty
                   ? IconButton(
@@ -340,37 +358,22 @@ class _RecetasView extends StatelessWidget {
               : categories.isEmpty
               ? _EmptyStateWidget(
                   icon: Icons.restaurant_menu,
-                  title: 'No hay recetas'.tr.tr,
+                  title: 'No hay recetas'.tr,
                   subtitle:
-                      'Añade tus propias recetas para verlas aquí'.tr.tr.tr,
+                      'Añade tus propias recetas para verlas aquí'.tr,
                 )
-              : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    // Categories Section
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4, right: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'CATEGORÍA'.tr,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          Text(
-                            '${allRecipes.length} ' + 'recetas'.tr,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.grey.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.0,
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final c = categories[index];
+                    return Container(
                       decoration: BoxDecoration(
                         color: theme.cardColor,
                         borderRadius: BorderRadius.circular(16),
@@ -378,68 +381,45 @@ class _RecetasView extends StatelessWidget {
                           color: theme.brightness == Brightness.dark
                               ? Colors.white.withValues(alpha: 0.1)
                               : Colors.black.withValues(alpha: 0.05),
+                          width: 1,
                         ),
-                        boxShadow: theme.brightness == Brightness.light
-                            ? [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
                       ),
-                      child: Column(
-                        children: List.generate(categories.length, (index) {
-                          final c = categories[index];
-                          final count = allRecipes.where((r) => r.categories.contains(c)).length;
-                          final isLast = index == categories.length - 1;
-                          return Column(
-                            children: [
-                              ListTile(
-                                leading: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(c.icon, color: theme.colorScheme.primary, size: 18),
-                                ),
-                                title: Text(
-                                  c.displayName,
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                                subtitle: Text(
-                                  '$count ${'Recetas'.tr.toLowerCase()}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => RecipesByCategoryPage(category: c),
-                                    ),
-                                  );
-                                },
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RecipesByCategoryPage(category: c),
                               ),
-                              if (!isLast)
-                                Divider(
-                                  height: 1,
-                                  indent: 56,
-                                  color: theme.brightness == Brightness.dark
-                                      ? Colors.white.withValues(alpha: 0.05)
-                                      : Colors.black.withValues(alpha: 0.05),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  c.icon,
+                                  size: 40,
+                                  color: theme.colorScheme.primary,
                                 ),
-                            ],
-                          );
-                        }),
+                                const SizedBox(height: 12),
+                                Text(
+                                  c.displayName,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 80),
-                  ],
+                    );
+                  },
                 ),
         ),
       ],
@@ -3147,30 +3127,8 @@ class _PopularIngredientsGrid extends StatelessWidget {
   final void Function(String) onPick;
   final bool Function(String) isSelected;
 
-  List<String> _getPopularIngredients() {
-    // Count frequency of each ingredient across all recipes
-    final freq = <String, int>{};
-    for (final recipe in RecipeManager.recipes) {
-      for (final ingredient in recipe.ingredients) {
-        final normalized = ingredient.trim().toLowerCase();
-        if (normalized.isNotEmpty) {
-          freq[normalized] = (freq[normalized] ?? 0) + 1;
-        }
-      }
-    }
-    // Sort by frequency descending, take top 20
-    final sorted = freq.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted
-        .map((e) => e.key)
-        .where((i) => !isSelected(i))
-        .take(20)
-        .toList();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final categoriesWithIngredients = categoryMap.entries
         .map((entry) {
           final category = entry.key;
@@ -3183,125 +3141,75 @@ class _PopularIngredientsGrid extends StatelessWidget {
         .where((entry) => entry.value.isNotEmpty)
         .toList();
 
-    final popular = _getPopularIngredients();
-
-    return ListView(
+    return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: [
-        // Suggested Ingredients Section
-        if (popular.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              'Sugerencias'.tr,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: categoriesWithIngredients.length,
+      itemBuilder: (context, index) {
+        final entry = categoriesWithIngredients[index];
+        final category = entry.key;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).cardColor
+                : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 1,
+            ),
+            boxShadow: [],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => IngredientsByCategoryPage(
+                      category: category,
+                      onPick: onPick,
+                      isSelected: isSelected,
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      category.icon,
+                      size: 40,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      category.displayName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: popular.map((ingredient) {
-              return ActionChip(
-                label: Text(ingredient),
-                avatar: Icon(CupertinoIcons.plus, size: 16, color: theme.colorScheme.primary),
-                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-                onPressed: () => onPick(ingredient),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        // Categories Section
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Text(
-            'CATEGORÍA'.tr,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.grey,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-            ),
-            boxShadow: theme.brightness == Brightness.light
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            children: List.generate(categoriesWithIngredients.length, (index) {
-              final entry = categoriesWithIngredients[index];
-              final category = entry.key;
-              final count = entry.value.length;
-              final isLast = index == categoriesWithIngredients.length - 1;
-              return Column(
-                children: [
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(category.icon, color: theme.colorScheme.primary, size: 18),
-                    ),
-                    title: Text(
-                      category.displayName,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text(
-                      '$count ${'Ingredientes'.tr.toLowerCase()}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    trailing: Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => IngredientsByCategoryPage(
-                            category: category,
-                            onPick: onPick,
-                            isSelected: isSelected,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  if (!isLast)
-                    Divider(
-                      height: 1,
-                      indent: 56,
-                      color: theme.brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.05),
-                    ),
-                ],
-              );
-            }),
-          ),
-        ),
-        const SizedBox(height: 80),
-      ],
+        );
+      },
     );
   }
 }
@@ -4259,6 +4167,156 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   }
 }
 
+class _BottomMenuSettingsPage extends StatelessWidget {
+  const _BottomMenuSettingsPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Menú principal'.tr),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Text(
+              'Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.'.tr,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            ValueListenableBuilder<List<String>>(
+              valueListenable: SettingsManager.bottomMenuFeatures,
+              builder: (context, features, _) {
+                return Column(
+                  children: [
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'search',
+                      title: 'Búsqueda'.tr,
+                      subtitle: 'Busca recetas e ingredientes'.tr,
+                      icon: CupertinoIcons.search,
+                      features: features,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'saved',
+                      title: 'Mis Recetas'.tr,
+                      subtitle: 'Tus recetas guardadas y favoritas'.tr,
+                      icon: CupertinoIcons.book,
+                      features: features,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'mealPlanner',
+                      title: 'Planificador'.tr,
+                      subtitle: 'Organiza tus comidas de la semana'.tr,
+                      icon: Icons.calendar_month_outlined,
+                      features: features,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureToggle(
+    ThemeData theme,
+    bool isDark, {
+    required String id,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<String> features,
+  }) {
+    final isSelected = features.contains(id);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected 
+              ? theme.colorScheme.primary 
+              : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)),
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: isSelected ? 0.2 : 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: isSelected,
+            onChanged: (val) {
+              final newFeatures = List<String>.from(features);
+              if (val) {
+                newFeatures.add(id);
+              } else {
+                newFeatures.remove(id);
+              }
+              SettingsManager.setBottomMenuFeatures(newFeatures);
+            },
+            activeThumbColor: theme.colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -4317,6 +4375,17 @@ class SettingsPage extends StatelessWidget {
           _SettingsSection(
             title: 'APARIENCIA Y NAVEGACIÓN'.tr,
             children: [
+              _SettingsTile(
+                title: 'Menú principal'.tr,
+                subtitle: 'Personalizar botones inferiores'.tr,
+                icon: CupertinoIcons.rectangle_grid_2x2,
+                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  if (context.mounted) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const _BottomMenuSettingsPage()));
+                  }
+                },
+              ),
               ValueListenableBuilder<int>(
                 valueListenable: SettingsManager.startScreenIndex,
                 builder: (context, index, child) {
@@ -5278,7 +5347,7 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 3;
+  final int _totalPages = 4;
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
@@ -5347,6 +5416,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   _buildStep1Welcome(theme),
                   _buildStep2Features(theme, isDark),
                   _buildStep3Settings(theme, isDark),
+                  _buildStep4BottomMenu(theme, isDark),
                 ],
               ),
             ),
@@ -5821,6 +5891,155 @@ class _OnboardingPageState extends State<OnboardingPage> {
       ),
     );
   }
+
+  // Step 4: Bottom Menu Features
+  Widget _buildStep4BottomMenu(ThemeData theme, bool isDark) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Menú principal'.tr,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.'.tr,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32),
+            ValueListenableBuilder<List<String>>(
+              valueListenable: SettingsManager.bottomMenuFeatures,
+              builder: (context, features, _) {
+                return Column(
+                  children: [
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'search',
+                      title: 'Búsqueda'.tr,
+                      subtitle: 'Busca recetas e ingredientes'.tr,
+                      icon: CupertinoIcons.search,
+                      features: features,
+                    ),
+                    SizedBox(height: 16),
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'saved',
+                      title: 'Mis Recetas'.tr,
+                      subtitle: 'Tus recetas guardadas y favoritas'.tr,
+                      icon: CupertinoIcons.book,
+                      features: features,
+                    ),
+                    SizedBox(height: 16),
+                    _buildFeatureToggle(
+                      theme,
+                      isDark,
+                      id: 'mealPlanner',
+                      title: 'Planificador'.tr,
+                      subtitle: 'Organiza tus comidas de la semana'.tr,
+                      icon: Icons.calendar_month_outlined,
+                      features: features,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureToggle(
+    ThemeData theme,
+    bool isDark, {
+    required String id,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<String> features,
+  }) {
+    final isSelected = features.contains(id);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected 
+              ? theme.colorScheme.primary 
+              : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)),
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: isSelected ? 0.2 : 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8),
+          Switch(
+            value: isSelected,
+            onChanged: (val) {
+              final newFeatures = List<String>.from(features);
+              if (val) {
+                newFeatures.add(id);
+              } else {
+                newFeatures.remove(id);
+              }
+              SettingsManager.setBottomMenuFeatures(newFeatures);
+            },
+            activeThumbColor: theme.colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ShareQRCodePage extends StatelessWidget {
@@ -6286,62 +6505,109 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Meal Planner Card
-            Container(
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.calendar_month_outlined, color: theme.colorScheme.primary, size: 22),
-                ),
-                title: Text(
-                  'Planificador de comidas'.tr,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  'Organiza tus comidas de la semana'.tr,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                  ),
-                ),
-                trailing: Icon(CupertinoIcons.chevron_right, size: 18, color: Colors.grey),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const _MealPlannerPage()),
-                  );
-                },
-              ),
+            ValueListenableBuilder<List<String>>(
+              valueListenable: SettingsManager.bottomMenuFeatures,
+              builder: (context, features, _) {
+                return Column(
+                  children: [
+                    if (!features.contains('search')) ...[
+                      _buildProfileFeatureCard(
+                        theme,
+                        title: 'Buscar'.tr,
+                        subtitle: 'Busca recetas e ingredientes'.tr,
+                        icon: CupertinoIcons.search,
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchPage()));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (!features.contains('saved')) ...[
+                      _buildProfileFeatureCard(
+                        theme,
+                        title: 'Mis Recetas'.tr,
+                        subtitle: 'Tus recetas guardadas y favoritas'.tr,
+                        icon: CupertinoIcons.book,
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPage()));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (!features.contains('mealPlanner')) ...[
+                      _buildProfileFeatureCard(
+                        theme,
+                        title: 'Planificador de comidas'.tr,
+                        subtitle: 'Organiza tus comidas de la semana'.tr,
+                        icon: Icons.calendar_month_outlined,
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const _MealPlannerPage()));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 16),
             const _NutritionalGraphCard(),
           ],
         ),
       ),
     ),
   );
+  }
+
+  Widget _buildProfileFeatureCard(
+    ThemeData theme, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+          ),
+        ),
+        trailing: Icon(CupertinoIcons.chevron_right, size: 18, color: Colors.grey),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        onTap: onTap,
+      ),
+    );
   }
 }
 
@@ -6838,20 +7104,36 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
             );
           }),
         // Create button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            icon: const Icon(CupertinoIcons.plus, size: 16),
-            label: Text('Crear plantilla'.tr),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-            ),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => const _TemplateEditorPage()));
+        Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05)),
+          ),
+          child: ListTile(
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const _TemplateEditorPage()));
             },
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(CupertinoIcons.plus,
+                  color: theme.colorScheme.primary, size: 20),
+            ),
+            title: Text('Crear plantilla'.tr,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
       ],
