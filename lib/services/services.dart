@@ -11,20 +11,30 @@ class SettingsManager {
   static final ValueNotifier<bool> isDarkMode = ValueNotifier(true);
   static final ValueNotifier<bool> showDefaultRecipes = ValueNotifier(false);
   static final ValueNotifier<bool> preventSleep = ValueNotifier(false);
-  static final ValueNotifier<int> startScreenIndex = ValueNotifier(0);
-  static final ValueNotifier<Set<DietaryRestriction>> dietaryDefaults = ValueNotifier({});
-  static final ValueNotifier<Set<String>> customDietaryDefaults = ValueNotifier({});
+  static final ValueNotifier<String> startScreenFeature = ValueNotifier(
+    'profile',
+  );
+  static final ValueNotifier<Set<DietaryRestriction>> dietaryDefaults =
+      ValueNotifier({});
+  static final ValueNotifier<Set<String>> customDietaryDefaults = ValueNotifier(
+    {},
+  );
   static final ValueNotifier<bool> hasSeenOnboarding = ValueNotifier(false);
   static final ValueNotifier<String> language = ValueNotifier('es');
   static final ValueNotifier<String> aiApiKey = ValueNotifier('');
-  static final ValueNotifier<String> aiApiEndpoint = ValueNotifier('https://api.openai.com/v1/chat/completions');
+  static final ValueNotifier<String> aiApiEndpoint = ValueNotifier(
+    'https://api.openai.com/v1/chat/completions',
+  );
   static final ValueNotifier<String> aiProvider = ValueNotifier('gemini');
-  static final ValueNotifier<List<String>> bottomMenuFeatures = ValueNotifier(['search', 'saved']);
+  static final ValueNotifier<List<String>> bottomMenuFeatures = ValueNotifier([
+    'search',
+    'saved',
+  ]);
   static const _themeKey = 'is_dark_mode';
   static const _languageKey = 'app_language';
   static const _defaultsKey = 'show_default_recipes';
   static const _preventSleepKey = 'prevent_sleep';
-  static const _startScreenKey = 'start_screen_index';
+  static const _startScreenFeatureKey = 'start_screen_feature';
   static const _dietaryDefaultsKey = 'dietary_defaults';
   static const _userNameKey = 'user_name';
   static const _userPhotoKey = 'user_photo_path';
@@ -38,8 +48,10 @@ class SettingsManager {
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final systemBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    isDarkMode.value = prefs.getBool(_themeKey) ?? (systemBrightness == Brightness.dark);
+    final systemBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    isDarkMode.value =
+        prefs.getBool(_themeKey) ?? (systemBrightness == Brightness.dark);
     showDefaultRecipes.value = prefs.getBool(_defaultsKey) ?? true;
     preventSleep.value = prefs.getBool(_preventSleepKey) ?? false;
     if (preventSleep.value) {
@@ -47,20 +59,33 @@ class SettingsManager {
     } else {
       WakelockPlus.disable();
     }
-    startScreenIndex.value = prefs.getInt(_startScreenKey) ?? 0;
+    startScreenFeature.value =
+        prefs.getString(_startScreenFeatureKey) ?? 'profile';
     final dietaryList = prefs.getStringList(_dietaryDefaultsKey) ?? [];
-    dietaryDefaults.value = dietaryList.map((e) => DietaryRestriction.values.firstWhere((r) => r.name == e, orElse: () => DietaryRestriction.vegetariano)).toSet();
-    final customDietaryList = prefs.getStringList(_customDietaryDefaultsKey) ?? [];
+    dietaryDefaults.value = dietaryList
+        .map(
+          (e) => DietaryRestriction.values.firstWhere(
+            (r) => r.name == e,
+            orElse: () => DietaryRestriction.vegetariano,
+          ),
+        )
+        .toSet();
+    final customDietaryList =
+        prefs.getStringList(_customDietaryDefaultsKey) ?? [];
     customDietaryDefaults.value = customDietaryList.toSet();
     applyDietaryToDefaults.value = prefs.getBool(_applyToDefaultsKey) ?? false;
-    hideIncompatibleRecipes.value = prefs.getBool(_hideIncompatibleKey) ?? false;
+    hideIncompatibleRecipes.value =
+        prefs.getBool(_hideIncompatibleKey) ?? false;
     hasSeenOnboarding.value = prefs.getBool(_onboardingKey) ?? false;
     aiApiKey.value = prefs.getString(_aiApiKeyPref) ?? '';
-    aiApiEndpoint.value = prefs.getString(_aiApiEndpointPref) ?? 'https://api.openai.com/v1/chat/completions';
+    aiApiEndpoint.value =
+        prefs.getString(_aiApiEndpointPref) ??
+        'https://api.openai.com/v1/chat/completions';
     aiProvider.value = prefs.getString(_aiProviderPref) ?? 'gemini';
     userName.value = prefs.getString(_userNameKey) ?? 'Chef';
     userPhotoPath.value = prefs.getString(_userPhotoKey);
-    bottomMenuFeatures.value = prefs.getStringList(_bottomMenuFeaturesKey) ?? ['search', 'saved'];
+    bottomMenuFeatures.value =
+        prefs.getStringList(_bottomMenuFeaturesKey) ?? ['search', 'saved'];
     final deviceLocale = Platform.localeName;
     final defaultLang = deviceLocale.startsWith('es') ? 'es' : 'en';
     language.value = prefs.getString(_languageKey) ?? defaultLang;
@@ -120,6 +145,10 @@ class SettingsManager {
     bottomMenuFeatures.value = features;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_bottomMenuFeaturesKey, features);
+    if (startScreenFeature.value != 'profile' &&
+        !features.contains(startScreenFeature.value)) {
+      await setStartScreenFeature('profile');
+    }
   }
 
   static Future<void> setDarkMode(bool value) async {
@@ -128,10 +157,10 @@ class SettingsManager {
     await prefs.setBool(_themeKey, value);
   }
 
-  static Future<void> setStartScreenIndex(int index) async {
-    startScreenIndex.value = index;
+  static Future<void> setStartScreenFeature(String feature) async {
+    startScreenFeature.value = feature;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_startScreenKey, index);
+    await prefs.setString(_startScreenFeatureKey, feature);
   }
 
   static Future<void> setPreventSleep(bool value) async {
@@ -145,9 +174,9 @@ class SettingsManager {
     }
   }
 
-
-
-  static Future<void> toggleDietaryDefault(DietaryRestriction restriction) async {
+  static Future<void> toggleDietaryDefault(
+    DietaryRestriction restriction,
+  ) async {
     final current = Set<DietaryRestriction>.from(dietaryDefaults.value);
     if (current.contains(restriction)) {
       current.remove(restriction);
@@ -156,7 +185,10 @@ class SettingsManager {
     }
     dietaryDefaults.value = current;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_dietaryDefaultsKey, current.map((e) => e.name).toList());
+    await prefs.setStringList(
+      _dietaryDefaultsKey,
+      current.map((e) => e.name).toList(),
+    );
     RecipeManager.notifyListeners();
   }
 
@@ -180,7 +212,9 @@ class SettingsManager {
     RecipeManager.notifyListeners();
   }
 
-  static final ValueNotifier<bool> applyDietaryToDefaults = ValueNotifier(false);
+  static final ValueNotifier<bool> applyDietaryToDefaults = ValueNotifier(
+    false,
+  );
   static const _applyToDefaultsKey = 'apply_dietary_to_defaults';
 
   static Future<void> setApplyDietaryToDefaults(bool value) async {
@@ -190,7 +224,9 @@ class SettingsManager {
     RecipeManager.notifyListeners();
   }
 
-  static final ValueNotifier<bool> hideIncompatibleRecipes = ValueNotifier(false);
+  static final ValueNotifier<bool> hideIncompatibleRecipes = ValueNotifier(
+    false,
+  );
   static const _hideIncompatibleKey = 'hide_incompatible_recipes';
 
   static Future<void> setHideIncompatibleRecipes(bool value) async {
@@ -455,7 +491,8 @@ class RecipeManager {
   static IngredientCategory? getCategoryForIngredient(String ingredient) =>
       _customMappings[ingredient.toLowerCase()];
 
-  static String? getCustomImage(String recipeTitle) => _customImages[recipeTitle];
+  static String? getCustomImage(String recipeTitle) =>
+      _customImages[recipeTitle];
 
   static Future<void> setCustomImage(String recipeTitle, String path) async {
     _customImages[recipeTitle] = path;
@@ -472,7 +509,10 @@ class RecipeManager {
     }
   }
 
-  static Future<void> addCustomMapping(String ingredient, IngredientCategory category) async {
+  static Future<void> addCustomMapping(
+    String ingredient,
+    IngredientCategory category,
+  ) async {
     _customMappings[ingredient.toLowerCase()] = category;
     await _saveCustomMappings();
     _notifyListeners();
@@ -500,7 +540,9 @@ class RecipeManager {
     }
 
     final userTitles = _recipes.map((r) => r.title).toSet();
-    final nonOverriddenDefaults = _defaultRecipes.where((r) => !userTitles.contains(r.title));
+    final nonOverriddenDefaults = _defaultRecipes.where(
+      (r) => !userTitles.contains(r.title),
+    );
     final allRecipes = [...nonOverriddenDefaults, ..._recipes];
 
     if (SettingsManager.hideIncompatibleRecipes.value) {
@@ -524,11 +566,15 @@ class RecipeManager {
     final permanentFilters = SettingsManager.dietaryDefaults.value;
     final customPermanentFilters = SettingsManager.customDietaryDefaults.value;
 
-    final standardCompatible = permanentFilters.isEmpty ||
+    final standardCompatible =
+        permanentFilters.isEmpty ||
         permanentFilters.every((f) => recipe.dietaryRestrictions.contains(f));
 
-    final customCompatible = customPermanentFilters.isEmpty ||
-        customPermanentFilters.every((t) => recipe.customDietaryTags.contains(t));
+    final customCompatible =
+        customPermanentFilters.isEmpty ||
+        customPermanentFilters.every(
+          (t) => recipe.customDietaryTags.contains(t),
+        );
 
     return standardCompatible && customCompatible;
   }
@@ -560,17 +606,25 @@ class RecipeManager {
     final isDirectDefault = _defaultRecipes.contains(recipe);
     if (isDirectDefault) return true;
 
-    final defaultMatch = _defaultRecipes.where((r) => r.title == recipe.title).firstOrNull;
+    final defaultMatch = _defaultRecipes
+        .where((r) => r.title == recipe.title)
+        .firstOrNull;
     if (defaultMatch == null) return false;
 
-    final bool contentMatches = listEquals(recipe.ingredients, defaultMatch.ingredients) &&
+    final bool contentMatches =
+        listEquals(recipe.ingredients, defaultMatch.ingredients) &&
         listEquals(recipe.steps, defaultMatch.steps) &&
         listEquals(
           recipe.detailedIngredients.map((e) => e.toJson().toString()).toList(),
-          defaultMatch.detailedIngredients.map((e) => e.toJson().toString()).toList(),
+          defaultMatch.detailedIngredients
+              .map((e) => e.toJson().toString())
+              .toList(),
         ) &&
         listEquals(recipe.categories, defaultMatch.categories) &&
-        listEquals(recipe.dietaryRestrictions, defaultMatch.dietaryRestrictions) &&
+        listEquals(
+          recipe.dietaryRestrictions,
+          defaultMatch.dietaryRestrictions,
+        ) &&
         recipe.imagePath == defaultMatch.imagePath &&
         recipe.prepTime == defaultMatch.prepTime;
 
@@ -637,7 +691,9 @@ class RecipeManager {
       if (foldersJson != null) {
         try {
           final foldersList = json.decode(foldersJson) as List;
-          _folders = foldersList.map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>)).toList();
+          _folders = foldersList
+              .map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>))
+              .toList();
         } catch (e) {
           print('Error loading folders: $e');
           _folders = [];
@@ -650,7 +706,9 @@ class RecipeManager {
       if (mappingsJson != null) {
         try {
           final Map<String, dynamic> decoded = json.decode(mappingsJson);
-          _customMappings = decoded.map((k, v) => MapEntry(k, IngredientCategory.values[v as int]));
+          _customMappings = decoded.map(
+            (k, v) => MapEntry(k, IngredientCategory.values[v as int]),
+          );
         } catch (e) {
           print('Error loading custom mappings: $e');
           _customMappings = {};
@@ -674,7 +732,8 @@ class RecipeManager {
     }
   }
 
-  static bool isFavorite(Recipe recipe) => _favoriteTitles.contains(recipe.title);
+  static bool isFavorite(Recipe recipe) =>
+      _favoriteTitles.contains(recipe.title);
 
   static Future<void> toggleFavorite(Recipe recipe) async {
     if (_favoriteTitles.contains(recipe.title)) {
@@ -686,7 +745,9 @@ class RecipeManager {
     _notifyListeners();
   }
 
-  static List<Recipe> get favoriteRecipes => recipes.where((recipe) => _favoriteTitles.contains(recipe.title)).toList();
+  static List<Recipe> get favoriteRecipes => recipes
+      .where((recipe) => _favoriteTitles.contains(recipe.title))
+      .toList();
 
   static Future<void> _saveFavorites() async {
     try {
@@ -697,7 +758,8 @@ class RecipeManager {
     }
   }
 
-  static List<FavoriteFolder> get rootFolders => _folders.where((f) => f.parentId == null).toList();
+  static List<FavoriteFolder> get rootFolders =>
+      _folders.where((f) => f.parentId == null).toList();
 
   static Future<void> rateRecipe(Recipe recipe, double rating) async {
     final updatedRecipe = recipe.copyWith(
@@ -717,7 +779,9 @@ class RecipeManager {
   }
 
   static List<Recipe> get ratedRecipes {
-    final rated = _recipes.where((r) => r.rating != null && r.rating! > 0).toList();
+    final rated = _recipes
+        .where((r) => r.rating != null && r.rating! > 0)
+        .toList();
     if (!SettingsManager.showDefaultRecipes.value) {
       return rated.where((r) => !isDefaultRecipe(r)).toList();
     }
@@ -734,7 +798,8 @@ class RecipeManager {
     }
   }
 
-  static List<FavoriteFolder> getSubFolders(String parentId) => _folders.where((f) => f.parentId == parentId).toList();
+  static List<FavoriteFolder> getSubFolders(String parentId) =>
+      _folders.where((f) => f.parentId == parentId).toList();
 
   static List<FavoriteFolder> getSubFoldersRecursive(String folderId) {
     final subFolders = getSubFolders(folderId);
@@ -745,7 +810,8 @@ class RecipeManager {
     return result;
   }
 
-  static List<Recipe> getRecipesInFolder(FavoriteFolder folder) => recipes.where((r) => folder.recipeTitles.contains(r.title)).toList();
+  static List<Recipe> getRecipesInFolder(FavoriteFolder folder) =>
+      recipes.where((r) => folder.recipeTitles.contains(r.title)).toList();
 
   static List<Recipe> getRecipesInFolderRecursive(String folderId) {
     final folder = getFolderById(folderId);
@@ -790,15 +856,24 @@ class RecipeManager {
   static Future<void> addRecipeToFolder(String folderId, Recipe recipe) async {
     final folder = getFolderById(folderId);
     if (folder != null && !folder.recipeTitles.contains(recipe.title)) {
-      final updatedFolder = folder.copyWith(recipeTitles: [...folder.recipeTitles, recipe.title]);
+      final updatedFolder = folder.copyWith(
+        recipeTitles: [...folder.recipeTitles, recipe.title],
+      );
       await updateFolder(updatedFolder);
     }
   }
 
-  static Future<void> removeRecipeFromFolder(String folderId, Recipe recipe) async {
+  static Future<void> removeRecipeFromFolder(
+    String folderId,
+    Recipe recipe,
+  ) async {
     final folder = getFolderById(folderId);
     if (folder != null && folder.recipeTitles.contains(recipe.title)) {
-      final updatedFolder = folder.copyWith(recipeTitles: folder.recipeTitles.where((t) => t != recipe.title).toList());
+      final updatedFolder = folder.copyWith(
+        recipeTitles: folder.recipeTitles
+            .where((t) => t != recipe.title)
+            .toList(),
+      );
       await updateFolder(updatedFolder);
     }
   }
@@ -846,7 +921,8 @@ class RecipeManager {
   }
 
   static void addListener(Function() listener) => _listeners.add(listener);
-  static void removeListener(Function() listener) => _listeners.remove(listener);
+  static void removeListener(Function() listener) =>
+      _listeners.remove(listener);
   static void notifyListeners() => _notifyListeners();
 
   static void _notifyListeners() {
@@ -884,7 +960,10 @@ class DeepLinkHandler {
     final encodedData = segments.first;
     final recipe = Recipe.fromShareableData(encodedData);
     if (recipe != null) {
-      Future.delayed(const Duration(milliseconds: 500), () => _showImportDialog(recipe));
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () => _showImportDialog(recipe),
+      );
     }
   }
 
@@ -908,7 +987,9 @@ class DeepLinkHandler {
     try {
       String? content;
       if (uriString.startsWith('content://')) {
-        content = await _channel.invokeMethod<String>('readContentUri', {'uri': uriString});
+        content = await _channel.invokeMethod<String>('readContentUri', {
+          'uri': uriString,
+        });
       } else if (uriString.startsWith('file://')) {
         final path = Uri.parse(uriString).toFilePath();
         content = await File(path).readAsString();
@@ -916,7 +997,10 @@ class DeepLinkHandler {
       if (content != null) {
         final recipe = Recipe.fromShareableData(content.trim());
         if (recipe != null) {
-          Future.delayed(const Duration(milliseconds: 500), () => _showImportDialog(recipe));
+          Future.delayed(
+            const Duration(milliseconds: 500),
+            () => _showImportDialog(recipe),
+          );
         }
       }
     } catch (e) {
@@ -942,7 +1026,10 @@ class DeepLinkHandler {
               const SizedBox(height: 12),
               Text(
                 'Nota: Ya tienes una receta con este nombre.'.tr,
-                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ],
@@ -981,7 +1068,8 @@ class MealPlanManager {
   static List<PlannedMeal> get meals => List.unmodifiable(_meals);
 
   static void addListener(Function() listener) => _listeners.add(listener);
-  static void removeListener(Function() listener) => _listeners.remove(listener);
+  static void removeListener(Function() listener) =>
+      _listeners.remove(listener);
   static void _notifyListeners() {
     for (final listener in _listeners) {
       listener();
@@ -1009,7 +1097,10 @@ class MealPlanManager {
 
   static Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_mealsKey, json.encode(_meals.map((m) => m.toJson()).toList()));
+    await prefs.setString(
+      _mealsKey,
+      json.encode(_meals.map((m) => m.toJson()).toList()),
+    );
   }
 
   static Future<void> addMeal(PlannedMeal meal) async {
@@ -1019,28 +1110,35 @@ class MealPlanManager {
   }
 
   static Future<void> removeMeal(PlannedMeal meal) async {
-    _meals.removeWhere((m) =>
-        m.dateKey == meal.dateKey &&
-        m.mealType == meal.mealType &&
-        m.recipeTitle == meal.recipeTitle);
+    _meals.removeWhere(
+      (m) =>
+          m.dateKey == meal.dateKey &&
+          m.mealType == meal.mealType &&
+          m.recipeTitle == meal.recipeTitle,
+    );
     await _save();
     _notifyListeners();
   }
 
   static Future<void> toggleCompleted(PlannedMeal meal) async {
-    final index = _meals.indexWhere((m) =>
-        m.dateKey == meal.dateKey &&
-        m.mealType == meal.mealType &&
-        m.recipeTitle == meal.recipeTitle);
+    final index = _meals.indexWhere(
+      (m) =>
+          m.dateKey == meal.dateKey &&
+          m.mealType == meal.mealType &&
+          m.recipeTitle == meal.recipeTitle,
+    );
     if (index != -1) {
-      _meals[index] = _meals[index].copyWith(completed: !_meals[index].completed);
+      _meals[index] = _meals[index].copyWith(
+        completed: !_meals[index].completed,
+      );
       await _save();
       _notifyListeners();
     }
   }
 
   static List<PlannedMeal> getMealsForDate(DateTime date) {
-    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final key =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return _meals.where((m) => m.dateKey == key).toList()
       ..sort((a, b) => a.mealType.index.compareTo(b.mealType.index));
   }
@@ -1079,7 +1177,9 @@ class MealPlanManager {
   static Future<void> _saveTemplates() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        _templatesKey, json.encode(_templates.map((t) => t.toJson()).toList()));
+      _templatesKey,
+      json.encode(_templates.map((t) => t.toJson()).toList()),
+    );
   }
 
   static Future<void> addTemplate(MealTemplate template) async {
@@ -1106,11 +1206,15 @@ class MealPlanManager {
 
   /// Apply a template to a week starting at [weekMonday].
   /// Clears all existing meals for that week first.
-  static Future<void> applyTemplate(MealTemplate template, DateTime weekMonday) async {
+  static Future<void> applyTemplate(
+    MealTemplate template,
+    DateTime weekMonday,
+  ) async {
     // Remove existing meals for Mon-Sun of that week
     for (int d = 0; d < 7; d++) {
       final date = weekMonday.add(Duration(days: d));
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final key =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       _meals.removeWhere((m) => m.dateKey == key);
     }
     // Add template meals
@@ -1118,14 +1222,214 @@ class MealPlanManager {
       // weekday: 1=Mon .. 7=Sun → offset = weekday - 1
       final date = weekMonday.add(Duration(days: weekday - 1));
       for (final entry in entries) {
-        _meals.add(PlannedMeal(
-          date: date,
-          mealType: entry.mealType,
-          recipeTitle: entry.recipeTitle,
-        ));
+        _meals.add(
+          PlannedMeal(
+            date: date,
+            mealType: entry.mealType,
+            recipeTitle: entry.recipeTitle,
+          ),
+        );
       }
     });
     await _save();
     _notifyListeners();
+  }
+}
+
+class AutoIngredientInfo {
+  final String ingredient;
+  final String name;
+  final String quantity;
+  final String recipeTitle;
+  final DateTime date;
+  final String autoKey;
+  final bool isBought;
+
+  AutoIngredientInfo({
+    required this.ingredient,
+    required this.name,
+    required this.quantity,
+    required this.recipeTitle,
+    required this.date,
+    required this.autoKey,
+    required this.isBought,
+  });
+}
+
+class ShoppingManager {
+  static const String _boughtAutoKey = 'bought_auto_items';
+  static const String _manualShoppingKey = 'manual_shopping_list';
+  static const String _manualPantryKey = 'manual_pantry_list';
+  static const String _autoEnabledKey = 'auto_shopping_enabled';
+
+  static final ValueNotifier<bool> autoShoppingEnabled = ValueNotifier(true);
+
+  static Set<String> _boughtAutoItems = {};
+  static List<DetailedIngredient> _manualShoppingList = [];
+  static List<DetailedIngredient> _manualPantryList = [];
+
+  static List<DetailedIngredient> get manualShoppingList => _manualShoppingList;
+  static List<DetailedIngredient> get manualPantry => _manualPantryList;
+
+  static final List<Function()> _listeners = [];
+
+  static void addListener(Function() listener) => _listeners.add(listener);
+  static void removeListener(Function() listener) =>
+      _listeners.remove(listener);
+  static void notifyListeners() {
+    for (var l in _listeners) {
+      l();
+    }
+  }
+
+  static List<DetailedIngredient> _loadDetailedList(List<String> rawList) {
+    return rawList.map((raw) {
+      try {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        return DetailedIngredient.fromJson(decoded);
+      } catch (e) {
+        return DetailedIngredient(name: raw, quantity: '');
+      }
+    }).toList();
+  }
+
+  static List<String> _saveDetailedList(List<DetailedIngredient> list) {
+    return list.map((item) => jsonEncode(item.toJson())).toList();
+  }
+
+  static Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    autoShoppingEnabled.value = prefs.getBool(_autoEnabledKey) ?? true;
+    _boughtAutoItems = (prefs.getStringList(_boughtAutoKey) ?? []).toSet();
+    
+    _manualShoppingList = _loadDetailedList(prefs.getStringList(_manualShoppingKey) ?? []);
+    _manualPantryList = _loadDetailedList(prefs.getStringList(_manualPantryKey) ?? []);
+
+    MealPlanManager.addListener(notifyListeners);
+  }
+
+  static Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_boughtAutoKey, _boughtAutoItems.toList());
+    await prefs.setStringList(_manualShoppingKey, _saveDetailedList(_manualShoppingList));
+    await prefs.setStringList(_manualPantryKey, _saveDetailedList(_manualPantryList));
+    notifyListeners();
+  }
+
+  static Future<void> setAutoShoppingEnabled(bool val) async {
+    autoShoppingEnabled.value = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoEnabledKey, val);
+    notifyListeners();
+  }
+
+  static void addManualShoppingItem(DetailedIngredient item) {
+    if (item.name.trim().isNotEmpty) {
+      _manualShoppingList.add(item);
+      _save();
+    }
+  }
+
+  static void removeManualShoppingItem(DetailedIngredient item) {
+    _manualShoppingList.removeWhere((i) => i.name == item.name && i.quantity == item.quantity);
+    _save();
+  }
+
+  static void toggleManualShoppingItemBought(DetailedIngredient item) {
+    removeManualShoppingItem(item);
+    addManualPantryItem(item);
+  }
+
+  static void addManualPantryItem(DetailedIngredient item) {
+    if (item.name.trim().isNotEmpty) {
+      _manualPantryList.add(item);
+      _save();
+    }
+  }
+
+  static void removeManualPantryItem(DetailedIngredient item) {
+    _manualPantryList.removeWhere((i) => i.name == item.name && i.quantity == item.quantity);
+    _save();
+  }
+
+  static void toggleAutoItemBought(String autoKey) {
+    if (_boughtAutoItems.contains(autoKey)) {
+      _boughtAutoItems.remove(autoKey);
+    } else {
+      _boughtAutoItems.add(autoKey);
+    }
+    _save();
+  }
+
+  static void cleanUpBoughtItems() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final end = today.add(const Duration(days: 14));
+
+    final Set<String> activeKeys = {};
+    for (final meal in MealPlanManager.meals) {
+      if (meal.completed) continue;
+      if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
+
+      final recipe = RecipeManager.recipes
+          .where((r) => r.title == meal.recipeTitle)
+          .firstOrNull;
+      if (recipe == null) continue;
+
+      for (int i = 0; i < recipe.ingredients.length; i++) {
+        activeKeys.add(
+          '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_$i',
+        );
+      }
+    }
+
+    _boughtAutoItems.removeWhere((k) => !activeKeys.contains(k));
+    _save();
+  }
+
+
+  static List<AutoIngredientInfo> getAutoIngredients() {
+    if (!autoShoppingEnabled.value) return [];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final end = today.add(const Duration(days: 14));
+
+    final List<AutoIngredientInfo> result = [];
+    for (final meal in MealPlanManager.meals) {
+      if (meal.completed) continue;
+      if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
+
+      final recipe = RecipeManager.recipes
+          .where((r) => r.title == meal.recipeTitle)
+          .firstOrNull;
+      if (recipe == null) continue;
+
+      for (int i = 0; i < recipe.ingredients.length; i++) {
+        final ing = recipe.ingredients[i];
+        final key =
+            '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_$i';
+        final isBought = _boughtAutoItems.contains(key);
+        
+        String name = ing;
+        String quantity = '';
+        if (i < recipe.detailedIngredients.length) {
+          name = recipe.detailedIngredients[i].name;
+          quantity = recipe.detailedIngredients[i].quantity;
+        }
+        
+        result.add(
+          AutoIngredientInfo(
+            ingredient: ing,
+            name: name,
+            quantity: quantity,
+            recipeTitle: meal.recipeTitle,
+            date: meal.date,
+            autoKey: key,
+            isBought: isBought,
+          ),
+        );
+      }
+    }
+    return result;
   }
 }

@@ -38,7 +38,9 @@ void main() async {
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
   await MealPlanManager.load();
+  await ShoppingManager.load();
   MealPlanManager.cleanOldMeals();
+  ShoppingManager.cleanUpBoughtItems();
   runApp(RecetasApp());
   DeepLinkHandler.instance.init();
 }
@@ -362,9 +364,10 @@ class _RecetasAppState extends State<RecetasApp> {
                   builder: (context, hasSeen, _) {
                     if (!hasSeen) return OnboardingPage();
 
-                    return ValueListenableBuilder<int>(
-                      valueListenable: SettingsManager.startScreenIndex,
-                      builder: (context, index, child) => MainNavigationPage(),
+                    return ValueListenableBuilder<String>(
+                      valueListenable: SettingsManager.startScreenFeature,
+                      builder: (context, feature, child) =>
+                          MainNavigationPage(),
                     );
                   },
                 ),

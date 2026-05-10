@@ -250,7 +250,8 @@ class AppLocalization {
     "Sopas y Cremas": "Soups & Creams",
     "Sugerencias": "Suggestions",
     "TIEMPO ESTIMADO": "ESTIMATED TIME",
-    "Tienes cambios sin guardar. Si sales, los perderás.": "You have unsaved changes. If you exit, you will lose them.",
+    "Tienes cambios sin guardar. Si sales, los perderás.":
+        "You have unsaved changes. If you exit, you will lose them.",
     "Toca para añadir foto": "Tap to add photo",
     "Toca una estrella para valorar:": "Tap a star to rate:",
     "Tu valoración": "Your rating",
@@ -273,32 +274,41 @@ class AppLocalization {
     "¿Indeciso? Deja que el azar decida qué cocinar hoy.":
         "Undecided? Let chance decide what to cook today.",
     "¿Salir sin guardar?": "Exit without saving?",
-    "¿A qué semana quieres aplicar esta plantilla? Se reemplazarán las comidas existentes.": "Which week do you want to apply this template to? Existing meals will be replaced.",
+    "¿A qué semana quieres aplicar esta plantilla? Se reemplazarán las comidas existentes.":
+        "Which week do you want to apply this template to? Existing meals will be replaced.",
     "API Endpoint": "API Endpoint",
     "API Key": "API Key",
-    "Analizando imagen con IA... Espera un momento.": "Analyzing image with AI... Please wait.",
-    "Configura tu API Key (ej. OpenAI, Gemini) para extraer automáticamente recetas desde imágenes.": "Configure your API Key (e.g., OpenAI, Gemini) to automatically extract recipes from images.",
+    "Analizando imagen con IA... Espera un momento.":
+        "Analyzing image with AI... Please wait.",
+    "Configura tu API Key (ej. OpenAI, Gemini) para extraer automáticamente recetas desde imágenes.":
+        "Configure your API Key (e.g., OpenAI, Gemini) to automatically extract recipes from images.",
     "Configurar API Key": "Configure API Key",
     "Hubo un error con la IA": "There was an error with the AI",
     "IA API Key": "AI API Key",
     "INTELIGENCIA ARTIFICIAL": "ARTIFICIAL INTELLIGENCE",
-    "Por favor configura un API Key de IA en Configuración primero.": "Please configure an AI API Key in Settings first.",
-    "Usar IA para extraer recetas de imágenes": "Use AI to extract recipes from images.",
-    "¡Listo! Revisa los ingredientes y los pasos.": "Done! Review the ingredients and steps.",
+    "Por favor configura un API Key de IA en Configuración primero.":
+        "Please configure an AI API Key in Settings first.",
+    "Usar IA para extraer recetas de imágenes":
+        "Use AI to extract recipes from images.",
+    "¡Listo! Revisa los ingredientes y los pasos.":
+        "Done! Review the ingredients and steps.",
     "Compartir próximamente...": "Share coming soon...",
     "APARIENCIA Y NAVEGACIÓN": "APPEARANCE & NAVIGATION",
     "MIS DATOS": "MY DATA",
     "ACERCA DE": "ABOUT",
     "Configuración de IA": "AI Configuration",
     "Escaneo de Recetas Inteligente": "Smart Recipe Scanning",
-    "Para que la aplicación pueda leer fotos de recetas y convertirlas automáticamente en texto, necesitas conectar un servicio de Inteligencia Artificial.": "For the app to read recipe photos and convert them automatically into text, you need to connect an Artificial Intelligence service.",
+    "Para que la aplicación pueda leer fotos de recetas y convertirlas automáticamente en texto, necesitas conectar un servicio de Inteligencia Artificial.":
+        "For the app to read recipe photos and convert them automatically into text, you need to connect an Artificial Intelligence service.",
     "1. Elige tu proveedor de IA": "1. Choose your AI provider",
     "Google Gemini (Recomendado, Gratis)": "Google Gemini (Recommended, Free)",
     "OpenAI / Otros compatibles": "OpenAI / Other compatibles",
     "2. Consigue tu Clave (API Key)": "2. Get your API Key",
-    "Gemini ofrece una clave gratuita y es muy fácil de obtener. Solo entra a Google AI Studio pulsando el botón de abajo, inicia sesión con tu cuenta de Google, y pulsa en \"Get API key\" o \"Crear clave de API\".": "Gemini offers a free key and it is very easy to obtain. Just go to Google AI Studio by pressing the button below, sign in with your Google account, and click on \"Get API key\".",
+    "Gemini ofrece una clave gratuita y es muy fácil de obtener. Solo entra a Google AI Studio pulsando el botón de abajo, inicia sesión con tu cuenta de Google, y pulsa en \"Get API key\" o \"Crear clave de API\".":
+        "Gemini offers a free key and it is very easy to obtain. Just go to Google AI Studio by pressing the button below, sign in with your Google account, and click on \"Get API key\".",
     "Obtener clave de Gemini": "Get Gemini key",
-    "Para usar OpenAI (ChatGPT) necesitas una cuenta de desarrollador de pago con saldo en platform.openai.com. También puedes usar servicios compatibles como OpenRouter editando el Endpoint.": "To use OpenAI (ChatGPT) you need a paid developer account with balance at platform.openai.com. You can also use compatible services like OpenRouter by editing the Endpoint.",
+    "Para usar OpenAI (ChatGPT) necesitas una cuenta de desarrollador de pago con saldo en platform.openai.com. También puedes usar servicios compatibles como OpenRouter editando el Endpoint.":
+        "To use OpenAI (ChatGPT) you need a paid developer account with balance at platform.openai.com. You can also use compatible services like OpenRouter by editing the Endpoint.",
     "Obtener clave de OpenAI": "Get OpenAI key",
     "3. Pega tu API Key aquí": "3. Paste your API Key here",
     "Clave de API (API Key)": "API Key (API Key)",
@@ -309,27 +319,34 @@ class AppLocalization {
     "Configuración guardada correctamente": "Configuration saved successfully",
     "Compartir receta": "Share recipe",
     "Compartir enlace": "Share link",
-    "Envía un enlace con los datos de la receta": "Send a link with recipe data",
+    "Envía un enlace con los datos de la receta":
+        "Send a link with recipe data",
     "Mostrar código QR": "Show QR code",
     "Muestra un QR para que otros lo escaneen": "Show a QR for others to scan",
     "¡Mira esta receta de": "Check out this recipe for",
     "Código QR": "QR Code",
-    "Otros pueden escanear este código para añadir la receta a su aplicación": "Others can scan this code to add the recipe to their app",
+    "Otros pueden escanear este código para añadir la receta a su aplicación":
+        "Others can scan this code to add the recipe to their app",
     "Listo": "Done",
     "Escanear código QR": "Scan QR code",
-    "Importar una receta escaneando un código QR": "Import a recipe by scanning a QR code",
+    "Importar una receta escaneando un código QR":
+        "Import a recipe by scanning a QR code",
     "Receta detectada": "Recipe detected",
     "¿Quieres importar la receta": "Do you want to import the recipe",
-    "Nota: Ya tienes una receta con este nombre.": "Note: You already have a recipe with this name.",
+    "Nota: Ya tienes una receta con este nombre.":
+        "Note: You already have a recipe with this name.",
     "Receta importada correctamente": "Recipe imported successfully",
     "Apunta al código QR de la receta": "Point at the recipe QR code",
     "Importar": "Import",
     "Receta compartida detectada": "Shared recipe detected",
-    "(Necesitas tener instalada la app Recetas)": "(You need to have the Recipes app installed)",
+    "(Necesitas tener instalada la app Recetas)":
+        "(You need to have the Recipes app installed)",
     "Compartir archivo": "Share file",
-    "Envía un archivo .receta por WhatsApp, Telegram...": "Send a .receta file via WhatsApp, Telegram...",
+    "Envía un archivo .receta por WhatsApp, Telegram...":
+        "Send a .receta file via WhatsApp, Telegram...",
     "Importar archivo .receta": "Import .receta file",
-    "Selecciona un archivo .receta para importar la receta": "Select a .receta file to import the recipe",
+    "Selecciona un archivo .receta para importar la receta":
+        "Select a .receta file to import the recipe",
     "Archivo no válido o corrupto": "Invalid or corrupted file",
     "Error al compartir archivo": "Error sharing file",
     "Error al importar archivo": "Error importing file",
@@ -352,10 +369,28 @@ class AppLocalization {
     "Año": "Year",
     "Menú principal": "Main Menu",
     "Personalizar botones inferiores": "Customize bottom buttons",
-    "Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.": "Choose which features you want handy in the bottom bar. Those not selected will appear on the home screen.",
+    "Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.":
+        "Choose which features you want handy in the bottom bar. Those not selected will appear on the home screen.",
     "Búsqueda": "Search",
     "Busca recetas e ingredientes": "Search for recipes and ingredients",
     "Planificador": "Planner",
+    "Compra": "Shopping",
+    "Lista de Compra": "Shopping List",
+    "Lista de compra automática": "Automatic shopping list",
+    "Gestión de despensa e ingredientes": "Pantry and ingredients management",
+    "Lista y Despensa": "List & Pantry",
+    "Despensa": "Pantry",
+    "Añadir a despensa...": "Add to pantry...",
+    "NUEVA PLANTILLA": "NEW TEMPLATE",
+    "EDITAR PLANTILLA": "EDIT TEMPLATE",
+    "Generar lista desde el planificador": "Generate list from planner",
+    "Nada por aquí": "Nothing here",
+    "Añadir a lista...": "Add to list...",
+    "Añadido Manualmente": "Added Manually",
+    "Añadidos Manualmente": "Added Manually",
+    "Del Planificador": "From Planner",
+    "Cantidad para": "Amount for",
+    "Ej: 200g, 1 un, al gusto...": "e.g., 200g, 1 unit, to taste..."
   };
 }
 

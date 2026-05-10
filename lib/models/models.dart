@@ -159,17 +159,29 @@ extension IngredientCategoryX on IngredientCategory {
 }
 
 class DetailedIngredient {
-  DetailedIngredient({required this.name, required this.quantity});
+  DetailedIngredient({
+    required this.name,
+    required this.quantity,
+    this.category,
+  });
 
   final String name;
   final String quantity;
+  final IngredientCategory? category;
 
-  Map<String, dynamic> toJson() => {'name': name, 'quantity': quantity};
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'quantity': quantity,
+    'category': category?.name,
+  };
 
   factory DetailedIngredient.fromJson(Map<String, dynamic> json) {
     return DetailedIngredient(
       name: json['name']?.toString() ?? 'Unknown',
       quantity: json['quantity']?.toString() ?? '',
+      category: json['category'] != null
+          ? IngredientCategory.values.where((e) => e.name == json['category']).firstOrNull
+          : null,
     );
   }
 }
@@ -254,26 +266,53 @@ class Recipe {
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
-      title: json['title']?.toString() ?? 'Untitled' ,
+      title: json['title']?.toString() ?? 'Untitled',
       ingredients: (json['ingredients'] is List)
           ? (json['ingredients'] as List).map((e) => e.toString()).toList()
           : <String>[],
-      dietaryRestrictions: (json['dietaryRestrictions'] != null && json['dietaryRestrictions'] is List)
+      dietaryRestrictions:
+          (json['dietaryRestrictions'] != null &&
+              json['dietaryRestrictions'] is List)
           ? (json['dietaryRestrictions'] as List)
                 .map((r) {
                   try {
-                    final raw = r.toString().toLowerCase().replaceAll(' ', '').replaceAll('-', '');
+                    final raw = r
+                        .toString()
+                        .toLowerCase()
+                        .replaceAll(' ', '')
+                        .replaceAll('-', '');
                     return DietaryRestriction.values.firstWhere((e) {
                       if (e.name == raw) return true;
-                      if (e.displayName.toLowerCase().replaceAll(' ', '').replaceAll('-', '') == raw) return true;
-                      
+                      if (e.displayName
+                              .toLowerCase()
+                              .replaceAll(' ', '')
+                              .replaceAll('-', '') ==
+                          raw)
+                        return true;
+
                       final Map<DietaryRestriction, List<String>> allNames = {
-                        DietaryRestriction.vegetariano: ['vegetariano', 'vegetarian'],
+                        DietaryRestriction.vegetariano: [
+                          'vegetariano',
+                          'vegetarian',
+                        ],
                         DietaryRestriction.vegano: ['vegano', 'vegan'],
-                        DietaryRestriction.sinlactosa: ['sinlactosa', 'lactosefree', 'dairyfree'],
-                        DietaryRestriction.singluten: ['singluten', 'glutenfree'],
-                        DietaryRestriction.sinfrutossecos: ['sinfrutossecos', 'nutfree'],
-                        DietaryRestriction.sinmariscos: ['sinmariscos', 'seafoodfree'],
+                        DietaryRestriction.sinlactosa: [
+                          'sinlactosa',
+                          'lactosefree',
+                          'dairyfree',
+                        ],
+                        DietaryRestriction.singluten: [
+                          'singluten',
+                          'glutenfree',
+                        ],
+                        DietaryRestriction.sinfrutossecos: [
+                          'sinfrutossecos',
+                          'nutfree',
+                        ],
+                        DietaryRestriction.sinmariscos: [
+                          'sinmariscos',
+                          'seafoodfree',
+                        ],
                       };
                       return allNames[e]?.contains(raw) ?? false;
                     });
@@ -285,7 +324,9 @@ class Recipe {
                 .toList()
           : [],
       customDietaryTags: (json['customDietaryTags'] is List)
-          ? (json['customDietaryTags'] as List).map((e) => e.toString()).toList()
+          ? (json['customDietaryTags'] as List)
+                .map((e) => e.toString())
+                .toList()
           : [],
       categories: _parseCategories(json['categories']),
       imagePath: json['imagePath']?.toString(),
@@ -293,12 +334,16 @@ class Recipe {
       detailedIngredients: (json['detailedIngredients'] is List)
           ? (json['detailedIngredients'] as List)
                 .map(
-                  (i) => i is Map<String, dynamic> ? DetailedIngredient.fromJson(i) : null,
+                  (i) => i is Map<String, dynamic>
+                      ? DetailedIngredient.fromJson(i)
+                      : null,
                 )
                 .whereType<DetailedIngredient>()
                 .toList()
           : [],
-      steps: (json['steps'] is List) ? (json['steps'] as List).map((e) => e.toString()).toList() : [],
+      steps: (json['steps'] is List)
+          ? (json['steps'] as List).map((e) => e.toString()).toList()
+          : [],
       nutritionFacts: (json['nutritionFacts'] != null)
           ? (json['nutritionFacts'] as List)
                 .map(
@@ -315,28 +360,55 @@ class Recipe {
   }
 
   static List<RecipeCategory> _parseCategories(dynamic rawCategories) {
-    if (rawCategories == null || rawCategories is! List) return [RecipeCategory.otros];
+    if (rawCategories == null || rawCategories is! List)
+      return [RecipeCategory.otros];
 
     final list = (rawCategories as List)
         .map((c) {
           if (c == null) return null;
           try {
-            final categoryStr = c.toString().toLowerCase().replaceAll(' ', '').replaceAll('&', 'y').replaceAll('and', 'y');
+            final categoryStr = c
+                .toString()
+                .toLowerCase()
+                .replaceAll(' ', '')
+                .replaceAll('&', 'y')
+                .replaceAll('and', 'y');
             return RecipeCategory.values.firstWhere((e) {
-               if (e.name == categoryStr) return true;
-               if (e.displayName.toLowerCase().replaceAll(' ', '').replaceAll('&', 'y') == categoryStr) return true;
-               
-               final Map<RecipeCategory, List<String>> allNames = {
-                  RecipeCategory.entrantes: ['entrantes', 'appetizers'],
-                  RecipeCategory.sopasycremas: ['sopasycremas', 'soupscreams', 'soups'],
-                  RecipeCategory.ensaladas: ['ensaladas', 'salads'],
-                  RecipeCategory.platosprincipales: ['platosprincipales', 'maindishes', 'maincourses'],
-                  RecipeCategory.guarniciones: ['guarniciones', 'sidedishes', 'sides'],
-                  RecipeCategory.postresydulces: ['postresydulces', 'dessertssweets', 'desserts'],
-                  RecipeCategory.bebidas: ['bebidas', 'beverages', 'drinks'],
-                  RecipeCategory.otros: ['otros', 'others', 'other'],
-               };
-               return allNames[e]?.contains(categoryStr) ?? false;
+              if (e.name == categoryStr) return true;
+              if (e.displayName
+                      .toLowerCase()
+                      .replaceAll(' ', '')
+                      .replaceAll('&', 'y') ==
+                  categoryStr)
+                return true;
+
+              final Map<RecipeCategory, List<String>> allNames = {
+                RecipeCategory.entrantes: ['entrantes', 'appetizers'],
+                RecipeCategory.sopasycremas: [
+                  'sopasycremas',
+                  'soupscreams',
+                  'soups',
+                ],
+                RecipeCategory.ensaladas: ['ensaladas', 'salads'],
+                RecipeCategory.platosprincipales: [
+                  'platosprincipales',
+                  'maindishes',
+                  'maincourses',
+                ],
+                RecipeCategory.guarniciones: [
+                  'guarniciones',
+                  'sidedishes',
+                  'sides',
+                ],
+                RecipeCategory.postresydulces: [
+                  'postresydulces',
+                  'dessertssweets',
+                  'desserts',
+                ],
+                RecipeCategory.bebidas: ['bebidas', 'beverages', 'drinks'],
+                RecipeCategory.otros: ['otros', 'others', 'other'],
+              };
+              return allNames[e]?.contains(categoryStr) ?? false;
             });
           } catch (e) {
             return null;
@@ -510,20 +582,64 @@ List<String> _getIngredientsForCategory(
   final keywords = <IngredientCategory, List<String>>{
     IngredientCategory.frescosVegetales: [
       'fruta', 'verdura', 'vegetal', 'hortaliza', 'tomate', 'cebolla', 'ajo',
-      'pimiento', 'papa', 'patata', 'zanahoria', 'lechuga', 'espinaca', 'brócoli',
-      'coliflor', 'calabaza', 'pepino', 'berenjena', 'calabacín', 'puerro', 'apio',
+      'pimiento',
+      'papa',
+      'patata',
+      'zanahoria',
+      'lechuga',
+      'espinaca',
+      'brócoli',
+      'coliflor',
+      'calabaza',
+      'pepino',
+      'berenjena',
+      'calabacín',
+      'puerro',
+      'apio',
       'remolacha', 'rábano', 'manzana', 'plátano', 'naranja', 'limón', 'fresa',
       'uva', 'melón', 'sandía', 'aguacate', 'champiñón', 'seta', 'hongo',
       'espárrago', 'alcachofa', 'endibia', 'rúcula', 'canónigo', 'perejil',
       'cilantro', 'albahaca', 'eneldo', 'menta', 'romero', 'salvia', 'tomillo',
       // English
-      'fruit', 'vegetable', 'veg', 'tomato', 'onion', 'garlic', 'pepper', 'potato',
-      'carrot', 'lettuce', 'spinach', 'broccoli', 'cauliflower', 'pumpkin', 'cucumber',
-      'eggplant', 'zucchini', 'leek', 'celery', 'beet', 'radish', 'apple', 'banana',
-      'orange', 'lemon', 'strawberry', 'grape', 'melon', 'watermelon', 'avocado',
-      'mushroom', 'asparagus', 'artichoke', 'endive', 'arugula', 'parsley', 'cilantro',
+      'fruit',
+      'vegetable',
+      'veg',
+      'tomato',
+      'onion',
+      'garlic',
+      'pepper',
+      'potato',
+      'carrot',
+      'lettuce',
+      'spinach',
+      'broccoli',
+      'cauliflower',
+      'pumpkin',
+      'cucumber',
+      'eggplant',
+      'zucchini',
+      'leek',
+      'celery',
+      'beet',
+      'radish',
+      'apple',
+      'banana',
+      'orange',
+      'lemon',
+      'strawberry',
+      'grape',
+      'melon',
+      'watermelon',
+      'avocado',
+      'mushroom',
+      'asparagus',
+      'artichoke',
+      'endive',
+      'arugula',
+      'parsley',
+      'cilantro',
       'coriander', 'basil', 'dill', 'mint', 'rosemary', 'sage', 'thyme', 'herb',
-      'squash', 'cabbage', 'berries'
+      'squash', 'cabbage', 'berries',
     ],
     IngredientCategory.proteinaAnimal: [
       'pollo', 'ternera', 'cerdo', 'cordero', 'carne', 'res', 'vacuno',
@@ -532,13 +648,49 @@ List<String> _getIngredientsForCategory(
       'bacalao', 'trucha', 'lubina', 'dorada', 'lenguado', 'pez', 'sardina',
       'anchoa', 'arenque', 'caballa', 'mero', 'pargo', 'marisco', 'gamba',
       'camarón', 'langostino', 'langosta', 'mejillón', 'almeja', 'ostra',
-      'vieira', 'calamar', 'pulpo', 'sepia', 'cangrejo', 'centollo', 'nécora', 'percebe',
+      'vieira',
+      'calamar',
+      'pulpo',
+      'sepia',
+      'cangrejo',
+      'centollo',
+      'nécora',
+      'percebe',
       // English
-      'chicken', 'beef', 'pork', 'lamb', 'meat', 'veal', 'turkey', 'duck', 'rabbit',
-      'venison', 'fish', 'salmon', 'tuna', 'hake', 'cod', 'trout', 'bass', 'sole',
-      'sardine', 'anchovy', 'herring', 'mackerel', 'grouper', 'snapper', 'seafood',
-      'shrimp', 'prawn', 'lobster', 'mussel', 'clam', 'oyster', 'scallop', 'squid',
-      'octopus', 'crab', 'bacon', 'pancetta', 'sausage', 'chorizo', 'ham'
+      'chicken',
+      'beef',
+      'pork',
+      'lamb',
+      'meat',
+      'veal',
+      'turkey',
+      'duck',
+      'rabbit',
+      'venison',
+      'fish',
+      'salmon',
+      'tuna',
+      'hake',
+      'cod',
+      'trout',
+      'bass',
+      'sole',
+      'sardine',
+      'anchovy',
+      'herring',
+      'mackerel',
+      'grouper',
+      'snapper',
+      'seafood',
+      'shrimp',
+      'prawn',
+      'lobster',
+      'mussel',
+      'clam',
+      'oyster',
+      'scallop',
+      'squid',
+      'octopus', 'crab', 'bacon', 'pancetta', 'sausage', 'chorizo', 'ham',
     ],
     IngredientCategory.lacteosYHuevos: [
       'leche', 'yogur', 'queso', 'mantequilla', 'nata', 'crema', 'requesón',
@@ -546,23 +698,59 @@ List<String> _getIngredientsForCategory(
       'roquefort', 'mozzarella', 'parmesano', 'cheddar', 'ricotta', 'feta',
       'manchego', 'gouda', 'emmental', 'brie', 'huevo',
       // English
-      'milk', 'yogurt', 'cheese', 'butter', 'cream', 'curd', 'ice cream', 'kefir',
-      'mascarpone', 'provolone', 'gorgonzola', 'roquefort', 'mozzarella', 'parmesan',
-      'cheddar', 'ricotta', 'feta', 'manchego', 'gouda', 'emmental', 'brie', 'egg', 'dairy'
+      'milk',
+      'yogurt',
+      'cheese',
+      'butter',
+      'cream',
+      'curd',
+      'ice cream',
+      'kefir',
+      'mascarpone',
+      'provolone',
+      'gorgonzola',
+      'roquefort',
+      'mozzarella',
+      'parmesan',
+      'cheddar',
+      'ricotta',
+      'feta',
+      'manchego',
+      'gouda',
+      'emmental',
+      'brie',
+      'egg',
+      'dairy',
     ],
     IngredientCategory.granosYPastas: [
       'arroz', 'lenteja', 'garbanzo', 'frijol', 'judía', 'haba', 'guisante',
       'arveja', 'soja', 'pasta', 'espagueti', 'fideos', 'macarrones',
       'tallarines', 'canelones', 'lasaña', 'pan', 'galleta',
       // English
-      'rice', 'lentil', 'chickpea', 'bean', 'pea', 'soy', 'pasta', 'spaghetti', 'noodle',
-      'macaroni', 'lasagna', 'bread', 'cookie', 'biscuit', 'wheat', 'oat', 'barley', 'quinoa',
-      'corn', 'cereal'
+      'rice',
+      'lentil',
+      'chickpea',
+      'bean',
+      'pea',
+      'soy',
+      'pasta',
+      'spaghetti',
+      'noodle',
+      'macaroni',
+      'lasagna',
+      'bread',
+      'cookie',
+      'biscuit',
+      'wheat',
+      'oat',
+      'barley',
+      'quinoa',
+      'corn', 'cereal',
     ],
     IngredientCategory.aceitesYGrasas: [
       'aceite', 'oliva', 'girasol', 'manteca', 'margarina', 'grasa',
       // English
-      'oil', 'olive', 'sunflower', 'lard', 'margarine', 'fat', 'ghee'
+      'oil', 'olive', 'sunflower', 'lard', 'margarine', 'fat', 'ghee',
     ],
     IngredientCategory.condimentosYEspecias: [
       'sal', 'pimienta', 'comino', 'cúrcuma', 'curry', 'paprika', 'pimentón',
@@ -571,27 +759,79 @@ List<String> _getIngredientsForCategory(
       'mostaza', 'ketchup', 'mayonesa', 'salsa', 'soja', 'worcestershire',
       'hoisin', 'teriyaki', 'tahini', 'miso', 'harissa', 'pesto', 'gochujang',
       // English
-      'salt', 'pepper', 'cumin', 'turmeric', 'curry', 'paprika', 'clove', 'cinnamon',
+      'salt',
+      'pepper',
+      'cumin',
+      'turmeric',
+      'curry',
+      'paprika',
+      'clove',
+      'cinnamon',
       'nutmeg', 'cardamom', 'ginger', 'saffron', 'oregano', 'thyme', 'rosemary',
-      'bay leaf', 'tarragon', 'fennel', 'vinegar', 'mustard', 'ketchup', 'mayonnaise',
+      'bay leaf',
+      'tarragon',
+      'fennel',
+      'vinegar',
+      'mustard',
+      'ketchup',
+      'mayonnaise',
       'sauce', 'soy', 'worcestershire', 'hoisin', 'teriyaki', 'tahini', 'miso',
-      'harissa', 'pesto', 'gochujang', 'spice', 'seasoning', 'broth', 'bouillon', 'stock'
+      'harissa',
+      'pesto',
+      'gochujang',
+      'spice',
+      'seasoning',
+      'broth',
+      'bouillon',
+      'stock',
     ],
     IngredientCategory.reposteriaYHarinas: [
       'harina', 'trigo', 'centeno', 'cebada', 'espelta', 'azúcar', 'miel',
       'chocolate', 'cacao', 'levadura', 'vainilla', 'stevia', 'panela',
       'piloncillo', 'melaza', 'sirope', 'bicarbonato', 'polvo',
       // English
-      'flour', 'wheat', 'rye', 'barley', 'spelt', 'sugar', 'honey', 'chocolate', 'cocoa',
-      'yeast', 'vanilla', 'stevia', 'molasses', 'syrup', 'baking', 'powder', 'soda', 'sweetener'
+      'flour',
+      'wheat',
+      'rye',
+      'barley',
+      'spelt',
+      'sugar',
+      'honey',
+      'chocolate',
+      'cocoa',
+      'yeast',
+      'vanilla',
+      'stevia',
+      'molasses',
+      'syrup',
+      'baking',
+      'powder',
+      'soda',
+      'sweetener',
     ],
     IngredientCategory.conservasYVarios: [
       'lata', 'atún', 'maíz', 'encurtido', 'aceituna', 'fruto seco', 'nuez',
       'almendra', 'avellana', 'cacahuete', 'pistacho', 'caldo preparado',
       'caldo', 'conserva',
       // English
-      'can', 'canned', 'tuna', 'corn', 'pickle', 'olive', 'nut', 'almond', 'hazelnut',
-      'peanut', 'pistachio', 'broth', 'preserve', 'jam', 'jelly', 'peanut butter', 'walnut', 'pecan'
+      'can',
+      'canned',
+      'tuna',
+      'corn',
+      'pickle',
+      'olive',
+      'nut',
+      'almond',
+      'hazelnut',
+      'peanut',
+      'pistachio',
+      'broth',
+      'preserve',
+      'jam',
+      'jelly',
+      'peanut butter',
+      'walnut',
+      'pecan',
     ],
   };
 
@@ -660,23 +900,27 @@ class PlannedMeal {
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   PlannedMeal copyWith({bool? completed}) => PlannedMeal(
-        date: date,
-        mealType: mealType,
-        recipeTitle: recipeTitle,
-        completed: completed ?? this.completed,
-      );
+    date: date,
+    mealType: mealType,
+    recipeTitle: recipeTitle,
+    completed: completed ?? this.completed,
+  );
 
   Map<String, dynamic> toJson() => {
-        'date': dateKey,
-        'mealType': mealType.name,
-        'recipeTitle': recipeTitle,
-        'completed': completed,
-      };
+    'date': dateKey,
+    'mealType': mealType.name,
+    'recipeTitle': recipeTitle,
+    'completed': completed,
+  };
 
   factory PlannedMeal.fromJson(Map<String, dynamic> json) {
     final parts = (json['date'] as String).split('-');
     return PlannedMeal(
-      date: DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2])),
+      date: DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      ),
       mealType: MealType.values.firstWhere(
         (e) => e.name == json['mealType'],
         orElse: () => MealType.almuerzo,
@@ -698,24 +942,30 @@ class TemplateMealEntry {
     'recipeTitle': recipeTitle,
   };
 
-  factory TemplateMealEntry.fromJson(Map<String, dynamic> json) => TemplateMealEntry(
-    mealType: MealType.values.firstWhere(
-      (e) => e.name == json['mealType'], orElse: () => MealType.almuerzo),
-    recipeTitle: json['recipeTitle'] as String,
-  );
+  factory TemplateMealEntry.fromJson(Map<String, dynamic> json) =>
+      TemplateMealEntry(
+        mealType: MealType.values.firstWhere(
+          (e) => e.name == json['mealType'],
+          orElse: () => MealType.almuerzo,
+        ),
+        recipeTitle: json['recipeTitle'] as String,
+      );
 }
 
 class MealTemplate {
   MealTemplate({required this.name, Map<int, List<TemplateMealEntry>>? days})
-      : days = days ?? {};
+    : days = days ?? {};
 
   final String name;
+
   /// weekday 1 (Mon) – 7 (Sun) → list of meals for that day
   final Map<int, List<TemplateMealEntry>> days;
 
   Map<String, dynamic> toJson() => {
     'name': name,
-    'days': days.map((k, v) => MapEntry(k.toString(), v.map((e) => e.toJson()).toList())),
+    'days': days.map(
+      (k, v) => MapEntry(k.toString(), v.map((e) => e.toJson()).toList()),
+    ),
   };
 
   factory MealTemplate.fromJson(Map<String, dynamic> json) {
@@ -733,6 +983,8 @@ class MealTemplate {
     return MealTemplate(name: json['name'] as String, days: days);
   }
 
-  MealTemplate copyWith({String? name, Map<int, List<TemplateMealEntry>>? days}) =>
-      MealTemplate(name: name ?? this.name, days: days ?? this.days);
+  MealTemplate copyWith({
+    String? name,
+    Map<int, List<TemplateMealEntry>>? days,
+  }) => MealTemplate(name: name ?? this.name, days: days ?? this.days);
 }
