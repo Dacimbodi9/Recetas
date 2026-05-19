@@ -22,8 +22,7 @@ class _FolderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final recipeCount = folder.recipeTitles.length;
-    final subFolderCount = RecipeManager.getSubFolders(folder.id).length;
+    final recipeCount = RecipeManager.getRecipesInFolderRecursive(folder.id).length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -72,7 +71,83 @@ class _FolderCard extends StatelessWidget {
                     Text(folder.name, style: theme.textTheme.titleLarge),
                     SizedBox(height: 4),
                     Text(
-                      '$recipeCount receta${recipeCount != 1 ? 's' : ''} • $subFolderCount subcarpeta${subFolderCount != 1 ? 's' : ''}',
+                      '$recipeCount ${recipeCount == 1 ? 'receta'.tr : 'recetas'.tr}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(CupertinoIcons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ValoracionesFolderCard extends StatelessWidget {
+  const _ValoracionesFolderCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Count rated recipes
+    final ratedCount = RecipeManager.recipes.where((r) => (r.rating ?? 0) > 0).length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).cardColor
+            : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+        boxShadow: [],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Icon(
+                  CupertinoIcons.star_fill,
+                  color: Colors.amber,
+                  size: 28,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Valoraciones'.tr, style: theme.textTheme.titleLarge),
+                    SizedBox(height: 4),
+                    Text(
+                      '$ratedCount ${ratedCount == 1 ? 'receta'.tr : 'recetas'.tr}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.7,

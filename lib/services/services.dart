@@ -283,7 +283,7 @@ class SettingsManager {
 
         final result = await Share.shareXFiles([
           XFile(file.path),
-        ], text: 'Copia de seguridad de Mis Recetas');
+        ], text: 'Copia de seguridad de Guardados');
 
         if (result.status == ShareResultStatus.success) {
           if (context.mounted) {

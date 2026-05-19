@@ -53,7 +53,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 destinations.add(
                   NavigationDestination(
                     icon: const Icon(CupertinoIcons.book),
-                    label: 'Mis Recetas'.tr,
+                    label: 'Guardados'.tr,
                   ),
                 );
               } else if (feature == 'mealPlanner') {
@@ -234,72 +234,37 @@ class SavedPage extends StatefulWidget {
 
 class _SavedPageState extends State<SavedPage> {
   final TextEditingController _searchController = TextEditingController();
-  final PageController _pageController = PageController();
   String _searchQuery = '';
-  int _selectedIndex = 0;
+  bool _inFolder = false;
 
   @override
   void dispose() {
     _searchController.dispose();
-    _pageController.dispose();
     super.dispose();
-  }
-
-  void _onSegmentChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    _pageController.animateToPage(
-      index,
-      duration: Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  void _onPageChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: Text('Mis Recetas'.tr))
-          : AppBar(toolbarHeight: 0, elevation: 0),
-      body: Column(
-        children: [
-          // Custom Segmented Control
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _SlidingSegmentedControl(
-              controller: _pageController,
-              selectedIndex: _selectedIndex,
-              onTap: _onSegmentChanged,
-              tabs: ['Guardados'.tr, 'Valoraciones'.tr],
-            ),
-          ),
-
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: [
-                _SavedRecipesView(
-                  searchController: _searchController,
-                  searchQuery: _searchQuery,
-                  onSearchChanged: (value) =>
-                      setState(() => _searchQuery = value),
-                  showAppBar: false,
-                ),
-                RatedRecipesPage(),
-              ],
-            ),
-          ),
-        ],
+      appBar: !_inFolder
+          ? AppBar(
+              title: Text('Guardados'.tr),
+              automaticallyImplyLeading: widget.showAppBar,
+            )
+          : null,
+      body: _SavedRecipesView(
+        searchController: _searchController,
+        searchQuery: _searchQuery,
+        onSearchChanged: (value) =>
+            setState(() => _searchQuery = value),
+        showAppBar: false,
+        onFolderChanged: (inFolder) {
+          if (_inFolder != inFolder) {
+            setState(() {
+              _inFolder = inFolder;
+            });
+          }
+        },
       ),
     );
   }
@@ -470,12 +435,14 @@ class _SavedRecipesView extends StatefulWidget {
     required this.searchQuery,
     required this.onSearchChanged,
     this.showAppBar = true,
+    this.onFolderChanged,
   });
 
   final TextEditingController searchController;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final bool showAppBar;
+  final ValueChanged<bool>? onFolderChanged;
 
   @override
   State<_SavedRecipesView> createState() => _SavedRecipesViewState();
@@ -484,6 +451,40 @@ class _SavedRecipesView extends StatefulWidget {
 class _SavedRecipesViewState extends State<_SavedRecipesView> {
   String? _currentFolderId;
   final List<String> _folderPath = [];
+  bool _isSearchVisible = true;
+  bool _navigationCooldown = false;
+  
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (_navigationCooldown) return false;
+    if (notification is UserScrollNotification) {
+      // Only react to actual user-initiated scrolls
+      return false;
+    }
+    if (notification is OverscrollNotification) {
+      if (notification.overscroll < -2.0) {
+        if (!_isSearchVisible) setState(() => _isSearchVisible = true);
+      } else if (notification.overscroll > 2.0 && widget.searchQuery.isEmpty) {
+        if (_isSearchVisible) setState(() => _isSearchVisible = false);
+      }
+    } else if (notification is ScrollUpdateNotification) {
+      final delta = notification.scrollDelta ?? 0;
+      if (delta < -2.0) {
+        if (!_isSearchVisible) setState(() => _isSearchVisible = true);
+      } else if (delta > 2.0 && widget.searchQuery.isEmpty) {
+        if (_isSearchVisible) setState(() => _isSearchVisible = false);
+      }
+    }
+    return false;
+  }
+
+  void _startNavigationCooldown() {
+    _navigationCooldown = true;
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _navigationCooldown = false;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -513,20 +514,27 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
         }
         _currentFolderId = folderId;
       }
+      _isSearchVisible = false; // Hide search bar when navigating
     });
+    widget.onFolderChanged?.call(_currentFolderId != null);
+    _startNavigationCooldown();
   }
 
   void _navigateBack() {
     if (_folderPath.isNotEmpty) {
       setState(() {
         _currentFolderId = _folderPath.removeLast();
+        _isSearchVisible = false; // Hide search bar when navigating
       });
     } else {
       setState(() {
         _currentFolderId = null;
         _folderPath.clear();
+        _isSearchVisible = false; // Hide search bar when navigating
       });
     }
+    widget.onFolderChanged?.call(_currentFolderId != null);
+    _startNavigationCooldown();
   }
 
   @override
@@ -561,69 +569,103 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
         foldersToShow = rootFolders;
       }
 
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: widget.searchController,
-                    onChanged: widget.onSearchChanged,
-                    textAlignVertical: TextAlignVertical.center,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar en guardados...'.tr.tr,
-                      prefixIcon: Icon(CupertinoIcons.search),
-                      suffixIcon: widget.searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(CupertinoIcons.xmark_circle_fill),
-                              onPressed: () {
-                                widget.searchController.clear();
-                                widget.onSearchChanged('');
-                              },
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Container(
-                  height: 56,
-                  width: 56,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(CupertinoIcons.add),
-                    onPressed: () =>
-                        _showCreateFolderDialog(context, _currentFolderId),
-                    tooltip: 'Crear carpeta'.tr,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 16),
-          Expanded(
-            child: foldersToShow.isEmpty && recipesToShow.isEmpty
-                ? _EmptyStateWidget(
-                    icon: widget.searchQuery.isEmpty
-                        ? CupertinoIcons.bookmark
-                        : CupertinoIcons.search,
-                    title: widget.searchQuery.isEmpty
-                        ? 'No tienes guardados'.tr
-                        : 'Sin resultados'.tr,
-                    subtitle: widget.searchQuery.isEmpty
-                        ? 'Tus recetas guardadas aparecerán aquí'.tr
-                        : 'Intenta con otra búsqueda'.tr,
-                  )
-                : ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+      return NotificationListener<ScrollNotification>(
+        onNotification: _onScrollNotification,
+        child: Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: _isSearchVisible || widget.searchQuery.isNotEmpty ? 72 : 0,
+              clipBehavior: Clip.hardEdge,
+              decoration: const BoxDecoration(),
+              curve: Curves.easeInOut,
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Container(
+                  height: 72,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
                     children: [
+                      Expanded(
+                        child: TextField(
+                          controller: widget.searchController,
+                          onChanged: widget.onSearchChanged,
+                          textAlignVertical: TextAlignVertical.center,
+                          decoration: InputDecoration(
+                            hintText: 'Buscar en guardados...'.tr.tr,
+                            prefixIcon: Icon(CupertinoIcons.search),
+                            suffixIcon: widget.searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(CupertinoIcons.xmark_circle_fill),
+                                    onPressed: () {
+                                      widget.searchController.clear();
+                                      widget.onSearchChanged('');
+                                    },
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Container(
+                        height: 56,
+                        width: 56,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: Icon(CupertinoIcons.add),
+                          onPressed: () =>
+                              _showCreateFolderDialog(context, _currentFolderId),
+                          tooltip: 'Crear carpeta'.tr,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: (foldersToShow.isEmpty &&
+                      recipesToShow.isEmpty &&
+                      !(_currentFolderId == null &&
+                          RecipeManager.recipes.any((r) => (r.rating ?? 0) > 0) &&
+                          (widget.searchQuery.isEmpty || _fuzzyMatch('Valoraciones', widget.searchQuery))))
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: widget.searchQuery.isNotEmpty
+                          ? _EmptyStateWidget(
+                              icon: CupertinoIcons.search,
+                              title: 'Sin resultados'.tr,
+                              subtitle: 'Intenta con otra búsqueda'.tr,
+                            )
+                          : _EmptyStateWidget(
+                              icon: CupertinoIcons.book,
+                              title: 'No hay recetas'.tr,
+                              subtitle: 'Crea carpetas o guarda recetas para verlas aquí'.tr,
+                            ),
+                    )
+                  : ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      // "Valoraciones" Folder (Fixed at Root)
+                      if (_currentFolderId == null &&
+                          RecipeManager.recipes.any((r) => (r.rating ?? 0) > 0) &&
+                          (widget.searchQuery.isEmpty || _fuzzyMatch('Valoraciones', widget.searchQuery)))
+                        _ValoracionesFolderCard(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RatedRecipesPage(),
+                              ),
+                            );
+                          },
+                        ),
                       // Folders
                       ...foldersToShow.map(
                         (folder) => _FolderCard(
@@ -645,7 +687,8 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                   ),
           ),
         ],
-      );
+      ),
+    );
     }
     // FOLDER VIEW
     else {
@@ -674,64 +717,76 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
         foldersToShow = subFolders;
       }
 
-      return Scaffold(
-        body: CustomScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // 1. Pinned Navigation Header
-            SliverAppBar(
-              pinned: true,
-              leading: IconButton(
-                icon: Icon(CupertinoIcons.chevron_left),
-                onPressed: _navigateBack,
-              ),
-              title: Text(currentFolder.name),
-              actions: [
-                IconButton(
-                  icon: Icon(CupertinoIcons.add),
-                  onPressed: () =>
-                      _showCreateFolderDialog(context, _currentFolderId),
-                  tooltip: 'Crear subcarpeta',
+      return NotificationListener<ScrollNotification>(
+        onNotification: _onScrollNotification,
+        child: Scaffold(
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // 1. Pinned Navigation Header
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: theme.scaffoldBackgroundColor,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(CupertinoIcons.chevron_left),
+                  onPressed: _navigateBack,
                 ),
-              ],
-            ),
+                title: Text(currentFolder.name),
+                actions: [
+                  IconButton(
+                    icon: Icon(CupertinoIcons.add),
+                    onPressed: () =>
+                        _showCreateFolderDialog(context, _currentFolderId),
+                    tooltip: 'Crear subcarpeta',
+                  ),
+                ],
+              ),
 
-            // 2. Floating Search Bar
-            SliverAppBar(
-              pinned: false,
-              floating: true,
-              snap: true,
-              automaticallyImplyLeading: false,
-              backgroundColor: Colors.transparent,
-              titleSpacing: 16,
-              toolbarHeight: 72,
-              title: TextField(
-                controller: widget.searchController,
-                onChanged: widget.onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Buscar en @fld...'.tr.replaceAll(
-                    '@fld',
-                    currentFolder.name,
-                  ),
-                  prefixIcon: Icon(CupertinoIcons.search),
-                  suffixIcon: widget.searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(CupertinoIcons.xmark_circle_fill),
-                          onPressed: () {
-                            widget.searchController.clear();
-                            widget.onSearchChanged('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              // 2. Animated Search Bar
+              SliverToBoxAdapter(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: _isSearchVisible || widget.searchQuery.isNotEmpty ? 72 : 0,
+                  clipBehavior: Clip.hardEdge,
+                  decoration: const BoxDecoration(),
+                  curve: Curves.easeInOut,
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Container(
+                      height: 72,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: TextField(
+                        controller: widget.searchController,
+                        onChanged: widget.onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar en @fld...'.tr.replaceAll(
+                            '@fld',
+                            currentFolder.name,
+                          ),
+                          prefixIcon: Icon(CupertinoIcons.search),
+                          suffixIcon: widget.searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(CupertinoIcons.xmark_circle_fill),
+                                  onPressed: () {
+                                    widget.searchController.clear();
+                                    widget.onSearchChanged('');
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: theme.colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
 
             if (foldersToShow.isEmpty && recipesToShow.isEmpty)
               SliverFillRemaining(
@@ -769,9 +824,10 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
               ),
           ],
         ),
-      );
-    }
+      ),
+    );
   }
+}
 
   void _showCreateFolderDialog(BuildContext context, String? parentId) {
     showDialog(
@@ -3840,6 +3896,25 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 
+  Future<void> _searchOnInternet() async {
+    final query = Uri.encodeComponent(_currentRecipe.title);
+    final url = Uri.parse('https://www.google.com/search?q=$query');
+    try {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo abrir el navegador'.tr),
+          ),
+        );
+      }
+    }
+  }
+
   void _showRecipeOptionsDialog(
     BuildContext context,
     ThemeData theme,
@@ -3897,38 +3972,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                         onTap: () {
                           Navigator.pop(context);
                           _duplicateRecipe();
-                        },
-                      ),
-                      SizedBox(height: 12),
-                      _SelectionOption(
-                        title: 'Buscar en Internet'.tr,
-                        icon: CupertinoIcons.globe,
-                        isSelected: false,
-                        iconColor: theme.colorScheme.primary,
-                        onTap: () async {
-                          Navigator.pop(context);
-                          final query = Uri.encodeComponent(
-                            _currentRecipe.title,
-                          );
-                          final url = Uri.parse(
-                            'https://www.google.com/search?q=$query',
-                          );
-                          try {
-                            await launchUrl(
-                              url,
-                              mode: LaunchMode.externalApplication,
-                            );
-                          } catch (e) {
-                            if (mounted && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'No se pudo abrir el navegador'.tr,
-                                  ),
-                                ),
-                              );
-                            }
-                          }
                         },
                       ),
                       if (isPersonalized) ...[
@@ -4002,6 +4045,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   ),
                 ),
                 onPressed: _toggleFavorite,
+              ),
+              IconButton(
+                icon: Icon(CupertinoIcons.globe),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.scaffoldBackgroundColor.withValues(
+                    alpha: 0.75,
+                  ),
+                ),
+                onPressed: _searchOnInternet,
               ),
               IconButton(
                 icon: Icon(CupertinoIcons.share),
@@ -4293,7 +4345,7 @@ class _BottomMenuSettingsPage extends StatelessWidget {
                       theme,
                       isDark,
                       id: 'saved',
-                      title: 'Mis Recetas'.tr,
+                      title: 'Guardados'.tr,
                       subtitle: 'Tus recetas guardadas y favoritas'.tr,
                       icon: CupertinoIcons.book,
                       features: features,
@@ -4525,7 +4577,7 @@ class SettingsPage extends StatelessWidget {
                       if (feature == 'search')
                         subtitle = 'Buscar'.tr;
                       else if (feature == 'saved')
-                        subtitle = 'Mis Recetas'.tr;
+                        subtitle = 'Guardados'.tr;
                       else if (feature == 'mealPlanner')
                         subtitle = 'Planificador de comidas'.tr;
                       else if (feature == 'shopping')
@@ -4714,7 +4766,7 @@ class SettingsPage extends StatelessWidget {
                           title = 'Buscar'.tr;
                           icon = CupertinoIcons.search;
                         } else if (feature == 'saved') {
-                          title = 'Mis Recetas'.tr;
+                          title = 'Guardados'.tr;
                           icon = CupertinoIcons.book;
                         } else if (feature == 'mealPlanner') {
                           title = 'Planificador de comidas'.tr;
@@ -5177,6 +5229,106 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(CupertinoIcons.chevron_left),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text('Valoraciones'.tr),
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(CupertinoIcons.sort_down),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: theme.colorScheme.surfaceContainerHigh,
+            onSelected: (val) {
+              setState(() => _sortOption = val);
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'recent',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.clock,
+                      size: 20,
+                      color: _sortOption == 'recent'
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Más recientes'.tr,
+                      style: TextStyle(
+                        color: _sortOption == 'recent'
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                        fontWeight: _sortOption == 'recent'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'highest',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.star_fill,
+                      size: 20,
+                      color: _sortOption == 'highest'
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Mejor valoradas'.tr,
+                      style: TextStyle(
+                        color: _sortOption == 'highest'
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                        fontWeight: _sortOption == 'highest'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'lowest',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.star,
+                      size: 20,
+                      color: _sortOption == 'lowest'
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Peor valoradas'.tr,
+                      style: TextStyle(
+                        color: _sortOption == 'lowest'
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                        fontWeight: _sortOption == 'lowest'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: ratedRecipes.isEmpty
           ? Column(
               children: [
@@ -5192,60 +5344,9 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
             )
           : Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _sortOption,
-                            isDense: true,
-                            icon: Icon(Icons.sort, size: 20),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                            ),
-                            items: [
-                              DropdownMenuItem(
-                                value: 'recent',
-                                child: Text('Más recientes'.tr),
-                              ),
-                              DropdownMenuItem(
-                                value: 'highest',
-                                child: Text('Mejor valoradas'.tr),
-                              ),
-                              DropdownMenuItem(
-                                value: 'lowest',
-                                child: Text('Peor valoradas'.tr),
-                              ),
-                            ],
-                            borderRadius: BorderRadius.circular(16),
-                            dropdownColor:
-                                theme.colorScheme.surfaceContainerHigh,
-                            elevation: 4,
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _sortOption = val);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                     itemCount: ratedRecipes.length,
                     itemBuilder: (context, index) {
                       final recipe = ratedRecipes[index];
@@ -6111,7 +6212,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       theme,
                       isDark,
                       id: 'saved',
-                      title: 'Mis Recetas'.tr,
+                      title: 'Guardados'.tr,
                       subtitle: 'Tus recetas guardadas y favoritas'.tr,
                       icon: CupertinoIcons.book,
                       features: features,
@@ -6760,7 +6861,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (!features.contains('saved')) ...[
                         _buildProfileFeatureCard(
                           theme,
-                          title: 'Mis Recetas'.tr,
+                          title: 'Guardados'.tr,
                           subtitle: 'Tus recetas guardadas y favoritas'.tr,
                           icon: CupertinoIcons.book,
                           onTap: () {
