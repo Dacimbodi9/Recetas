@@ -53,6 +53,7 @@ dependencies:
   mobile_scanner: ^7.2.0
   flutter_native_splash: ^2.4.3
   app_links: ^7.0.0
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:

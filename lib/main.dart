@@ -27,7 +27,17 @@ part 'models/models.dart';
 part 'services/services.dart';
 part 'utils/utils.dart';
 part 'widgets/widgets.dart';
-part 'screens/screens.dart';
+part 'screens/main_navigation.dart';
+part 'screens/search_page.dart';
+part 'screens/saved_page.dart';
+part 'screens/recipe_creation.dart';
+part 'screens/recipe_categories.dart';
+part 'screens/recipe_details.dart';
+part 'screens/settings_page.dart';
+part 'screens/onboarding_page.dart';
+part 'screens/profile_page.dart';
+part 'screens/meal_planner.dart';
+part 'screens/shopping_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
