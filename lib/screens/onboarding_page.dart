@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -691,7 +684,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 if (newFeatures.length >= 4) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Solo puedes seleccionar hasta 4 accesos directos'.tr),
+                      content: Text(
+                        'Solo puedes seleccionar hasta 4 accesos directos'.tr,
+                      ),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );

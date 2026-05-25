@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class NewRecipePage extends StatefulWidget {
   const NewRecipePage({super.key, this.recipeToEdit});
@@ -188,6 +181,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
     if (image == null) return;
+    if (!mounted) return;
 
     if (SettingsManager.aiApiKey.value.isEmpty) {
       if (mounted && context.mounted) {
@@ -405,7 +399,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
       }
 
       if (mounted && context.mounted) {
-        String errorMessage = 'Hubo un error con la IA'.tr + ': $e';
+        String errorMessage = '${'Hubo un error con la IA'.tr}: $e';
         if (e is DioException) {
           if (e.response?.statusCode == 401) {
             errorMessage =

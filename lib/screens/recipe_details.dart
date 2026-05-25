@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class RecipeDetailPage extends StatefulWidget {
   const RecipeDetailPage({super.key, required this.recipe, this.heroTag});
@@ -20,7 +13,7 @@ class RecipeDetailPage extends StatefulWidget {
 class _RecipeDetailPageState extends State<RecipeDetailPage> {
   late PageController _pageController;
   final ScrollController _scrollController = ScrollController();
-  int _selectedIndex = 0;
+
   bool _isFavorite = false;
   late Recipe _currentRecipe;
 
@@ -117,22 +110,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 
-  void _onPageChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
 
-  void _onSegmentChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    _pageController.animateToPage(
-      index,
-      duration: Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
 
   Future<void> _toggleFavorite() async {
     await RecipeManager.toggleFavorite(widget.recipe);
@@ -292,11 +270,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 
       await file.writeAsString(data);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
         text: '${'¡Mira esta receta de'.tr} ${_currentRecipe.title}!',
         subject: _currentRecipe.title,
-      );
+      ));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -319,16 +297,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     final query = Uri.encodeComponent(_currentRecipe.title);
     final url = Uri.parse('https://www.google.com/search?q=$query');
     try {
-      await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo abrir el navegador'.tr),
-          ),
+          SnackBar(content: Text('No se pudo abrir el navegador'.tr)),
         );
       }
     }

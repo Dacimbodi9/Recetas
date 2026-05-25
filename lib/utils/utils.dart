@@ -1,4 +1,3 @@
-// ignore_for_file: unused_local_variable
 part of '../main.dart';
 
 bool _fuzzyMatch(String text, String query) {

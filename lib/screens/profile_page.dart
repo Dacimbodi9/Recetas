@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class _ShareQRCodePage extends StatelessWidget {
   final Recipe recipe;
@@ -110,7 +103,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
   }
 
   Future<void> _importRecipe(Recipe recipe) async {
-    final theme = Theme.of(context);
+
     final exists = RecipeManager.recipes.any((r) => r.title == recipe.title);
 
     showDialog(
@@ -145,17 +138,17 @@ class _QrScannerPageState extends State<_QrScannerPage> {
           ),
           FilledButton(
             onPressed: () async {
+              final nav = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               await RecipeManager.addRecipe(recipe);
               if (!RecipeManager.isFavorite(recipe)) {
                 await RecipeManager.toggleFavorite(recipe);
               }
-              if (mounted) {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Close scanner
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Receta importada correctamente'.tr)),
-                );
-              }
+              nav.pop(); // Close dialog
+              nav.pop(); // Close scanner
+              messenger.showSnackBar(
+                SnackBar(content: Text('Receta importada correctamente'.tr)),
+              );
             },
             child: Text('Importar'.tr),
           ),
@@ -216,7 +209,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool _isEditingName = false;
+
   late TextEditingController _nameController;
 
   @override
@@ -586,7 +579,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const _ShoppingPage(showAppBar: true),
+                                builder: (_) =>
+                                    const _ShoppingPage(showAppBar: true),
                               ),
                             );
                           },

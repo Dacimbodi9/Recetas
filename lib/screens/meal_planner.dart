@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class _NutritionalGraphCard extends StatefulWidget {
   const _NutritionalGraphCard();
@@ -389,7 +382,7 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
                                     PlannedMeal(
                                       date: date,
                                       mealType: mealType,
-                                      recipeTitle: r.title,
+                                      recipeId: r.id,
                                     ),
                                   );
                                   Navigator.pop(ctx);
@@ -740,60 +733,7 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
     );
   }
 
-  void _showApplyTemplateDialog(MealTemplate template) {
-    final today = _today;
-    final thisMonday = today.subtract(Duration(days: today.weekday - 1));
-    final nextMonday = thisMonday.add(const Duration(days: 7));
 
-    final isEn = AppLocalization.instance.currentLanguage == 'en';
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text('Aplicar plantilla'.tr),
-          content: Text(
-            '¿A qué semana quieres aplicar esta plantilla? Se reemplazarán las comidas existentes.'
-                .tr,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancelar'.tr),
-            ),
-            FilledButton.tonal(
-              onPressed: () {
-                Navigator.pop(ctx);
-                MealPlanManager.applyTemplate(template, thisMonday);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Plantilla aplicada a esta semana'.tr),
-                  ),
-                );
-              },
-              child: Text('Esta semana'.tr),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                MealPlanManager.applyTemplate(template, nextMonday);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Plantilla aplicada a la próxima semana'.tr),
-                  ),
-                );
-              },
-              child: Text('Próxima semana'.tr),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildCalendarGrid(ThemeData theme, DateTime today) {
     final firstOfMonth = DateTime(
@@ -1186,7 +1126,7 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                                     _days[weekday]!.add(
                                       TemplateMealEntry(
                                         mealType: mealType,
-                                        recipeTitle: r.title,
+                                        recipeId: r.id,
                                       ),
                                     );
                                   });
@@ -1287,7 +1227,9 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _isEditing ? 'EDITAR PLANTILLA'.tr : 'NUEVA PLANTILLA'.tr,
+                          _isEditing
+                              ? 'EDITAR PLANTILLA'.tr
+                              : 'NUEVA PLANTILLA'.tr,
                           style: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -1351,7 +1293,8 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                                       color: theme.colorScheme.primary,
                                       size: 22,
                                     ),
-                                    onPressed: () => _showMealTypePicker(weekday),
+                                    onPressed: () =>
+                                        _showMealTypePicker(weekday),
                                     tooltip: 'Añadir'.tr,
                                   ),
                                 ],
@@ -1359,14 +1302,19 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                             ),
                             if (entries.isEmpty)
                               Padding(
-                                padding: const EdgeInsets.only(bottom: 12, left: 16),
+                                padding: const EdgeInsets.only(
+                                  bottom: 12,
+                                  left: 16,
+                                ),
                                 child: Row(
                                   children: [
                                     Text(
                                       'Sin comidas'.tr,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.grey.withValues(alpha: 0.6),
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.6,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1376,6 +1324,11 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                               ...entries.asMap().entries.map((e) {
                                 final idx = e.key;
                                 final entry = e.value;
+                                final recipe = RecipeManager.recipes
+                                    .where((r) => r.id == entry.recipeId)
+                                    .firstOrNull;
+                                final title =
+                                    recipe?.title ?? 'Receta desconocida';
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -1400,7 +1353,7 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          entry.recipeTitle,
+                                          title,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
@@ -1413,14 +1366,17 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                                         onTap: () {
                                           setState(() {
                                             _days[weekday]!.removeAt(idx);
-                                            if (_days[weekday]!.isEmpty)
+                                            if (_days[weekday]!.isEmpty) {
                                               _days.remove(weekday);
+                                            }
                                           });
                                         },
                                         child: Icon(
                                           CupertinoIcons.xmark_circle_fill,
                                           size: 16,
-                                          color: Colors.grey.withValues(alpha: 0.5),
+                                          color: Colors.grey.withValues(
+                                            alpha: 0.5,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1537,11 +1493,13 @@ class _TodayMealRow extends StatelessWidget {
           ),
           ...meals.map((meal) {
             final recipe = RecipeManager.recipes
-                .where((r) => r.title == meal.recipeTitle)
+                .where((r) => r.id == meal.recipeId)
                 .firstOrNull;
+            if (recipe == null) return const SizedBox();
+
             return Dismissible(
               key: ValueKey(
-                '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_swipe',
+                '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_swipe',
               ),
               direction: DismissDirection.horizontal,
               background: Container(
@@ -1590,18 +1548,15 @@ class _TodayMealRow extends StatelessWidget {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          if (recipe != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RecipeDetailPage(recipe: recipe),
-                              ),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RecipeDetailPage(recipe: recipe),
+                            ),
+                          );
                         },
                         child: Text(
-                          meal.recipeTitle,
+                          recipe.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -1854,7 +1809,7 @@ class _DayDetailPageState extends State<_DayDetailPage> {
                                     PlannedMeal(
                                       date: widget.date,
                                       mealType: mealType,
-                                      recipeTitle: r.title,
+                                      recipeId: r.id,
                                     ),
                                   );
                                   Navigator.pop(ctx);
@@ -1874,8 +1829,7 @@ class _DayDetailPageState extends State<_DayDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+
     final meals = MealPlanManager.getMealsForDate(widget.date);
 
     return Scaffold(
@@ -2003,11 +1957,12 @@ class _MealSlotCard extends StatelessWidget {
           else
             ...meals.map((meal) {
               final recipe = RecipeManager.recipes
-                  .where((r) => r.title == meal.recipeTitle)
+                  .where((r) => r.id == meal.recipeId)
                   .firstOrNull;
+              if (recipe == null) return const SizedBox.shrink();
               return Dismissible(
                 key: ValueKey(
-                  '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_dismiss',
+                  '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_dismiss',
                 ),
                 direction: DismissDirection.horizontal,
                 background: Container(
@@ -2041,14 +1996,12 @@ class _MealSlotCard extends StatelessWidget {
                 onDismissed: (_) => onRemove(meal),
                 child: InkWell(
                   onTap: () {
-                    if (recipe != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RecipeDetailPage(recipe: recipe),
-                        ),
-                      );
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecipeDetailPage(recipe: recipe),
+                      ),
+                    );
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -2088,7 +2041,7 @@ class _MealSlotCard extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            meal.recipeTitle,
+                            recipe.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

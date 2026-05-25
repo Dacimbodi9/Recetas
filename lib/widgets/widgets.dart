@@ -1,11 +1,3 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: prefer_const_constructors_in_immutables
-// ignore_for_file: type_annotate_public_apis
-// ignore_for_file: avoid_types_as_parameter_names
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
 part of '../main.dart';
 
 class _FolderCard extends StatelessWidget {
@@ -22,7 +14,9 @@ class _FolderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final recipeCount = RecipeManager.getRecipesInFolderRecursive(folder.id).length;
+    final recipeCount = RecipeManager.getRecipesInFolderRecursive(
+      folder.id,
+    ).length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -99,7 +93,9 @@ class _ValoracionesFolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     // Count rated recipes
-    final ratedCount = RecipeManager.recipes.where((r) => (r.rating ?? 0) > 0).length;
+    final ratedCount = RecipeManager.recipes
+        .where((r) => (r.rating ?? 0) > 0)
+        .length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -384,7 +380,7 @@ class _RecipeFolderMenu extends StatelessWidget {
   Future<void> _moveToFolder(BuildContext context, String? folderId) async {
     // Remove from all folders first
     for (final folder in RecipeManager.allFolders) {
-      if (folder.recipeTitles.contains(recipe.title)) {
+      if (folder.recipeIds.contains(recipe.id)) {
         await RecipeManager.removeRecipeFromFolder(folder.id, recipe);
       }
     }
@@ -424,7 +420,7 @@ class _RecipeFolderMenu extends StatelessWidget {
 
   String? _getCurrentFolderId() {
     for (final folder in RecipeManager.allFolders) {
-      if (folder.recipeTitles.contains(recipe.title)) {
+      if (folder.recipeIds.contains(recipe.id)) {
         return folder.id;
       }
     }
@@ -1294,7 +1290,7 @@ class _LikeButtonState extends State<_LikeButton>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+
     return ScaleTransition(
       scale: _scaleAnimation,
       child: IconButton(
@@ -1634,25 +1630,7 @@ class _InfoView extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            CupertinoIcons.photo,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Toca para añadir foto'.tr,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
 
 class _SettingsSection extends StatelessWidget {
@@ -1847,51 +1825,7 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-class _StarRating extends StatelessWidget {
-  const _StarRating({
-    required this.rating,
-    required this.onRatingChanged,
-    this.starSize = 28,
-  });
 
-  final double rating;
-  final ValueChanged<double> onRatingChanged;
-  final double starSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        return GestureDetector(
-          onTapUp: (details) {
-            final RenderBox box = context.findRenderObject() as RenderBox;
-            final localPosition = box.globalToLocal(details.globalPosition);
-            final double singleStarWidth =
-                starSize; // Roughly the width of one icon
-            // However, this approach is tricky with Row.
-            // Simplified: Just allow tapping a star to set "X.0".
-            // For precise setting (like 4.1), user usually doesn't tap, they see the result.
-            // BUT user ASKED TO RATE IT, which usually implies tapping.
-            // If user wants to see 4.1, they likely mean "If I rate it, show exact value".
-            // Standard rating widgets snap to 0.5 or 1.0.
-            // Setting a 4.1 manually is hard.
-            // I will implement "precise display" (ShaderMask/ClipRect) and "tap to set int/half".
-
-            // Actually, simply tapping the star sets integer rating.
-            // To set 4.1 is very hard for user.
-            // I will assume they mean "Visual representation" shows exact 4.1 if the data is 4.1.
-            onRatingChanged(index + 1.0);
-          },
-          child: _PartialStar(
-            filledPercentage: (rating - index).clamp(0.0, 1.0),
-            size: starSize,
-          ),
-        );
-      }),
-    );
-  }
-}
 
 class _PartialStar extends StatelessWidget {
   const _PartialStar({required this.filledPercentage, required this.size});

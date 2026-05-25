@@ -1,6 +1,3 @@
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: unused_local_variable
-// ignore_for_file: constant_identifier_names
 part of '../main.dart';
 
 enum DietaryRestriction {
@@ -180,7 +177,9 @@ class DetailedIngredient {
       name: json['name']?.toString() ?? 'Unknown',
       quantity: json['quantity']?.toString() ?? '',
       category: json['category'] != null
-          ? IngredientCategory.values.where((e) => e.name == json['category']).firstOrNull
+          ? IngredientCategory.values
+                .where((e) => e.name == json['category'])
+                .firstOrNull
           : null,
     );
   }
@@ -188,6 +187,7 @@ class DetailedIngredient {
 
 class Recipe {
   Recipe({
+    String? id,
     required this.title,
     required this.ingredients,
     this.dietaryRestrictions = const [],
@@ -200,8 +200,9 @@ class Recipe {
     this.rating,
     this.dateRated,
     this.customDietaryTags = const [],
-  });
+  }) : id = id ?? const Uuid().v4();
 
+  final String id;
   final String title;
   final List<String> ingredients;
   final List<DietaryRestriction> dietaryRestrictions;
@@ -245,6 +246,7 @@ class Recipe {
   // JSON serialization
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'title': title,
       'ingredients': ingredients,
       'dietaryRestrictions': dietaryRestrictions.map((r) => r.name).toList(),
@@ -266,6 +268,7 @@ class Recipe {
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
+      id: json['id']?.toString() ?? const Uuid().v4(),
       title: json['title']?.toString() ?? 'Untitled',
       ingredients: (json['ingredients'] is List)
           ? (json['ingredients'] as List).map((e) => e.toString()).toList()
@@ -287,8 +290,9 @@ class Recipe {
                               .toLowerCase()
                               .replaceAll(' ', '')
                               .replaceAll('-', '') ==
-                          raw)
+                          raw) {
                         return true;
+                      }
 
                       final Map<DietaryRestriction, List<String>> allNames = {
                         DietaryRestriction.vegetariano: [
@@ -360,10 +364,11 @@ class Recipe {
   }
 
   static List<RecipeCategory> _parseCategories(dynamic rawCategories) {
-    if (rawCategories == null || rawCategories is! List)
+    if (rawCategories == null || rawCategories is! List) {
       return [RecipeCategory.otros];
+    }
 
-    final list = (rawCategories as List)
+    final list = rawCategories
         .map((c) {
           if (c == null) return null;
           try {
@@ -379,8 +384,9 @@ class Recipe {
                       .toLowerCase()
                       .replaceAll(' ', '')
                       .replaceAll('&', 'y') ==
-                  categoryStr)
+                  categoryStr) {
                 return true;
+              }
 
               final Map<RecipeCategory, List<String>> allNames = {
                 RecipeCategory.entrantes: ['entrantes', 'appetizers'],
@@ -426,6 +432,7 @@ class Recipe {
   }
 
   Recipe copyWith({
+    String? id,
     String? title,
     List<String>? ingredients,
     List<DietaryRestriction>? dietaryRestrictions,
@@ -441,6 +448,7 @@ class Recipe {
     bool nullifyRating = false,
   }) {
     return Recipe(
+      id: id ?? this.id,
       title: title ?? this.title,
       ingredients: ingredients ?? this.ingredients,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
@@ -496,7 +504,7 @@ class FavoriteFolder {
     required this.id,
     required this.name,
     required this.icon,
-    this.recipeTitles = const [],
+    this.recipeIds = const [],
     this.subFolders = const [],
     this.parentId,
   });
@@ -504,7 +512,7 @@ class FavoriteFolder {
   final String id;
   final String name;
   final IconData icon;
-  final List<String> recipeTitles;
+  final List<String> recipeIds;
   final List<FavoriteFolder> subFolders;
   final String? parentId;
 
@@ -513,7 +521,7 @@ class FavoriteFolder {
       'id': id,
       'name': name,
       'icon': icon.codePoint,
-      'recipeTitles': recipeTitles,
+      'recipeIds': recipeIds,
       'subFolders': subFolders.map((f) => f.toJson()).toList(),
       'parentId': parentId,
     };
@@ -531,7 +539,7 @@ class FavoriteFolder {
       id: json['id'] as String,
       name: json['name'] as String,
       icon: icon,
-      recipeTitles: (json['recipeTitles'] as List?)?.cast<String>() ?? [],
+      recipeIds: (json['recipeIds'] as List?)?.cast<String>() ?? [],
       subFolders:
           (json['subFolders'] as List?)
               ?.map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>))
@@ -545,7 +553,7 @@ class FavoriteFolder {
     String? id,
     String? name,
     IconData? icon,
-    List<String>? recipeTitles,
+    List<String>? recipeIds,
     List<FavoriteFolder>? subFolders,
     String? parentId,
   }) {
@@ -553,7 +561,7 @@ class FavoriteFolder {
       id: id ?? this.id,
       name: name ?? this.name,
       icon: icon ?? this.icon,
-      recipeTitles: recipeTitles ?? this.recipeTitles,
+      recipeIds: recipeIds ?? this.recipeIds,
       subFolders: subFolders ?? this.subFolders,
       parentId: parentId ?? this.parentId,
     );
@@ -886,13 +894,13 @@ class PlannedMeal {
   PlannedMeal({
     required this.date,
     required this.mealType,
-    required this.recipeTitle,
+    required this.recipeId,
     this.completed = false,
   });
 
   final DateTime date;
   final MealType mealType;
-  final String recipeTitle;
+  final String recipeId;
   final bool completed;
 
   /// Normalized date key (yyyy-MM-dd) for grouping
@@ -902,14 +910,14 @@ class PlannedMeal {
   PlannedMeal copyWith({bool? completed}) => PlannedMeal(
     date: date,
     mealType: mealType,
-    recipeTitle: recipeTitle,
+    recipeId: recipeId,
     completed: completed ?? this.completed,
   );
 
   Map<String, dynamic> toJson() => {
     'date': dateKey,
     'mealType': mealType.name,
-    'recipeTitle': recipeTitle,
+    'recipeId': recipeId,
     'completed': completed,
   };
 
@@ -925,7 +933,9 @@ class PlannedMeal {
         (e) => e.name == json['mealType'],
         orElse: () => MealType.almuerzo,
       ),
-      recipeTitle: json['recipeTitle'] as String,
+      recipeId:
+          (json['recipeId'] ?? json['recipeTitle'])
+              as String, // Fallback for old data
       completed: json['completed'] as bool? ?? false,
     );
   }
@@ -933,13 +943,13 @@ class PlannedMeal {
 
 class TemplateMealEntry {
   final MealType mealType;
-  final String recipeTitle;
+  final String recipeId;
 
-  const TemplateMealEntry({required this.mealType, required this.recipeTitle});
+  const TemplateMealEntry({required this.mealType, required this.recipeId});
 
   Map<String, dynamic> toJson() => {
     'mealType': mealType.name,
-    'recipeTitle': recipeTitle,
+    'recipeId': recipeId,
   };
 
   factory TemplateMealEntry.fromJson(Map<String, dynamic> json) =>
@@ -948,7 +958,8 @@ class TemplateMealEntry {
           (e) => e.name == json['mealType'],
           orElse: () => MealType.almuerzo,
         ),
-        recipeTitle: json['recipeTitle'] as String,
+        recipeId:
+            (json['recipeId'] ?? json['recipeTitle']) as String, // Fallback
       );
 }
 

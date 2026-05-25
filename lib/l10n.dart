@@ -396,7 +396,7 @@ class AppLocalization {
     "Añadidos Manualmente": "Added Manually",
     "Del Planificador": "From Planner",
     "Cantidad para": "Amount for",
-    "Ej: 200g, 1 un, al gusto...": "e.g., 200g, 1 unit, to taste..."
+    "Ej: 200g, 1 un, al gusto...": "e.g., 200g, 1 unit, to taste...",
   };
 }
 

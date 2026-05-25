@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 // ─────────────────────────────────────────────
 // Shopping & Pantry
@@ -118,7 +111,9 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                   onAddManual: (val) async {
                     final qty = await _pickQuantityDialog(val);
                     if (qty != null) {
-                      ShoppingManager.addManualShoppingItem(DetailedIngredient(name: val, quantity: qty));
+                      ShoppingManager.addManualShoppingItem(
+                        DetailedIngredient(name: val, quantity: qty),
+                      );
                       _shoppingController.clear();
                     }
                   },
@@ -127,7 +122,8 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                       ShoppingManager.toggleManualShoppingItemBought(val),
                   onRemoveManual: (val) =>
                       ShoppingManager.removeManualShoppingItem(val),
-                  onToggleAuto: (key) => ShoppingManager.toggleAutoItemBought(key),
+                  onToggleAuto: (key) =>
+                      ShoppingManager.toggleAutoItemBought(key),
                 ),
                 // Pantry Tab
                 _buildListTab(
@@ -140,7 +136,9 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                   onAddManual: (val) async {
                     final qty = await _pickQuantityDialog(val);
                     if (qty != null) {
-                      ShoppingManager.addManualPantryItem(DetailedIngredient(name: val, quantity: qty));
+                      ShoppingManager.addManualPantryItem(
+                        DetailedIngredient(name: val, quantity: qty),
+                      );
                       _pantryController.clear();
                     }
                   },
@@ -151,7 +149,8 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                   },
                   onRemoveManual: (val) =>
                       ShoppingManager.removeManualPantryItem(val),
-                  onToggleAuto: (key) => ShoppingManager.toggleAutoItemBought(key),
+                  onToggleAuto: (key) =>
+                      ShoppingManager.toggleAutoItemBought(key),
                 ),
               ],
             ),
@@ -206,7 +205,9 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                 decoration: InputDecoration(
                   hintText: 'Nombre'.tr,
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -220,7 +221,9 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                 decoration: InputDecoration(
                   hintText: 'Cantidad (ej: 100g)'.tr,
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -240,12 +243,18 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                     value: selectedCat,
                     hint: Text(
                       'Categoría (Opcional)'.tr,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                     ),
-                    items: IngredientCategory.values.map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(c.displayName),
-                    )).toList(),
+                    items: IngredientCategory.values
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c.displayName),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (val) => setState(() => selectedCat = val),
                   ),
                 ),
@@ -310,92 +319,101 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                       return const Iterable<String>.empty();
                     }
                     return allIngredients.where((String option) {
-                      return option
-                          .toLowerCase()
-                          .contains(textEditingValue.text.toLowerCase());
+                      return option.toLowerCase().contains(
+                        textEditingValue.text.toLowerCase(),
+                      );
                     });
                   },
                   onSelected: (String selection) {
                     onAddManual(selection);
                   },
-                  fieldViewBuilder: (
-                    BuildContext context,
-                    TextEditingController textEditingController,
-                    FocusNode focusNode,
-                    VoidCallback onFieldSubmitted,
-                  ) {
-                    return ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: textEditingController,
-                      builder: (context, value, child) {
-                        return TextField(
-                          controller: textEditingController,
-                          focusNode: focusNode,
-                          textAlignVertical: TextAlignVertical.center,
-                          decoration: InputDecoration(
-                            hintText: isPantry
-                                ? 'Añadir a despensa...'.tr
-                                : 'Añadir a lista...'.tr,
-                            prefixIcon: const Icon(CupertinoIcons.search),
-                            suffixIcon: value.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(
-                                      CupertinoIcons.xmark_circle_fill,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      textEditingController.clear();
-                                    },
-                                  )
-                                : null,
-                          ),
-                          onSubmitted: (String value) {
-                            onFieldSubmitted();
-                            onAddManual(value);
+                  fieldViewBuilder:
+                      (
+                        BuildContext context,
+                        TextEditingController textEditingController,
+                        FocusNode focusNode,
+                        VoidCallback onFieldSubmitted,
+                      ) {
+                        return ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: textEditingController,
+                          builder: (context, value, child) {
+                            return TextField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              textAlignVertical: TextAlignVertical.center,
+                              decoration: InputDecoration(
+                                hintText: isPantry
+                                    ? 'Añadir a despensa...'.tr
+                                    : 'Añadir a lista...'.tr,
+                                prefixIcon: const Icon(CupertinoIcons.search),
+                                suffixIcon: value.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          CupertinoIcons.xmark_circle_fill,
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          textEditingController.clear();
+                                        },
+                                      )
+                                    : null,
+                              ),
+                              onSubmitted: (String value) {
+                                onFieldSubmitted();
+                                onAddManual(value);
+                              },
+                            );
                           },
                         );
                       },
-                    );
-                  },
-                  optionsViewBuilder: (
-                    BuildContext context,
-                    AutocompleteOnSelected<String> onSelected,
-                    Iterable<String> options,
-                  ) {
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Material(
-                        elevation: 8, // Higher elevation
-                        borderRadius: BorderRadius.circular(16),
-                        color: theme.colorScheme.surface, // Fully opaque
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          constraints: BoxConstraints(
-                            maxHeight: 180,
-                            maxWidth: MediaQuery.of(context).size.width - 96,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
+                  optionsViewBuilder:
+                      (
+                        BuildContext context,
+                        AutocompleteOnSelected<String> onSelected,
+                        Iterable<String> options,
+                      ) {
+                        return Align(
+                          alignment: Alignment.topLeft,
+                          child: Material(
+                            elevation: 8, // Higher elevation
                             borderRadius: BorderRadius.circular(16),
+                            color: theme.colorScheme.surface, // Fully opaque
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              constraints: BoxConstraints(
+                                maxHeight: 180,
+                                maxWidth:
+                                    MediaQuery.of(context).size.width - 96,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                itemCount: options.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (BuildContext context, int index) {
+                                  final String option = options.elementAt(
+                                    index,
+                                  );
+                                  return ListTile(
+                                    title: Text(option),
+                                    leading: const Icon(
+                                      CupertinoIcons.add,
+                                      size: 16,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    onTap: () => onSelected(option),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            padding: EdgeInsets.zero,
-                            itemCount: options.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
-                            itemBuilder: (BuildContext context, int index) {
-                              final String option = options.elementAt(index);
-                              return ListTile(
-                                title: Text(option),
-                                leading: const Icon(CupertinoIcons.add, size: 16),
-                                visualDensity: VisualDensity.compact,
-                                onTap: () => onSelected(option),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                        );
+                      },
                 ),
               ),
               const SizedBox(width: 8),
@@ -420,36 +438,38 @@ class _ShoppingPageState extends State<_ShoppingPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
               if (isPantry) ...[
-                Builder(builder: (context) {
-                  final Map<String, List<dynamic>> groupedItems = {};
-                  for (final auto in autoItems) {
-                    final n = auto.name.toLowerCase();
-                    groupedItems.putIfAbsent(n, () => []).add(auto);
-                  }
-                  for (final manual in manualItems) {
-                    final n = manual.name.toLowerCase();
-                    groupedItems.putIfAbsent(n, () => []).add(manual);
-                  }
-                  
-                  final keys = groupedItems.keys.toList()..sort();
-                  return Column(
-                    children: keys.map((key) {
-                      final items = groupedItems[key]!;
-                      final mainName = items.first is AutoIngredientInfo
-                          ? (items.first as AutoIngredientInfo).name
-                          : (items.first as DetailedIngredient).name;
-                      return _buildGroupedPantryCard(
-                        theme: theme,
-                        isDark: isDark,
-                        title: mainName,
-                        items: items,
-                        onToggleAuto: onToggleAuto,
-                        onToggleManual: onToggleManual,
-                        onRemoveManual: onRemoveManual,
-                      );
-                    }).toList(),
-                  );
-                }),
+                Builder(
+                  builder: (context) {
+                    final Map<String, List<dynamic>> groupedItems = {};
+                    for (final auto in autoItems) {
+                      final n = auto.name.toLowerCase();
+                      groupedItems.putIfAbsent(n, () => []).add(auto);
+                    }
+                    for (final manual in manualItems) {
+                      final n = manual.name.toLowerCase();
+                      groupedItems.putIfAbsent(n, () => []).add(manual);
+                    }
+
+                    final keys = groupedItems.keys.toList()..sort();
+                    return Column(
+                      children: keys.map((key) {
+                        final items = groupedItems[key]!;
+                        final mainName = items.first is AutoIngredientInfo
+                            ? (items.first as AutoIngredientInfo).name
+                            : (items.first as DetailedIngredient).name;
+                        return _buildGroupedPantryCard(
+                          theme: theme,
+                          isDark: isDark,
+                          title: mainName,
+                          items: items,
+                          onToggleAuto: onToggleAuto,
+                          onToggleManual: onToggleManual,
+                          onRemoveManual: onRemoveManual,
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
               ] else ...[
                 if (autoItems.isNotEmpty &&
                     ShoppingManager.autoShoppingEnabled.value) ...[
@@ -479,7 +499,11 @@ class _ShoppingPageState extends State<_ShoppingPage> {
                 ],
                 if (manualItems.isNotEmpty) ...[
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 12, top: 16, left: 4),
+                    padding: const EdgeInsets.only(
+                      bottom: 12,
+                      top: 16,
+                      left: 4,
+                    ),
                     child: Text(
                       'Añadidos Manualmente'.tr,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -676,6 +700,7 @@ class _ShoppingPageState extends State<_ShoppingPage> {
       ),
     );
   }
+
   Widget _buildGroupedPantryCard({
     required ThemeData theme,
     required bool isDark,
@@ -688,7 +713,7 @@ class _ShoppingPageState extends State<_ShoppingPage> {
     final displayTitle = title.isNotEmpty
         ? '${title[0].toUpperCase()}${title.substring(1)}'
         : title;
-        
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -731,7 +756,10 @@ class _ShoppingPageState extends State<_ShoppingPage> {
               Expanded(
                 child: Text(
                   displayTitle,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               Container(
@@ -751,14 +779,19 @@ class _ShoppingPageState extends State<_ShoppingPage> {
               ),
             ],
           ),
-          childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+          childrenPadding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 16,
+          ),
           children: items.map((item) {
             if (item is AutoIngredientInfo) {
               return _buildItemCard(
                 theme: theme,
                 isDark: isDark,
                 title: item.ingredient,
-                subtitle: '${item.recipeTitle} (${item.date.day}/${item.date.month})',
+                subtitle:
+                    '${item.recipeTitle} (${item.date.day}/${item.date.month})',
                 quantity: item.quantity,
                 isChecked: true, // it's in pantry
                 onToggle: () => onToggleAuto(item.autoKey),
@@ -767,7 +800,9 @@ class _ShoppingPageState extends State<_ShoppingPage> {
             } else {
               final manualItem = item as DetailedIngredient;
               return Dismissible(
-                key: ValueKey('manual_${manualItem.name}_${manualItem.quantity}'),
+                key: ValueKey(
+                  'manual_${manualItem.name}_${manualItem.quantity}',
+                ),
                 direction: DismissDirection.endToStart,
                 background: Container(
                   alignment: Alignment.centerRight,

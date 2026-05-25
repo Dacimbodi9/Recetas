@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'l10n.dart';
@@ -10,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';

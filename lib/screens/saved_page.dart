@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class SavedPage extends StatefulWidget {
   const SavedPage({super.key, this.showAppBar = true});
@@ -38,8 +31,7 @@ class _SavedPageState extends State<SavedPage> {
       body: _SavedRecipesView(
         searchController: _searchController,
         searchQuery: _searchQuery,
-        onSearchChanged: (value) =>
-            setState(() => _searchQuery = value),
+        onSearchChanged: (value) => setState(() => _searchQuery = value),
         showAppBar: false,
         onFolderChanged: (inFolder) {
           if (_inFolder != inFolder) {
@@ -77,7 +69,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
   final List<String> _folderPath = [];
   bool _isSearchVisible = true;
   bool _navigationCooldown = false;
-  
+
   bool _onScrollNotification(ScrollNotification notification) {
     if (_navigationCooldown) return false;
     if (notification is UserScrollNotification) {
@@ -185,10 +177,10 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
         // NORMAL ROOT VIEW
         final allRecipesInFolders = <String>{};
         for (final folder in RecipeManager.allFolders) {
-          allRecipesInFolders.addAll(folder.recipeTitles);
+          allRecipesInFolders.addAll(folder.recipeIds);
         }
         recipesToShow = RecipeManager.favoriteRecipes
-            .where((r) => !allRecipesInFolders.contains(r.title))
+            .where((r) => !allRecipesInFolders.contains(r.id))
             .toList();
         foldersToShow = rootFolders;
       }
@@ -199,7 +191,9 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              height: _isSearchVisible || widget.searchQuery.isNotEmpty ? 72 : 0,
+              height: _isSearchVisible || widget.searchQuery.isNotEmpty
+                  ? 72
+                  : 0,
               clipBehavior: Clip.hardEdge,
               decoration: const BoxDecoration(),
               curve: Curves.easeInOut,
@@ -220,7 +214,9 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                             prefixIcon: Icon(CupertinoIcons.search),
                             suffixIcon: widget.searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: Icon(CupertinoIcons.xmark_circle_fill),
+                                    icon: Icon(
+                                      CupertinoIcons.xmark_circle_fill,
+                                    ),
                                     onPressed: () {
                                       widget.searchController.clear();
                                       widget.onSearchChanged('');
@@ -242,8 +238,10 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                         ),
                         child: IconButton(
                           icon: Icon(CupertinoIcons.add),
-                          onPressed: () =>
-                              _showCreateFolderDialog(context, _currentFolderId),
+                          onPressed: () => _showCreateFolderDialog(
+                            context,
+                            _currentFolderId,
+                          ),
                           tooltip: 'Crear carpeta'.tr,
                         ),
                       ),
@@ -254,13 +252,16 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
             ),
             SizedBox(height: 16),
             Expanded(
-              child: (foldersToShow.isEmpty &&
+              child:
+                  (foldersToShow.isEmpty &&
                       recipesToShow.isEmpty &&
                       !(_currentFolderId == null &&
-                          RecipeManager.recipes.any((r) => (r.rating ?? 0) > 0) &&
-                          (widget.searchQuery.isEmpty || _fuzzyMatch('Valoraciones', widget.searchQuery))))
-                  ? SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                          RecipeManager.recipes.any(
+                            (r) => (r.rating ?? 0) > 0,
+                          ) &&
+                          (widget.searchQuery.isEmpty ||
+                              _fuzzyMatch('Valoraciones', widget.searchQuery))))
+                  ? Center(
                       child: widget.searchQuery.isNotEmpty
                           ? _EmptyStateWidget(
                               icon: CupertinoIcons.search,
@@ -270,49 +271,57 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                           : _EmptyStateWidget(
                               icon: CupertinoIcons.book,
                               title: 'No hay recetas'.tr,
-                              subtitle: 'Crea carpetas o guarda recetas para verlas aquí'.tr,
+                              subtitle:
+                                  'Crea carpetas o guarda recetas para verlas aquí'
+                                      .tr,
                             ),
                     )
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      // "Valoraciones" Folder (Fixed at Root)
-                      if (_currentFolderId == null &&
-                          RecipeManager.recipes.any((r) => (r.rating ?? 0) > 0) &&
-                          (widget.searchQuery.isEmpty || _fuzzyMatch('Valoraciones', widget.searchQuery)))
-                        _ValoracionesFolderCard(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const RatedRecipesPage(),
-                              ),
-                            );
-                          },
+                      children: [
+                        // "Valoraciones" Folder (Fixed at Root)
+                        if (_currentFolderId == null &&
+                            RecipeManager.recipes.any(
+                              (r) => (r.rating ?? 0) > 0,
+                            ) &&
+                            (widget.searchQuery.isEmpty ||
+                                _fuzzyMatch(
+                                  'Valoraciones',
+                                  widget.searchQuery,
+                                )))
+                          _ValoracionesFolderCard(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RatedRecipesPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        // Folders
+                        ...foldersToShow.map(
+                          (folder) => _FolderCard(
+                            folder: folder,
+                            onTap: () => _navigateToFolder(folder.id),
+                            onLongPress: () =>
+                                _showFolderOptions(context, folder),
+                          ),
                         ),
-                      // Folders
-                      ...foldersToShow.map(
-                        (folder) => _FolderCard(
-                          folder: folder,
-                          onTap: () => _navigateToFolder(folder.id),
-                          onLongPress: () =>
-                              _showFolderOptions(context, folder),
+                        // Recipes
+                        ...recipesToShow.map(
+                          (recipe) => _RecipeCard(
+                            recipe: recipe,
+                            matchCount: 0,
+                            showFolderOptions: true,
+                          ),
                         ),
-                      ),
-                      // Recipes
-                      ...recipesToShow.map(
-                        (recipe) => _RecipeCard(
-                          recipe: recipe,
-                          matchCount: 0,
-                          showFolderOptions: true,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      );
     }
     // FOLDER VIEW
     else {
@@ -372,7 +381,9 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
               SliverToBoxAdapter(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  height: _isSearchVisible || widget.searchQuery.isNotEmpty ? 72 : 0,
+                  height: _isSearchVisible || widget.searchQuery.isNotEmpty
+                      ? 72
+                      : 0,
                   clipBehavior: Clip.hardEdge,
                   decoration: const BoxDecoration(),
                   curve: Curves.easeInOut,
@@ -380,7 +391,10 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                     physics: const NeverScrollableScrollPhysics(),
                     child: Container(
                       height: 72,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: TextField(
                         controller: widget.searchController,
                         onChanged: widget.onSearchChanged,
@@ -412,46 +426,47 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                 ),
               ),
 
-            if (foldersToShow.isEmpty && recipesToShow.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    widget.searchQuery.isEmpty
-                        ? 'Carpeta vacía'
-                        : 'No se encontraron resultados en ${currentFolder.name}',
+              if (foldersToShow.isEmpty && recipesToShow.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      widget.searchQuery.isEmpty
+                          ? 'Carpeta vacía'
+                          : 'No se encontraron resultados en ${currentFolder.name}',
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Folders
+                      ...foldersToShow.map(
+                        (folder) => _FolderCard(
+                          folder: folder,
+                          onTap: () => _navigateToFolder(folder.id),
+                          onLongPress: () =>
+                              _showFolderOptions(context, folder),
+                        ),
+                      ),
+                      // Recipes
+                      ...recipesToShow.map(
+                        (recipe) => _RecipeCard(
+                          recipe: recipe,
+                          matchCount: 0,
+                          showFolderOptions: true,
+                        ),
+                      ),
+                    ]),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Folders
-                    ...foldersToShow.map(
-                      (folder) => _FolderCard(
-                        folder: folder,
-                        onTap: () => _navigateToFolder(folder.id),
-                        onLongPress: () => _showFolderOptions(context, folder),
-                      ),
-                    ),
-                    // Recipes
-                    ...recipesToShow.map(
-                      (recipe) => _RecipeCard(
-                        recipe: recipe,
-                        matchCount: 0,
-                        showFolderOptions: true,
-                      ),
-                    ),
-                  ]),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
-}
 
   void _showCreateFolderDialog(BuildContext context, String? parentId) {
     showDialog(
@@ -617,17 +632,12 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
         ],
       ),
       body: ratedRecipes.isEmpty
-          ? Column(
-              children: [
-                SizedBox(height: 72),
-                Expanded(
-                  child: _EmptyStateWidget(
-                    icon: CupertinoIcons.star_slash,
-                    title: 'Sin valoraciones'.tr.tr,
-                    subtitle: 'Valora recetas para verlas aquí'.tr.tr.tr,
-                  ),
-                ),
-              ],
+          ? Center(
+              child: _EmptyStateWidget(
+                icon: CupertinoIcons.star_slash,
+                title: 'Sin valoraciones'.tr.tr,
+                subtitle: 'Valora recetas para verlas aquí'.tr.tr.tr,
+              ),
             )
           : Column(
               children: [

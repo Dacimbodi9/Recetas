@@ -1,8 +1,3 @@
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
 
 class SettingsManager {
@@ -47,31 +42,31 @@ class SettingsManager {
   static const _bottomMenuFeaturesKey = 'bottom_menu_features';
 
   static List<Map<String, dynamic>> get availableFeatures => [
-        {
-          'id': 'search',
-          'title': 'Búsqueda'.tr,
-          'subtitle': 'Busca recetas e ingredientes'.tr,
-          'icon': CupertinoIcons.search,
-        },
-        {
-          'id': 'saved',
-          'title': 'Guardados'.tr,
-          'subtitle': 'Tus recetas guardadas y favoritas'.tr,
-          'icon': CupertinoIcons.book,
-        },
-        {
-          'id': 'mealPlanner',
-          'title': 'Planificador'.tr,
-          'subtitle': 'Organiza tus comidas de la semana'.tr,
-          'icon': Icons.calendar_month_outlined,
-        },
-        {
-          'id': 'shopping',
-          'title': 'Lista de Compra'.tr,
-          'subtitle': 'Gestión de despensa e ingredientes'.tr,
-          'icon': CupertinoIcons.cart,
-        },
-      ];
+    {
+      'id': 'search',
+      'title': 'Búsqueda'.tr,
+      'subtitle': 'Busca recetas e ingredientes'.tr,
+      'icon': CupertinoIcons.search,
+    },
+    {
+      'id': 'saved',
+      'title': 'Guardados'.tr,
+      'subtitle': 'Tus recetas guardadas y favoritas'.tr,
+      'icon': CupertinoIcons.book,
+    },
+    {
+      'id': 'mealPlanner',
+      'title': 'Planificador'.tr,
+      'subtitle': 'Organiza tus comidas de la semana'.tr,
+      'icon': Icons.calendar_month_outlined,
+    },
+    {
+      'id': 'shopping',
+      'title': 'Lista de Compra'.tr,
+      'subtitle': 'Gestión de despensa e ingredientes'.tr,
+      'icon': CupertinoIcons.cart,
+    },
+  ];
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -308,9 +303,10 @@ class SettingsManager {
         final file = File('${directory.path}/recetas_backup.json');
         await file.writeAsString(jsonStr);
 
-        final result = await Share.shareXFiles([
-          XFile(file.path),
-        ], text: 'Copia de seguridad de Guardados');
+        final result = await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path)],
+          text: 'Copia de seguridad de Guardados'
+        ));
 
         if (result.status == ShareResultStatus.success) {
           if (context.mounted) {
@@ -377,7 +373,7 @@ class SettingsManager {
               id: newId,
               name: 'Importados',
               icon: Icons.drive_file_move,
-              recipeTitles: [],
+              recipeIds: [],
             );
             await RecipeManager.addFolder(newFolder);
             importFolderId = newId;
@@ -389,7 +385,7 @@ class SettingsManager {
         for (var item in jsonList) {
           try {
             final recipe = Recipe.fromJson(item);
-            if (!RecipeManager.recipes.any((r) => r.title == recipe.title)) {
+            if (!RecipeManager.recipes.any((r) => r.id == recipe.id)) {
               await RecipeManager.addRecipe(recipe);
 
               if (importFolderId != null) {
@@ -502,7 +498,7 @@ class RecipeManager {
   static final List<Recipe> _defaultRecipes = [];
   static final List<Recipe> _recipes = [];
   static final List<Function()> _listeners = [];
-  static Set<String> _favoriteTitles = {};
+  static Set<String> _favoriteIds = {};
   static List<FavoriteFolder> _folders = [];
   static Map<String, String> _customImages = {};
   static Map<String, IngredientCategory> _customMappings = {};
@@ -634,7 +630,7 @@ class RecipeManager {
     if (isDirectDefault) return true;
 
     final defaultMatch = _defaultRecipes
-        .where((r) => r.title == recipe.title)
+        .where((r) => r.id == recipe.id)
         .firstOrNull;
     if (defaultMatch == null) return false;
 
@@ -684,7 +680,7 @@ class RecipeManager {
   }
 
   static Future<void> addRecipe(Recipe recipe) async {
-    final index = _recipes.indexWhere((r) => r.title == recipe.title);
+    final index = _recipes.indexWhere((r) => r.id == recipe.id);
     if (index != -1) {
       _recipes[index] = recipe;
     } else {
@@ -695,7 +691,7 @@ class RecipeManager {
   }
 
   static Future<void> removeRecipe(Recipe recipe) async {
-    _recipes.removeWhere((r) => r.title == recipe.title);
+    _recipes.removeWhere((r) => r.id == recipe.id);
     await _saveRecipes();
     _notifyListeners();
   }
@@ -711,8 +707,8 @@ class RecipeManager {
         _recipes.add(Recipe.fromJson(recipeMap));
       }
 
-      final favoriteTitlesList = prefs.getStringList(_favoritesKey) ?? [];
-      _favoriteTitles = favoriteTitlesList.toSet();
+      final favoriteIdsList = prefs.getStringList(_favoritesKey) ?? [];
+      _favoriteIds = favoriteIdsList.toSet();
 
       final foldersJson = prefs.getString(_foldersKey);
       if (foldersJson != null) {
@@ -759,27 +755,25 @@ class RecipeManager {
     }
   }
 
-  static bool isFavorite(Recipe recipe) =>
-      _favoriteTitles.contains(recipe.title);
+  static bool isFavorite(Recipe recipe) => _favoriteIds.contains(recipe.id);
 
   static Future<void> toggleFavorite(Recipe recipe) async {
-    if (_favoriteTitles.contains(recipe.title)) {
-      _favoriteTitles.remove(recipe.title);
+    if (_favoriteIds.contains(recipe.id)) {
+      _favoriteIds.remove(recipe.id);
     } else {
-      _favoriteTitles.add(recipe.title);
+      _favoriteIds.add(recipe.id);
     }
     await _saveFavorites();
     _notifyListeners();
   }
 
-  static List<Recipe> get favoriteRecipes => recipes
-      .where((recipe) => _favoriteTitles.contains(recipe.title))
-      .toList();
+  static List<Recipe> get favoriteRecipes =>
+      recipes.where((recipe) => _favoriteIds.contains(recipe.id)).toList();
 
   static Future<void> _saveFavorites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_favoritesKey, _favoriteTitles.toList());
+      await prefs.setStringList(_favoritesKey, _favoriteIds.toList());
     } catch (e) {
       print('Error saving favorites: $e');
     }
@@ -794,7 +788,7 @@ class RecipeManager {
       dateRated: DateTime.now(),
     );
 
-    final index = _recipes.indexWhere((r) => r.title == recipe.title);
+    final index = _recipes.indexWhere((r) => r.id == recipe.id);
     if (index != -1) {
       _recipes[index] = updatedRecipe;
     } else {
@@ -838,7 +832,7 @@ class RecipeManager {
   }
 
   static List<Recipe> getRecipesInFolder(FavoriteFolder folder) =>
-      recipes.where((r) => folder.recipeTitles.contains(r.title)).toList();
+      recipes.where((r) => folder.recipeIds.contains(r.id)).toList();
 
   static List<Recipe> getRecipesInFolderRecursive(String folderId) {
     final folder = getFolderById(folderId);
@@ -882,9 +876,9 @@ class RecipeManager {
 
   static Future<void> addRecipeToFolder(String folderId, Recipe recipe) async {
     final folder = getFolderById(folderId);
-    if (folder != null && !folder.recipeTitles.contains(recipe.title)) {
+    if (folder != null && !folder.recipeIds.contains(recipe.id)) {
       final updatedFolder = folder.copyWith(
-        recipeTitles: [...folder.recipeTitles, recipe.title],
+        recipeIds: [...folder.recipeIds, recipe.id],
       );
       await updateFolder(updatedFolder);
     }
@@ -895,11 +889,9 @@ class RecipeManager {
     Recipe recipe,
   ) async {
     final folder = getFolderById(folderId);
-    if (folder != null && folder.recipeTitles.contains(recipe.title)) {
+    if (folder != null && folder.recipeIds.contains(recipe.id)) {
       final updatedFolder = folder.copyWith(
-        recipeTitles: folder.recipeTitles
-            .where((t) => t != recipe.title)
-            .toList(),
+        recipeIds: folder.recipeIds.where((t) => t != recipe.id).toList(),
       );
       await updateFolder(updatedFolder);
     }
@@ -916,14 +908,14 @@ class RecipeManager {
   }
 
   static Future<List<Recipe>> getCustomRecipes() async {
-    final defaultTitles = _defaultRecipes.map((r) => r.title).toSet();
-    return _recipes.where((r) => !defaultTitles.contains(r.title)).toList();
+    final defaultIds = _defaultRecipes.map((r) => r.id).toSet();
+    return _recipes.where((r) => !defaultIds.contains(r.id)).toList();
   }
 
   static Future<void> clearAllData() async {
     _recipes.clear();
     _folders.clear();
-    _favoriteTitles.clear();
+    _favoriteIds.clear();
     _customMappings.clear();
     _customImages.clear();
 
@@ -1141,7 +1133,7 @@ class MealPlanManager {
       (m) =>
           m.dateKey == meal.dateKey &&
           m.mealType == meal.mealType &&
-          m.recipeTitle == meal.recipeTitle,
+          m.recipeId == meal.recipeId,
     );
     await _save();
     _notifyListeners();
@@ -1152,7 +1144,7 @@ class MealPlanManager {
       (m) =>
           m.dateKey == meal.dateKey &&
           m.mealType == meal.mealType &&
-          m.recipeTitle == meal.recipeTitle,
+          m.recipeId == meal.recipeId,
     );
     if (index != -1) {
       _meals[index] = _meals[index].copyWith(
@@ -1253,7 +1245,7 @@ class MealPlanManager {
           PlannedMeal(
             date: date,
             mealType: entry.mealType,
-            recipeTitle: entry.recipeTitle,
+            recipeId: entry.recipeId,
           ),
         );
       }
@@ -1328,9 +1320,13 @@ class ShoppingManager {
     final prefs = await SharedPreferences.getInstance();
     autoShoppingEnabled.value = prefs.getBool(_autoEnabledKey) ?? true;
     _boughtAutoItems = (prefs.getStringList(_boughtAutoKey) ?? []).toSet();
-    
-    _manualShoppingList = _loadDetailedList(prefs.getStringList(_manualShoppingKey) ?? []);
-    _manualPantryList = _loadDetailedList(prefs.getStringList(_manualPantryKey) ?? []);
+
+    _manualShoppingList = _loadDetailedList(
+      prefs.getStringList(_manualShoppingKey) ?? [],
+    );
+    _manualPantryList = _loadDetailedList(
+      prefs.getStringList(_manualPantryKey) ?? [],
+    );
 
     MealPlanManager.addListener(notifyListeners);
   }
@@ -1338,8 +1334,14 @@ class ShoppingManager {
   static Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_boughtAutoKey, _boughtAutoItems.toList());
-    await prefs.setStringList(_manualShoppingKey, _saveDetailedList(_manualShoppingList));
-    await prefs.setStringList(_manualPantryKey, _saveDetailedList(_manualPantryList));
+    await prefs.setStringList(
+      _manualShoppingKey,
+      _saveDetailedList(_manualShoppingList),
+    );
+    await prefs.setStringList(
+      _manualPantryKey,
+      _saveDetailedList(_manualPantryList),
+    );
     notifyListeners();
   }
 
@@ -1358,7 +1360,9 @@ class ShoppingManager {
   }
 
   static void removeManualShoppingItem(DetailedIngredient item) {
-    _manualShoppingList.removeWhere((i) => i.name == item.name && i.quantity == item.quantity);
+    _manualShoppingList.removeWhere(
+      (i) => i.name == item.name && i.quantity == item.quantity,
+    );
     _save();
   }
 
@@ -1375,7 +1379,9 @@ class ShoppingManager {
   }
 
   static void removeManualPantryItem(DetailedIngredient item) {
-    _manualPantryList.removeWhere((i) => i.name == item.name && i.quantity == item.quantity);
+    _manualPantryList.removeWhere(
+      (i) => i.name == item.name && i.quantity == item.quantity,
+    );
     _save();
   }
 
@@ -1399,13 +1405,13 @@ class ShoppingManager {
       if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
 
       final recipe = RecipeManager.recipes
-          .where((r) => r.title == meal.recipeTitle)
+          .where((r) => r.id == meal.recipeId)
           .firstOrNull;
       if (recipe == null) continue;
 
       for (int i = 0; i < recipe.ingredients.length; i++) {
         activeKeys.add(
-          '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_$i',
+          '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_$i',
         );
       }
     }
@@ -1413,7 +1419,6 @@ class ShoppingManager {
     _boughtAutoItems.removeWhere((k) => !activeKeys.contains(k));
     _save();
   }
-
 
   static List<AutoIngredientInfo> getAutoIngredients() {
     if (!autoShoppingEnabled.value) return [];
@@ -1427,29 +1432,29 @@ class ShoppingManager {
       if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
 
       final recipe = RecipeManager.recipes
-          .where((r) => r.title == meal.recipeTitle)
+          .where((r) => r.id == meal.recipeId)
           .firstOrNull;
       if (recipe == null) continue;
 
       for (int i = 0; i < recipe.ingredients.length; i++) {
         final ing = recipe.ingredients[i];
-        final key =
-            '${meal.dateKey}_${meal.mealType.name}_${meal.recipeTitle}_$i';
+        final key = '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_$i';
         final isBought = _boughtAutoItems.contains(key);
-        
+
         String name = ing;
         String quantity = '';
         if (i < recipe.detailedIngredients.length) {
           name = recipe.detailedIngredients[i].name;
           quantity = recipe.detailedIngredients[i].quantity;
         }
-        
+
         result.add(
           AutoIngredientInfo(
             ingredient: ing,
             name: name,
             quantity: quantity,
-            recipeTitle: meal.recipeTitle,
+            recipeTitle: recipe
+                .title, // Keep title for display, use ID internally if needed
             date: meal.date,
             autoKey: key,
             isBought: isBought,

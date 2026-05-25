@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.showAppBar = true});
@@ -60,7 +53,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+
 
     return Scaffold(
       appBar: widget.showAppBar

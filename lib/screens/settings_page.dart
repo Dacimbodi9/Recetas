@@ -1,11 +1,4 @@
-// ignore_for_file: unused_element
-// ignore_for_file: unused_local_variable
-// ignore_for_file: use_build_context_synchronously
-// ignore_for_file: deprecated_member_use
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: avoid_print
 part of '../main.dart';
-
 
 class _BottomMenuSettingsPage extends StatelessWidget {
   const _BottomMenuSettingsPage();
@@ -134,7 +127,9 @@ class _BottomMenuSettingsPage extends StatelessWidget {
                 if (newFeatures.length >= 4) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Solo puedes seleccionar hasta 4 accesos directos'.tr),
+                      content: Text(
+                        'Solo puedes seleccionar hasta 4 accesos directos'.tr,
+                      ),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -609,55 +604,7 @@ class SettingsPage extends StatelessWidget {
     navigator.pop();
   }
 
-  void _showImportDialog(BuildContext context, Recipe recipe) {
-    final exists = RecipeManager.recipes.any((r) => r.title == recipe.title);
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Receta detectada'.tr),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${'¿Quieres importar la receta'.tr} "${recipe.title}"?'),
-            if (exists) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Nota: Ya tienes una receta con este nombre.'.tr,
-                style: const TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'.tr),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await RecipeManager.addRecipe(recipe);
-              if (!RecipeManager.isFavorite(recipe)) {
-                await RecipeManager.toggleFavorite(recipe);
-              }
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Receta importada correctamente'.tr)),
-                );
-              }
-            },
-            child: Text('Importar'.tr),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _SelectionOption extends StatelessWidget {
