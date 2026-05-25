@@ -46,6 +46,33 @@ class SettingsManager {
   static const _aiProviderPref = 'ai_provider';
   static const _bottomMenuFeaturesKey = 'bottom_menu_features';
 
+  static List<Map<String, dynamic>> get availableFeatures => [
+        {
+          'id': 'search',
+          'title': 'Búsqueda'.tr,
+          'subtitle': 'Busca recetas e ingredientes'.tr,
+          'icon': CupertinoIcons.search,
+        },
+        {
+          'id': 'saved',
+          'title': 'Guardados'.tr,
+          'subtitle': 'Tus recetas guardadas y favoritas'.tr,
+          'icon': CupertinoIcons.book,
+        },
+        {
+          'id': 'mealPlanner',
+          'title': 'Planificador'.tr,
+          'subtitle': 'Organiza tus comidas de la semana'.tr,
+          'icon': Icons.calendar_month_outlined,
+        },
+        {
+          'id': 'shopping',
+          'title': 'Lista de Compra'.tr,
+          'subtitle': 'Gestión de despensa e ingredientes'.tr,
+          'icon': CupertinoIcons.cart,
+        },
+      ];
+
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final systemBrightness =

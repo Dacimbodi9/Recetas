@@ -22,7 +22,7 @@ class _BottomMenuSettingsPage extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.'
+              'Elige qué funciones quieres tener a mano en la barra inferior (máx 4). Las que no selecciones aparecerán en la pantalla de inicio.'
                   .tr,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
@@ -34,47 +34,21 @@ class _BottomMenuSettingsPage extends StatelessWidget {
               valueListenable: SettingsManager.bottomMenuFeatures,
               builder: (context, features, _) {
                 return Column(
-                  children: [
-                    _buildFeatureToggle(
-                      theme,
-                      isDark,
-                      id: 'search',
-                      title: 'Búsqueda'.tr,
-                      subtitle: 'Busca recetas e ingredientes'.tr,
-                      icon: CupertinoIcons.search,
-                      features: features,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureToggle(
-                      theme,
-                      isDark,
-                      id: 'saved',
-                      title: 'Guardados'.tr,
-                      subtitle: 'Tus recetas guardadas y favoritas'.tr,
-                      icon: CupertinoIcons.book,
-                      features: features,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureToggle(
-                      theme,
-                      isDark,
-                      id: 'mealPlanner',
-                      title: 'Planificador'.tr,
-                      subtitle: 'Organiza tus comidas de la semana'.tr,
-                      icon: Icons.calendar_month_outlined,
-                      features: features,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFeatureToggle(
-                      theme,
-                      isDark,
-                      id: 'shopping',
-                      title: 'Lista de Compra'.tr,
-                      subtitle: 'Gestión de despensa e ingredientes'.tr,
-                      icon: CupertinoIcons.cart,
-                      features: features,
-                    ),
-                  ],
+                  children: SettingsManager.availableFeatures.map((feat) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildFeatureToggle(
+                        context,
+                        theme,
+                        isDark,
+                        id: feat['id'],
+                        title: feat['title'],
+                        subtitle: feat['subtitle'],
+                        icon: feat['icon'],
+                        features: features,
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
@@ -85,6 +59,7 @@ class _BottomMenuSettingsPage extends StatelessWidget {
   }
 
   Widget _buildFeatureToggle(
+    BuildContext context,
     ThemeData theme,
     bool isDark, {
     required String id,
@@ -156,6 +131,15 @@ class _BottomMenuSettingsPage extends StatelessWidget {
             onChanged: (val) {
               final newFeatures = List<String>.from(features);
               if (val) {
+                if (newFeatures.length >= 4) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Solo puedes seleccionar hasta 4 accesos directos'.tr),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
                 newFeatures.add(id);
               } else {
                 newFeatures.remove(id);

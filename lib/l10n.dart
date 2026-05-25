@@ -373,8 +373,10 @@ class AppLocalization {
     "Año": "Year",
     "Menú principal": "Main Menu",
     "Personalizar botones inferiores": "Customize bottom buttons",
-    "Elige qué funciones quieres tener a mano en la barra inferior. Las que no selecciones aparecerán en la pantalla de inicio.":
-        "Choose which features you want handy in the bottom bar. Those not selected will appear on the home screen.",
+    "Elige qué funciones quieres tener a mano en la barra inferior (máx 4). Las que no selecciones aparecerán en la pantalla de inicio.":
+        "Choose which features you want handy in the bottom bar (max 4). Those not selected will appear on the home screen.",
+    "Solo puedes seleccionar hasta 4 accesos directos":
+        "You can only select up to 4 shortcuts",
     "Búsqueda": "Search",
     "Busca recetas e ingredientes": "Search for recipes and ingredients",
     "Planificador": "Planner",
