@@ -1,8 +1,9 @@
 part of '../main.dart';
 
 class _ShoppingListPage extends StatefulWidget {
-  const _ShoppingListPage({this.showAppBar = true});
+  const _ShoppingListPage({super.key, this.showAppBar = true, this.isActive = true});
   final bool showAppBar;
+  final bool isActive;
 
   @override
   State<_ShoppingListPage> createState() => _ShoppingListPageState();
@@ -22,7 +23,18 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
   }
 
   @override
+  void didUpdateWidget(covariant _ShoppingListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) {
+      ShoppingListManager.archiveCheckedItems();
+    }
+  }
+
+  @override
   void dispose() {
+    if (widget.isActive) {
+      ShoppingListManager.archiveCheckedItems();
+    }
     _manualNameController.dispose();
     _manualQtyController.dispose();
     ShoppingListManager.removeListener(_refresh);
@@ -46,71 +58,6 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
     setState(() {
       _plannerItems = ShoppingListManager.generateFromPlanner();
     });
-  }
-
-  String _formatDate(DateTime d) {
-    final isEn = AppLocalization.instance.currentLanguage == 'en';
-    const esDay = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const enDay = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const esMonth = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic',
-    ];
-    const enMonth = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final day = isEn ? enDay[d.weekday - 1] : esDay[d.weekday - 1];
-    final month = isEn ? enMonth[d.month - 1] : esMonth[d.month - 1];
-    return '$day ${d.day} $month';
-  }
-
-  Future<void> _pickDateRange() async {
-    final theme = Theme.of(context);
-    final result = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: DateTimeRange(
-        start: ShoppingListManager.rangeStart,
-        end: ShoppingListManager.rangeEnd,
-      ),
-      builder: (context, child) {
-        return Theme(
-          data: theme.copyWith(
-            colorScheme: theme.colorScheme.copyWith(
-              primary: theme.colorScheme.primary,
-              onPrimary: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (result != null) {
-      await ShoppingListManager.setDateRange(result.start, result.end);
-      _regenerate();
-    }
   }
 
   void _showAddManualItemSheet() {
@@ -277,75 +224,51 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
         onPressed: _showAddManualItemSheet,
         child: const Icon(CupertinoIcons.plus),
       ),
-      body: totalCount == 0 && manualItems.isEmpty
-          ? _buildEmptyState(theme)
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ─── Progress Bar and Days Ahead ───
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ─── Date Range Card ───
-                  _buildDateRangeCard(theme, isDark)
-                      .animate()
-                      .fade(duration: 400.ms)
-                      .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
-                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _buildProgressCard(theme, isDark, checkedCount, totalCount),
+                  ),
+                  const SizedBox(width: 12),
+                  _buildDaysAheadButton(theme, isDark),
+                ],
+              ),
+            ).animate().fade(duration: 400.ms).slideY(
+                  begin: 0.1,
+                  end: 0,
+                  curve: Curves.easeOutCubic,
+                ),
 
-                  // ─── Progress Bar ───
-                  if (totalCount > 0)
-                    _buildProgressCard(theme, isDark, checkedCount, totalCount)
-                        .animate(delay: 100.ms)
-                        .fade(duration: 400.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
+            const SizedBox(height: 24),
 
-                  if (totalCount > 0) const SizedBox(height: 16),
-
-                  // ─── Action Buttons ───
-                  if (totalCount > 0)
-                    Row(
-                          children: [
-                            Expanded(
-                              child: _buildActionChip(
-                                theme,
-                                label: 'Marcar todo'.tr,
-                                icon: Icons.check_circle_outline,
-                                onTap: () =>
-                                    ShoppingListManager.checkAll(allItemNames),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildActionChip(
-                                theme,
-                                label: 'Desmarcar todo'.tr,
-                                icon: Icons.radio_button_unchecked,
-                                onTap: () => ShoppingListManager.uncheckAll(),
-                              ),
-                            ),
-                          ],
-                        )
-                        .animate(delay: 150.ms)
-                        .fade(duration: 400.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
-
-                  if (totalCount > 0) const SizedBox(height: 20),
-
-                  // ─── Planner Section Header ───
-                  if (_plannerItems.isNotEmpty) ...[
-                    Padding(
-                          padding: const EdgeInsets.only(bottom: 12, left: 4),
-                          child: Text(
-                            'Del Planificador'.tr,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        )
-                        .animate(delay: 200.ms)
-                        .fade(duration: 400.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
+            if (totalCount == 0 && manualItems.isEmpty)
+              _buildEmptyState(theme)
+            else ...[
+              // ─── Planner Section Header ───
+              if (_plannerItems.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, left: 4),
+                  child: Text(
+                    'Del Planificador'.tr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ).animate(delay: 200.ms).fade(duration: 400.ms).slideY(
+                      begin: 0.1,
+                      end: 0,
+                      curve: Curves.easeOutCubic,
+                    ),
 
                     // ─── Categorized ingredients ───
                     ...sortedCategories.asMap().entries.map((entry) {
@@ -369,7 +292,7 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                   ],
 
                   // ─── Manual Items Section ───
-                  if (manualItems.isNotEmpty) ...[
+                  if (manualItems.isEmpty) ...[
                     const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12, left: 4),
@@ -385,11 +308,12 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                     _buildManualItemsCard(theme, isDark, manualItems),
                   ],
 
-                  // Bottom padding for FAB
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
+              // Bottom padding for FAB
+              const SizedBox(height: 80),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -434,18 +358,34 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                     ),
                   ],
                 )
-                .animate()
-                .fade(duration: 500.ms)
-                .scaleXY(begin: 0.95, end: 1.0, curve: Curves.easeOutCubic),
+                .animate().fade(duration: 500.ms).scaleXY(
+              begin: 0.95,
+              end: 1.0,
+              curve: Curves.easeOutCubic,
+            ),
       ),
     );
   }
 
-  Widget _buildDateRangeCard(ThemeData theme, bool isDark) {
-    return GestureDetector(
-      onTap: _pickDateRange,
+  Widget _buildDaysAheadButton(ThemeData theme, bool isDark) {
+    final days = ShoppingListManager.daysAhead;
+    return PopupMenuButton<int>(
+      initialValue: days,
+      onSelected: (val) {
+        ShoppingListManager.setDaysAhead(val);
+        _regenerate();
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (context) {
+        return [1, 2, 3, 4, 5, 6, 7, 10, 14].map((d) {
+          return PopupMenuItem(
+            value: d,
+            child: Text('$d ${d == 1 ? 'día' : 'días'}'),
+          );
+        }).toList();
+      },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -464,45 +404,26 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                   ),
                 ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.date_range_outlined,
+            Icon(Icons.date_range_outlined, color: theme.colorScheme.primary),
+            const SizedBox(height: 4),
+            Text(
+              '+$days',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
                 color: theme.colorScheme.primary,
-                size: 22,
+                fontSize: 16,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_formatDate(ShoppingListManager.rangeStart)} — ${_formatDate(ShoppingListManager.rangeEnd)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Sincronizado con el planificador'.tr,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            Text(
+              days == 1 ? 'día' : 'días',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
               ),
             ),
-            Icon(CupertinoIcons.chevron_right, size: 16, color: Colors.grey),
           ],
         ),
       ),
@@ -565,39 +486,6 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionChip(
-    ThemeData theme, {
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: theme.colorScheme.primary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

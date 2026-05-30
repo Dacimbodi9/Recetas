@@ -522,6 +522,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   .fade(duration: 500.ms)
                   .slideY(begin: 0.03, curve: Curves.easeOutCubic),
               const SizedBox(height: 16),
+              const _TodayMealsCard(),
               ValueListenableBuilder<List<String>>(
                 valueListenable: SettingsManager.bottomMenuFeatures,
                 builder: (context, features, _) {
@@ -593,7 +594,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
-                                            const _ShoppingListPage(),
+                                            const _ShoppingListPage(isActive: true),
                                       ),
                                     );
                                   },
@@ -666,5 +667,131 @@ class _ProfilePageState extends State<ProfilePage> {
         onTap: onTap,
       ),
     );
+  }
+}
+
+class _TodayMealsCard extends StatefulWidget {
+  const _TodayMealsCard({super.key});
+
+  @override
+  State<_TodayMealsCard> createState() => _TodayMealsCardState();
+}
+
+class _TodayMealsCardState extends State<_TodayMealsCard> {
+  @override
+  void initState() {
+    super.initState();
+    MealPlanManager.addListener(_onMealsChanged);
+  }
+
+  @override
+  void dispose() {
+    MealPlanManager.removeListener(_onMealsChanged);
+    super.dispose();
+  }
+
+  void _onMealsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+    final todayMeals = MealPlanManager.getMealsForDate(normalizedToday);
+
+    if (todayMeals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.restaurant, color: theme.colorScheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Comidas de hoy'.tr,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...todayMeals.map((meal) {
+            final recipe = RecipeManager.recipes.where((r) => r.id == meal.recipeId).firstOrNull;
+            if (recipe == null) return const SizedBox.shrink();
+
+            final String typeName = meal.mealType.name;
+            final String capitalizedType = typeName.isNotEmpty 
+                ? '${typeName[0].toUpperCase()}${typeName.substring(1)}'.tr 
+                : '';
+
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: GestureDetector(
+                onTap: () {
+                  MealPlanManager.toggleCompleted(meal);
+                },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: meal.completed ? theme.colorScheme.primary : Colors.grey,
+                      width: 2,
+                    ),
+                    color: meal.completed ? theme.colorScheme.primary : Colors.transparent,
+                  ),
+                  child: meal.completed
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
+              ),
+              title: Text(
+                recipe.title,
+                style: TextStyle(
+                  decoration: meal.completed ? TextDecoration.lineThrough : null,
+                  color: meal.completed ? Colors.grey : null,
+                ),
+              ),
+              subtitle: Text(
+                capitalizedType,
+                style: TextStyle(fontSize: 12, color: theme.colorScheme.primary),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => RecipeDetailPage(recipe: recipe)),
+                );
+              },
+            );
+          }),
+        ],
+      ),
+    ).animate().fade(duration: 500.ms).slideY(begin: 0.03, curve: Curves.easeOutCubic);
   }
 }

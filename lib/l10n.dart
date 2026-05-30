@@ -417,6 +417,7 @@ class AppLocalization {
     "Wrap de Pollo y Hummus": "Chicken & Hummus Wrap",
     "Batido Verde Detox": "Green Detox Smoothie",
     "Copia": "Copy",
+    "Comidas de hoy": "Today's meals",
   };
 }
 

@@ -64,7 +64,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                   ),
                 );
               } else if (feature == 'shoppingList') {
-                pages.add(const _ShoppingListPage(showAppBar: false));
+                pages.add(_ShoppingListPage(
+                  key: ValueKey('shopping_$lang'),
+                  showAppBar: false,
+                  isActive: _currentFeature == 'shoppingList',
+                ));
                 destinations.add(
                   NavigationDestination(
                     icon: const Icon(Icons.shopping_cart_outlined),

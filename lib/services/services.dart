@@ -1338,20 +1338,16 @@ class MealPlanManager {
 class ShoppingListManager {
   static const String _checkedKey = 'shopping_checked_items';
   static const String _manualKey = 'shopping_manual_items';
-  static const String _startDateKey = 'shopping_start_date';
-  static const String _endDateKey = 'shopping_end_date';
+  static const String _daysAheadKey = 'shopping_days_ahead';
+  static const String _boughtUntilKey = 'shopping_bought_until';
 
   static Set<String> _checkedItems = {};
   static List<Map<String, String>> _manualItems = [];
+  static Map<String, DateTime> _boughtUntil = {};
+  static int _daysAhead = 7;
   static final List<Function()> _listeners = [];
 
-  /// The date range used for ingredient aggregation.
-  static late DateTime _rangeStart;
-  static late DateTime _rangeEnd;
-
-  static DateTime get rangeStart => _rangeStart;
-  static DateTime get rangeEnd => _rangeEnd;
-
+  static int get daysAhead => _daysAhead;
   static Set<String> get checkedItems => Set.unmodifiable(_checkedItems);
   static List<Map<String, String>> get manualItems =>
       List.unmodifiable(_manualItems);
@@ -1391,49 +1387,48 @@ class ShoppingListManager {
       }
     }
 
-    // Date range (default: today → today+6 = 7 days)
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final startStr = prefs.getString(_startDateKey);
-    final endStr = prefs.getString(_endDateKey);
-    _rangeStart = startStr != null ? DateTime.parse(startStr) : today;
-    _rangeEnd = endStr != null
-        ? DateTime.parse(endStr)
-        : today.add(const Duration(days: 6));
-    // If the saved range is entirely in the past, reset to default
-    if (_rangeEnd.isBefore(today)) {
-      _rangeStart = today;
-      _rangeEnd = today.add(const Duration(days: 6));
+    // Days ahead
+    _daysAhead = prefs.getInt(_daysAheadKey) ?? 7;
+
+    // Bought until
+    final boughtStr = prefs.getString(_boughtUntilKey);
+    _boughtUntil = {};
+    if (boughtStr != null) {
+      try {
+        final Map<String, dynamic> decoded = json.decode(boughtStr);
+        decoded.forEach((key, value) {
+          _boughtUntil[key] = DateTime.parse(value.toString());
+        });
+      } catch (e) {
+        debugPrint('Error loading bought until: $e');
+      }
     }
   }
 
-  static Future<void> setDateRange(DateTime start, DateTime end) async {
-    _rangeStart = DateTime(start.year, start.month, start.day);
-    _rangeEnd = DateTime(end.year, end.month, end.day);
+  static Future<void> setDaysAhead(int days) async {
+    _daysAhead = days;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _startDateKey,
-      '${_rangeStart.year}-${_rangeStart.month.toString().padLeft(2, '0')}-${_rangeStart.day.toString().padLeft(2, '0')}',
-    );
-    await prefs.setString(
-      _endDateKey,
-      '${_rangeEnd.year}-${_rangeEnd.month.toString().padLeft(2, '0')}-${_rangeEnd.day.toString().padLeft(2, '0')}',
-    );
+    await prefs.setInt(_daysAheadKey, days);
     _notifyListeners();
   }
 
   /// Represents a single shopping item with source info.
   /// Returns a list of maps: { name, sources: [ {recipeName, quantity} ] }
   static List<Map<String, dynamic>> generateFromPlanner() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDate = today.add(Duration(days: _daysAhead));
+
     final meals = MealPlanManager.meals.where((m) {
       final d = DateTime(m.date.year, m.date.month, m.date.day);
-      return !d.isBefore(_rangeStart) && !d.isAfter(_rangeEnd);
+      return !d.isAfter(endDate);
     }).toList();
 
     // Map: ingredientNameLower → { name (display), sources: [{recipeName, quantity}] }
     final Map<String, Map<String, dynamic>> aggregated = {};
 
     for (final meal in meals) {
+      final mealDate = DateTime(meal.date.year, meal.date.month, meal.date.day);
       final recipe = RecipeManager.recipes
           .where((r) => r.id == meal.recipeId)
           .firstOrNull;
@@ -1444,6 +1439,12 @@ class ShoppingListManager {
         for (final di in recipe.detailedIngredients) {
           final key = di.name.trim().toLowerCase();
           if (key.isEmpty) continue;
+          
+          final boughtUntilDate = _boughtUntil[key];
+          if (boughtUntilDate != null && !mealDate.isAfter(boughtUntilDate)) {
+            continue; // Already bought for this meal's date
+          }
+
           if (!aggregated.containsKey(key)) {
             aggregated[key] = {
               'name': di.name.trim(),
@@ -1460,6 +1461,12 @@ class ShoppingListManager {
         for (final ingredient in recipe.ingredients) {
           final key = ingredient.trim().toLowerCase();
           if (key.isEmpty) continue;
+
+          final boughtUntilDate = _boughtUntil[key];
+          if (boughtUntilDate != null && !mealDate.isAfter(boughtUntilDate)) {
+            continue; // Already bought for this meal's date
+          }
+
           if (!aggregated.containsKey(key)) {
             aggregated[key] = {
               'name': ingredient.trim(),
@@ -1492,20 +1499,6 @@ class ShoppingListManager {
     _notifyListeners();
   }
 
-  static Future<void> checkAll(List<String> names) async {
-    for (final n in names) {
-      _checkedItems.add(n.toLowerCase());
-    }
-    await _saveChecked();
-    _notifyListeners();
-  }
-
-  static Future<void> uncheckAll() async {
-    _checkedItems.clear();
-    await _saveChecked();
-    _notifyListeners();
-  }
-
   static Future<void> addManualItem(String name, String quantity) async {
     _manualItems.add({'name': name, 'quantity': quantity});
     await _saveManual();
@@ -1518,6 +1511,41 @@ class ShoppingListManager {
       await _saveManual();
       _notifyListeners();
     }
+  }
+
+  /// Called when leaving the shopping list page to permanently archive checked items
+  static Future<void> archiveCheckedItems() async {
+    if (_checkedItems.isEmpty) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDate = today.add(Duration(days: _daysAhead));
+
+    bool manualChanged = false;
+    for (final key in _checkedItems) {
+      // Check if it's a manual item and remove it
+      final initialLength = _manualItems.length;
+      _manualItems.removeWhere((item) => (item['name'] ?? '').toLowerCase() == key);
+      if (_manualItems.length != initialLength) {
+        manualChanged = true;
+      }
+      
+      // Update bought until date for planner items
+      _boughtUntil[key] = endDate;
+    }
+
+    _checkedItems.clear();
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_checkedKey, []);
+    if (manualChanged) {
+      await prefs.setString(_manualKey, json.encode(_manualItems));
+    }
+    await prefs.setString(_boughtUntilKey, json.encode(
+      _boughtUntil.map((k, v) => MapEntry(k, v.toIso8601String()))
+    ));
+    
+    _notifyListeners();
   }
 
   static Future<void> _saveChecked() async {
