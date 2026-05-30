@@ -32,7 +32,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             for (final feature in limitedFeatures) {
               if (feature == 'search') {
                 pages.add(
-                  SearchPage(key: ValueKey('search_$lang'), showAppBar: false),
+                  _currentFeature == 'search'
+                      ? SearchPage(
+                          key: ValueKey('search_$lang'),
+                          showAppBar: false,
+                        )
+                      : const SizedBox.shrink(),
                 );
                 destinations.add(
                   NavigationDestination(
@@ -58,11 +63,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                     label: 'Planificador'.tr,
                   ),
                 );
-              } else if (feature == 'shopping') {
-                pages.add(const _ShoppingPage(showAppBar: false));
+              } else if (feature == 'shoppingList') {
+                pages.add(const _ShoppingListPage(showAppBar: false));
                 destinations.add(
                   NavigationDestination(
-                    icon: const Icon(CupertinoIcons.cart),
+                    icon: const Icon(Icons.shopping_cart_outlined),
                     label: 'Compra'.tr,
                   ),
                 );

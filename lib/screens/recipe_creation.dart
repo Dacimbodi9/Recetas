@@ -724,6 +724,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   builder: (context) => AlertDialog(
                     title: Text('Editar paso'.tr),
                     content: TextField(
+                      textCapitalization: TextCapitalization.sentences,
                       controller: controller,
                       maxLines: 3,
                       autofocus: true,
@@ -793,6 +794,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
       builder: (context) => AlertDialog(
         title: Text('Cantidad para $ingredientName'),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
           controller: controller,
           decoration: InputDecoration(labelText: 'Ej: 200g, 1 un, al gusto...'),
           autofocus: true,
@@ -818,6 +820,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
       builder: (context) => AlertDialog(
         title: Text('Añadir paso'.tr),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
           controller: controller,
           maxLines: 3,
           autofocus: true,
@@ -854,11 +857,13 @@ class _NewRecipePageState extends State<NewRecipePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: nameCtrl,
                 decoration: InputDecoration(labelText: 'Nombre'.tr),
               ),
               SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: qtyCtrl,
                 decoration: InputDecoration(
                   labelText: 'Cantidad (ej: 100g)'.tr,
@@ -1065,7 +1070,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.black, // High contrast
+                          foregroundColor: Colors.white,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1170,6 +1175,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
             title: 'NOMBRE'.tr.tr,
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _titleController,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -1194,6 +1200,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
             title: 'TIEMPO ESTIMADO'.tr.tr,
             children: [
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _prepTimeController,
                 decoration: InputDecoration(
                   hintText: 'Ej: 30 min'.tr.tr,
@@ -1328,6 +1335,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
     String label,
   ) {
     return TextField(
+      textCapitalization: TextCapitalization.sentences,
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: theme.textTheme.bodyMedium,
@@ -1339,7 +1347,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
           alpha: 0.3,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
       ),
@@ -1375,16 +1383,39 @@ class _NewRecipePageState extends State<NewRecipePage> {
                 children: [
                   Expanded(
                     child: TextField(
+                      textCapitalization: TextCapitalization.sentences,
                       controller: _ingredientController,
                       onChanged: (val) =>
                           setState(() => _ingredientQuery = val),
                       textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
-                        hintText: 'Buscar ingredientes...'.tr.tr,
-                        prefixIcon: Icon(CupertinoIcons.search),
+                        hintText: 'Buscar ingredientes...'.tr,
+                        prefixIcon: const Icon(
+                          CupertinoIcons.search,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.05),
+                          ),
+                        ),
                         suffixIcon: _ingredientQuery.isNotEmpty
                             ? IconButton(
-                                icon: Icon(
+                                icon: const Icon(
                                   CupertinoIcons.xmark_circle_fill,
                                   size: 20,
                                 ),
@@ -1399,16 +1430,25 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   ),
                   SizedBox(width: 8),
                   Container(
-                    height: 56,
-                    width: 56,
+                    height: 52,
+                    width: 52,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: IconButton(
-                      icon: Icon(CupertinoIcons.add),
+                      icon: const Icon(CupertinoIcons.add, color: Colors.white),
                       onPressed: _showAddCustomIngredientDialog,
-                      tooltip: 'Crear nuevo',
+                      tooltip: 'Crear nuevo'.tr,
                     ),
                   ),
                 ],
@@ -1459,43 +1499,50 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   itemBuilder: (context, index) {
                     final item = _detailedIngredients[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.05,
-                          ),
-                        ),
-                      ),
-                      child: ListTile(
-                        title: Row(
-                          children: [
-                            Text(
-                              item.name,
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface.withValues(
+                              alpha: 0.5,
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              item.quantity,
-                              style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color
-                                    ?.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.05,
                               ),
                             ),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(
-                            CupertinoIcons.trash,
-                            size: 18,
-                            color: Colors.grey,
                           ),
-                          onPressed: () => _removeIngredient(item),
-                        ),
-                      ),
-                    );
+                          child: ListTile(
+                            title: Row(
+                              children: [
+                                Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  item.quantity,
+                                  style: TextStyle(
+                                    color: theme.textTheme.bodyMedium?.color
+                                        ?.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                CupertinoIcons.trash,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () => _removeIngredient(item),
+                            ),
+                          ),
+                        )
+                        .animate(delay: (index * 50).ms)
+                        .fade(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
                   },
                 ),
         ),
@@ -1576,32 +1623,39 @@ class _NewRecipePageState extends State<NewRecipePage> {
                   children: [
                     for (int index = 0; index < _steps.length; index++)
                       Container(
-                        key: ValueKey('step_${_steps[index]}_$index'),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                            key: ValueKey('step_${_steps[index]}_$index'),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.05,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.drag_indicator,
-                            color: Colors.grey,
-                          ),
-                          title: Text(_steps[index]),
-                          trailing: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.drag_indicator,
+                                color: Colors.grey,
+                              ),
+                              title: Text(_steps[index]),
+                              trailing: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                             ),
+                          )
+                          .animate(delay: (index * 50).ms)
+                          .fade(duration: 400.ms)
+                          .slideY(
+                            begin: 0.1,
+                            end: 0,
+                            curve: Curves.easeOutCubic,
                           ),
-                        ),
-                      ),
                   ],
                 )
               : ListView.builder(
@@ -1813,10 +1867,10 @@ class _NewRecipePageState extends State<NewRecipePage> {
       builder: (context) => AlertDialog(
         title: Text('Añadir etiqueta'.tr),
         content: TextField(
+          textCapitalization: TextCapitalization.sentences,
           controller: controller,
           decoration: InputDecoration(hintText: 'Ej: Keto, Low Carb...'.tr.tr),
           autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
         ),
         actions: [
           TextButton(
@@ -1877,6 +1931,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _nameController,
             decoration: InputDecoration(
               hintText: 'Nombre del ingrediente'.tr.tr,
@@ -1886,6 +1941,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
           ),
           SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _quantityController,
             decoration: InputDecoration(
               hintText: 'Ej: 200g'.tr.tr,
@@ -1977,6 +2033,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
     return AlertDialog(
       title: Text('Añadir paso'.tr),
       content: TextField(
+        textCapitalization: TextCapitalization.sentences,
         controller: _controller,
         decoration: InputDecoration(
           hintText: 'Describe el paso de la receta'.tr.tr,

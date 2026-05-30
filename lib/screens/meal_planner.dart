@@ -330,6 +330,7 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
+                      textCapitalization: TextCapitalization.sentences,
                       onChanged: (v) => setSheet(() => searchQuery = v.trim()),
                       decoration: InputDecoration(
                         hintText: 'Buscar recetas por nombre...'.tr,
@@ -425,50 +426,58 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
           children: [
             // ──────── TODAY'S MEALS ────────
             Padding(
-              padding: const EdgeInsets.only(bottom: 12, left: 4),
-              child: Text(
-                'HOY'.tr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
+                  padding: const EdgeInsets.only(bottom: 12, left: 4),
+                  child: Text(
+                    'HOY'.tr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                )
+                .animate()
+                .fade(duration: 400.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
             if (todayMeals.isEmpty)
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.05),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.restaurant_menu,
-                      size: 40,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No hay comidas planificadas'.tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.restaurant_menu,
+                          size: 40,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No hay comidas planificadas'.tr,
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(CupertinoIcons.plus, size: 16),
+                          label: Text('Planificar hoy'.tr),
+                          onPressed: () => _openDayDetail(today),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton.tonalIcon(
-                      icon: const Icon(CupertinoIcons.plus, size: 16),
-                      label: Text('Planificar hoy'.tr),
-                      onPressed: () => _openDayDetail(today),
-                    ),
-                  ],
-                ),
-              )
+                  )
+                  .animate(delay: 100.ms)
+                  .fade(duration: 400.ms)
+                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic)
             else
               ...MealType.values.map((type) {
                 final mealsOfType = todayMeals
@@ -476,118 +485,138 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
                     .toList();
                 if (mealsOfType.isEmpty) return const SizedBox.shrink();
                 return _TodayMealRow(
-                  mealType: type,
-                  meals: mealsOfType,
-                  onToggle: (m) => MealPlanManager.toggleCompleted(m),
-                  onSwap: (m) {
-                    MealPlanManager.removeMeal(m);
-                    _showAddMealSheet(today, m.mealType);
-                  },
-                  onRemove: (m) => MealPlanManager.removeMeal(m),
-                );
+                      mealType: type,
+                      meals: mealsOfType,
+                      onToggle: (m) => MealPlanManager.toggleCompleted(m),
+                      onSwap: (m) {
+                        MealPlanManager.removeMeal(m);
+                        _showAddMealSheet(today, m.mealType);
+                      },
+                      onRemove: (m) => MealPlanManager.removeMeal(m),
+                    )
+                    .animate(delay: (100 + type.index * 50).ms)
+                    .fade(duration: 400.ms)
+                    .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
               }),
 
             const SizedBox(height: 24),
 
             // ──────── CALENDAR CARD ────────
             Padding(
-              padding: const EdgeInsets.only(bottom: 12, left: 4),
-              child: Text(
-                'CALENDARIO'.tr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-                boxShadow: isDark
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-              ),
-              child: Column(
-                children: [
-                  // Month nav
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(CupertinoIcons.chevron_left, size: 16),
-                        onPressed: _previousMonth,
-                      ),
-                      Text(
-                        _monthYearLabel(_displayedMonth),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 16,
-                        ),
-                        onPressed: _nextMonth,
-                      ),
-                    ],
+                  padding: const EdgeInsets.only(bottom: 12, left: 4),
+                  child: Text(
+                    'CALENDARIO'.tr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  // Weekday headers
-                  Row(
+                )
+                .animate(delay: 200.ms)
+                .fade(duration: 400.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
+            Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                  ),
+                  child: Column(
                     children: [
-                      const SizedBox(width: 32), // Space for the week handle
-                      ..._weekdayHeaders.map(
-                        (h) => Expanded(
-                          child: Center(
-                            child: Text(
-                              h,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
+                      // Month nav
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              CupertinoIcons.chevron_left,
+                              size: 16,
+                            ),
+                            onPressed: _previousMonth,
+                          ),
+                          Text(
+                            _monthYearLabel(_displayedMonth),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                            ),
+                            onPressed: _nextMonth,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Weekday headers
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 32,
+                          ), // Space for the week handle
+                          ..._weekdayHeaders.map(
+                            (h) => Expanded(
+                              child: Center(
+                                child: Text(
+                                  h,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
+                      const SizedBox(height: 6),
+                      // Calendar grid
+                      _buildCalendarGrid(theme, today),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  // Calendar grid
-                  _buildCalendarGrid(theme, today),
-                ],
-              ),
-            ),
+                )
+                .animate(delay: 250.ms)
+                .fade(duration: 400.ms)
+                .scaleXY(begin: 0.95, end: 1.0, curve: Curves.easeOutCubic),
             const SizedBox(height: 24),
 
             // ──────── TEMPLATES ────────
             Padding(
-              padding: const EdgeInsets.only(bottom: 12, left: 4),
-              child: Text(
-                'PLANTILLAS'.tr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
-            _buildTemplatesSection(theme, isDark),
+                  padding: const EdgeInsets.only(bottom: 12, left: 4),
+                  child: Text(
+                    'PLANTILLAS'.tr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                )
+                .animate(delay: 350.ms)
+                .fade(duration: 400.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
+            _buildTemplatesSection(theme, isDark)
+                .animate(delay: 400.ms)
+                .fade(duration: 400.ms)
+                .slideX(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
             const SizedBox(height: 24),
           ],
         ),
@@ -597,143 +626,201 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
 
   Widget _buildTemplatesSection(ThemeData theme, bool isDark) {
     final templates = MealPlanManager.templates;
+    final List<Widget> items = [];
 
-    return Column(
-      children: [
-        // Saved templates
-        if (templates.isNotEmpty)
-          ...templates.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final tmpl = entry.value;
-            final dayCount = tmpl.days.values.where((v) => v.isNotEmpty).length;
-            final mealCount = tmpl.days.values.fold<int>(
-              0,
-              (s, v) => s + v.length,
-            );
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
-                ),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.receipt_long_outlined,
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                ),
-                title: Text(
-                  tmpl.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  '$dayCount ${'días'.tr} · $mealCount ${'comidas'.tr}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Edit
-                    IconButton(
-                      icon: const Icon(
-                        CupertinoIcons.pencil,
-                        size: 18,
-                        color: Colors.blueGrey,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => _TemplateEditorPage(
-                              template: tmpl,
-                              templateIndex: idx,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    // Delete
-                    IconButton(
-                      icon: const Icon(
-                        CupertinoIcons.delete,
-                        size: 18,
-                        color: Colors.redAccent,
-                      ),
-                      onPressed: () => MealPlanManager.deleteTemplate(idx),
-                    ),
-                  ],
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            );
-          }),
-        // Create button
-        Container(
+    // Create new template card
+    items.add(
+      GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const _TemplateEditorPage()),
+          );
+        },
+        child: Container(
+          width: 110,
+          margin: const EdgeInsets.only(right: 16),
           decoration: BoxDecoration(
             color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+              style: BorderStyle.solid,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                CupertinoIcons.plus_circle_fill,
+                color: theme.colorScheme.primary,
+                size: 32,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Crear plantilla'.tr.replaceFirst(' ', '\n'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Existing templates
+    items.addAll(
+      templates.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final tmpl = entry.value;
+        final dayCount = tmpl.days.values.where((v) => v.isNotEmpty).length;
+        final mealCount = tmpl.days.values.fold<int>(0, (s, v) => s + v.length);
+
+        return Container(
+          width: 150,
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.05)
                   : Colors.black.withValues(alpha: 0.05),
             ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
-          child: ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const _TemplateEditorPage()),
-              );
-            },
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            children: [
+              // Use InkWell to apply the template when tapped? Currently it just has no tap on the card.
+              // Wait, the user wants to apply the template by tapping it?
+              // The original code doesn't have an onTap for the template card. 
+              // Wait, it didn't have one? Let's just do the visual change.
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  // If they tap the card, maybe we can apply it. But for now just keep it visually consistent.
+                },
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            idx < MealPlanManager.defaultTemplatesCount
+                                ? Icons.star_rounded
+                                : Icons.receipt_long_outlined,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          tmpl.name.tr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$dayCount ${'días'.tr} · $mealCount ${'comidas'.tr}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              child: Icon(
-                CupertinoIcons.plus,
-                color: theme.colorScheme.primary,
-                size: 20,
+              if (idx >= MealPlanManager.defaultTemplatesCount)
+                Positioned(
+                  top: 4,
+                  right: 0,
+                  child: PopupMenuButton<int>(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 0,
+                      child: Row(
+                        children: [
+                          const Icon(CupertinoIcons.pencil, size: 18),
+                          const SizedBox(width: 8),
+                          Text('Editar'.tr),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 1,
+                      child: Row(
+                        children: [
+                          const Icon(CupertinoIcons.trash, size: 18, color: Colors.redAccent),
+                          const SizedBox(width: 8),
+                          Text('Eliminar'.tr, style: const TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (val) {
+                    if (val == 0) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => _TemplateEditorPage(
+                            template: tmpl,
+                            templateIndex: idx,
+                          ),
+                        ),
+                      );
+                    } else if (val == 1) {
+                      MealPlanManager.deleteTemplate(idx);
+                    }
+                  },
+                ),
               ),
-            ),
-            title: Text(
-              'Crear plantilla'.tr,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            ],
           ),
-        ),
-      ],
+        );
+      }),
+    );
+
+    return SizedBox(
+      height: 160,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        children: items,
+      ),
     );
   }
-
-
 
   Widget _buildCalendarGrid(ThemeData theme, DateTime today) {
     final firstOfMonth = DateTime(
@@ -940,7 +1027,7 @@ class _MealPlannerPageState extends State<_MealPlannerPage> {
                         Icons.receipt_long_outlined,
                         color: theme.colorScheme.primary,
                       ),
-                      title: Text(t.name),
+                      title: Text(t.name.tr),
                       onTap: () {
                         Navigator.pop(ctx);
                         MealPlanManager.applyTemplate(t, weekMonday);
@@ -977,6 +1064,8 @@ class _TemplateEditorPage extends StatefulWidget {
 class _TemplateEditorPageState extends State<_TemplateEditorPage> {
   late TextEditingController _nameController;
   late Map<int, List<TemplateMealEntry>> _days;
+  late PageController _pageController;
+  int _currentPage = 0;
 
   bool get _isEditing => widget.template != null;
 
@@ -984,6 +1073,7 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
+    _pageController = PageController();
     _days = {};
     if (widget.template != null) {
       widget.template!.days.forEach((k, v) {
@@ -995,6 +1085,7 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -1021,6 +1112,13 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
           ];
   }
 
+  List<String> _shortDayNames() {
+    final isEn = AppLocalization.instance.currentLanguage == 'en';
+    return isEn
+        ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+        : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  }
+
   void _addRecipeToDay(int weekday, MealType mealType) {
     final allRecipes = RecipeManager.recipes;
     String searchQuery = '';
@@ -1042,11 +1140,11 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                       )
                       .toList();
             return Container(
-              height: MediaQuery.of(ctx).size.height * 0.65,
+              height: MediaQuery.of(ctx).size.height * 0.85,
               decoration: BoxDecoration(
                 color: Theme.of(ctx).brightness == Brightness.dark
                     ? const Color(0xFF1C1C1E)
-                    : Colors.white,
+                    : Theme.of(ctx).scaffoldBackgroundColor,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -1069,10 +1167,11 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
+                      textCapitalization: TextCapitalization.sentences,
                       onChanged: (v) => setSheet(() => searchQuery = v.trim()),
                       decoration: InputDecoration(
                         hintText: 'Buscar recetas por nombre...'.tr,
@@ -1082,7 +1181,7 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                           ctx,
                         ).colorScheme.surfaceContainerHighest,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -1093,45 +1192,104 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
                     child: filtered.isEmpty
                         ? Center(child: Text('No se encontraron recetas'.tr))
                         : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             itemCount: filtered.length,
                             itemBuilder: (_, i) {
                               final r = filtered[i];
-                              return ListTile(
-                                leading: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(ctx).colorScheme.primary
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.restaurant,
-                                    color: Theme.of(ctx).colorScheme.primary,
-                                    size: 18,
-                                  ),
-                                ),
-                                title: Text(
-                                  r.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
+                              final imagePath =
+                                  RecipeManager.getCustomImage(r.title) ??
+                                  r.imagePath;
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.black.withValues(alpha: 0.05),
                                   ),
                                 ),
-                                onTap: () {
-                                  setState(() {
-                                    _days.putIfAbsent(weekday, () => []);
-                                    _days[weekday]!.add(
-                                      TemplateMealEntry(
-                                        mealType: mealType,
-                                        recipeId: r.id,
-                                      ),
-                                    );
-                                  });
-                                  Navigator.pop(ctx);
-                                },
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(16),
+                                  onTap: () {
+                                    setState(() {
+                                      _days.putIfAbsent(weekday, () => []);
+                                      _days[weekday]!.add(
+                                        TemplateMealEntry(
+                                          mealType: mealType,
+                                          recipeId: r.id,
+                                        ),
+                                      );
+                                    });
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(ctx)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: imagePath != null
+                                              ? ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  child:
+                                                      imagePath.startsWith(
+                                                        'assets/',
+                                                      )
+                                                      ? Image.asset(
+                                                          imagePath,
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : Image.file(
+                                                          File(imagePath),
+                                                          fit: BoxFit.cover,
+                                                        ),
+                                                )
+                                              : Icon(
+                                                  Icons.restaurant,
+                                                  color: Theme.of(
+                                                    ctx,
+                                                  ).colorScheme.primary,
+                                                ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            r.title,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                        ),
+                                        Icon(
+                                          CupertinoIcons.add_circled_solid,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          size: 28,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               );
                             },
                           ),
@@ -1142,32 +1300,6 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
           },
         );
       },
-    );
-  }
-
-  void _showMealTypePicker(int weekday) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: MealType.values
-              .map(
-                (type) => ListTile(
-                  leading: Icon(
-                    type.icon,
-                    color: Theme.of(ctx).colorScheme.primary,
-                  ),
-                  title: Text(type.displayName),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _addRecipeToDay(weekday, type);
-                  },
-                ),
-              )
-              .toList(),
-        ),
-      ),
     );
   }
 
@@ -1189,238 +1321,392 @@ class _TemplateEditorPageState extends State<_TemplateEditorPage> {
     Navigator.pop(context);
   }
 
+  Widget _buildMealSection(
+    int weekday,
+    MealType mealType,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final entries = _days[weekday] ?? [];
+    final typeEntries = entries.where((e) => e.mealType == mealType).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+          child: Row(
+            children: [
+              Icon(mealType.icon, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                mealType.displayName.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        if (typeEntries.isEmpty)
+          GestureDetector(
+            onTap: () => _addRecipeToDay(weekday, mealType),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.02)
+                    : Colors.black.withValues(alpha: 0.02),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.1),
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    CupertinoIcons.plus,
+                    size: 24,
+                    color: Colors.grey.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${'Añadir'.tr} ${mealType.displayName.toLowerCase()}',
+                    style: TextStyle(
+                      color: Colors.grey.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Column(
+            children: [
+              ...typeEntries.asMap().entries.map((e) {
+                final idx = entries.indexOf(
+                  e.value,
+                ); // absolute index in _days[weekday]
+                final recipe = RecipeManager.recipes
+                    .where((r) => r.id == e.value.recipeId)
+                    .firstOrNull;
+                final imagePath = recipe != null
+                    ? (RecipeManager.getCustomImage(recipe.title) ??
+                          recipe.imagePath)
+                    : null;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: imagePath != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: imagePath.startsWith('assets/')
+                                  ? Image.asset(imagePath, fit: BoxFit.cover)
+                                  : Image.file(
+                                      File(imagePath),
+                                      fit: BoxFit.cover,
+                                    ),
+                            )
+                          : Icon(
+                              Icons.restaurant,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                    ),
+                    title: Text(
+                      recipe?.title ?? 'Receta eliminada'.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        CupertinoIcons.trash,
+                        size: 18,
+                        color: Colors.red.withValues(alpha: 0.8),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _days[weekday]!.removeAt(idx);
+                          if (_days[weekday]!.isEmpty) {
+                            _days.remove(weekday);
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                );
+              }),
+
+              // "Add another" button
+              GestureDetector(
+                onTap: () => _addRecipeToDay(weekday, mealType),
+                child: Container(
+                  margin: const EdgeInsets.only(top: 4, bottom: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.plus_circle_fill,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Añadir otra receta'.tr,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final dayNames = _dayNames();
+    final shortDayNames = _shortDayNames();
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        Navigator.pop(context);
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Close Button
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        icon: Icon(CupertinoIcons.xmark),
-                        onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Bar
+            // Top Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    // Center Content
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _isEditing
+                      child: TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        controller: _nameController,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 1.2,
+                          color: theme.colorScheme.primary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: _isEditing
                               ? 'EDITAR PLANTILLA'.tr
                               : 'NUEVA PLANTILLA'.tr,
-                          style: theme.textTheme.labelLarge?.copyWith(
+                          hintStyle: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 14,
                             letterSpacing: 1.2,
-                            color: theme.colorScheme.primary,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.only(
+                            bottom: 14,
+                          ), // Align text vertically
+                        ),
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _save,
+                    child: Text(
+                      'Guardar'.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            // Day Selector Tabs
+            Container(
+              height: 48,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: List.generate(7, (index) {
+                  final isSelected = _currentPage == index;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            shortDayNames[index],
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey, // High contrast text on primary
+                            ),
                           ),
                         ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Pager for Days
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (idx) => setState(() => _currentPage = idx),
+                itemCount: 7,
+                itemBuilder: (context, index) {
+                  final weekday = index + 1;
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Text(
+                            dayNames[index],
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        _buildMealSection(
+                          weekday,
+                          MealType.desayuno,
+                          theme,
+                          isDark,
+                        ),
+                        _buildMealSection(
+                          weekday,
+                          MealType.almuerzo,
+                          theme,
+                          isDark,
+                        ),
+                        _buildMealSection(
+                          weekday,
+                          MealType.cena,
+                          theme,
+                          isDark,
+                        ),
+                        _buildMealSection(
+                          weekday,
+                          MealType.snack,
+                          theme,
+                          isDark,
+                        ),
+                        const SizedBox(height: 40),
                       ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // Name field
-                    TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre de la plantilla'.tr,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Days
-                    ...List.generate(7, (i) {
-                      final weekday = i + 1; // 1=Mon
-                      final entries = _days[weekday] ?? [];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: theme.cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : Colors.black.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            // Day header
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    dayNames[i],
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  IconButton(
-                                    icon: Icon(
-                                      CupertinoIcons.plus_circle,
-                                      color: theme.colorScheme.primary,
-                                      size: 22,
-                                    ),
-                                    onPressed: () =>
-                                        _showMealTypePicker(weekday),
-                                    tooltip: 'Añadir'.tr,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (entries.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: 12,
-                                  left: 16,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'Sin comidas'.tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey.withValues(
-                                          alpha: 0.6,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else
-                              ...entries.asMap().entries.map((e) {
-                                final idx = e.key;
-                                final entry = e.value;
-                                final recipe = RecipeManager.recipes
-                                    .where((r) => r.id == entry.recipeId)
-                                    .firstOrNull;
-                                final title =
-                                    recipe?.title ?? 'Receta desconocida';
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 4,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        entry.mealType.icon,
-                                        size: 14,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        entry.mealType.displayName,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          title,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _days[weekday]!.removeAt(idx);
-                                            if (_days[weekday]!.isEmpty) {
-                                              _days.remove(weekday);
-                                            }
-                                          });
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.xmark_circle_fill,
-                                          size: 16,
-                                          color: Colors.grey.withValues(
-                                            alpha: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            const SizedBox(height: 8),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              // Bottom Action Bar
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: _save,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.black, // High contrast
-                        ),
-                        child: Text(
-                          'Guardar'.tr,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1757,6 +2043,7 @@ class _DayDetailPageState extends State<_DayDetailPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
+                      textCapitalization: TextCapitalization.sentences,
                       onChanged: (v) => setSheet(() => searchQuery = v.trim()),
                       decoration: InputDecoration(
                         hintText: 'Buscar recetas por nombre...'.tr,
@@ -1829,7 +2116,6 @@ class _DayDetailPageState extends State<_DayDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-
     final meals = MealPlanManager.getMealsForDate(widget.date);
 
     return Scaffold(

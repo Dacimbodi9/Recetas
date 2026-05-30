@@ -16,11 +16,11 @@ import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:animations/animations.dart';
 import 'package:dio/dio.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:app_links/app_links.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 part 'models/models.dart';
 part 'services/services.dart';
@@ -36,7 +36,7 @@ part 'screens/settings_page.dart';
 part 'screens/onboarding_page.dart';
 part 'screens/profile_page.dart';
 part 'screens/meal_planner.dart';
-part 'screens/shopping_page.dart';
+part 'screens/shopping_list_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -47,9 +47,10 @@ void main() async {
   await RecipeManager.loadDefaultRecipes();
   await RecipeManager.loadRecipes();
   await MealPlanManager.load();
-  await ShoppingManager.load();
+  await ShoppingListManager.load();
+
   MealPlanManager.cleanOldMeals();
-  ShoppingManager.cleanUpBoughtItems();
+
   runApp(RecetasApp());
   DeepLinkHandler.instance.init();
 }
@@ -186,6 +187,14 @@ class _RecetasAppState extends State<RecetasApp> {
                 debugShowCheckedModeBanner: false,
                 title: 'Recetas'.tr.tr,
                 themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                builder: (context, child) {
+                  return GestureDetector(
+                    onTap: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                    },
+                    child: child,
+                  );
+                },
                 theme: ThemeData(
                   useMaterial3: true,
                   brightness: Brightness.light,
@@ -194,6 +203,7 @@ class _RecetasAppState extends State<RecetasApp> {
                     seedColor: lightPrimary,
                     brightness: Brightness.light,
                     primary: lightPrimary,
+                    onPrimary: Colors.white,
                     secondary: lightSecondary,
                     surface: lightSurface,
                     surfaceTint:
@@ -208,7 +218,6 @@ class _RecetasAppState extends State<RecetasApp> {
                         lightSurface, // Avoid pale olive buttons
                     onSecondaryContainer: lightText,
                     onSurface: lightText,
-                    background: lightBg,
                   ),
                   textTheme: createTextTheme(
                     ThemeData.light().textTheme,
@@ -280,6 +289,7 @@ class _RecetasAppState extends State<RecetasApp> {
                     seedColor: darkPrimary,
                     brightness: Brightness.dark,
                     primary: darkPrimary,
+                    onPrimary: darkText,
                     surface: darkSurface,
                     surfaceTint: Colors.transparent, // Disable overlay tint
                     surfaceContainerHighest:
@@ -292,7 +302,6 @@ class _RecetasAppState extends State<RecetasApp> {
                         darkSurface, // Ensures FilledButton.tonal is NOT olive green
                     onSecondaryContainer: darkText,
                     onSurface: darkText,
-                    background: darkBg,
                   ),
                   textTheme: createTextTheme(
                     ThemeData.dark().textTheme,

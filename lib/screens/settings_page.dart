@@ -161,236 +161,234 @@ class SettingsPage extends StatelessWidget {
           appBar: AppBar(title: Text('Ajustes'.tr)),
           body: ListView(
             padding: const EdgeInsets.all(16),
-            children: [
-              _SettingsSection(
-                title: 'GENERAL'.tr,
-                children: [
-                  _SettingsTile(
-                    title: 'Escanear código QR'.tr,
-                    subtitle: 'Importar una receta escaneando un código QR'.tr,
-                    icon: CupertinoIcons.qrcode_viewfinder,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const _QrScannerPage(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  _SettingsTile(
-                    title: 'Filtros dietéticos permanentes'.tr,
-                    subtitle: 'Excluir siempre recetas incompatibles'.tr,
-                    icon: Icons.no_food,
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    onTap: () {
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => _DietarySettingsPage(),
+            children:
+                [
+                      _SettingsSection(
+                        title: 'GENERAL'.tr,
+                        children: [
+                          _SettingsTile(
+                            title: 'Escanear código QR'.tr,
+                            subtitle:
+                                'Importar una receta escaneando un código QR'
+                                    .tr,
+                            icon: CupertinoIcons.qrcode_viewfinder,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const _QrScannerPage(),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      }
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: SettingsManager.showDefaultRecipes,
-                    builder: (context, showDefaults, child) {
-                      return _SettingsTile(
-                        title: 'Mostrar Recetas Predeterminadas'.tr,
-                        isSwitch: true,
-                        switchValue: showDefaults,
-                        onSwitchChanged: (value) =>
-                            SettingsManager.setShowDefaults(value),
-                        icon: CupertinoIcons.book_fill,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: ShoppingManager.autoShoppingEnabled,
-                    builder: (context, autoEnabled, child) {
-                      return _SettingsTile(
-                        title: 'Lista de compra automática'.tr,
-                        subtitle: 'Generar lista desde el planificador'.tr,
-                        isSwitch: true,
-                        switchValue: autoEnabled,
-                        onSwitchChanged: (value) =>
-                            ShoppingManager.setAutoShoppingEnabled(value),
-                        icon: CupertinoIcons.cart_badge_plus,
-                        lastItem: true,
-                      );
-                    },
-                  ),
-                ],
-              ),
 
-              _SettingsSection(
-                title: 'APARIENCIA Y NAVEGACIÓN'.tr,
-                children: [
-                  _SettingsTile(
-                    title: 'Menú principal'.tr,
-                    subtitle: 'Personalizar botones inferiores'.tr,
-                    icon: CupertinoIcons.rectangle_grid_2x2,
-                    trailing: const Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    onTap: () {
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const _BottomMenuSettingsPage(),
+                          _SettingsTile(
+                            title: 'Filtros dietéticos permanentes'.tr,
+                            subtitle:
+                                'Excluir siempre recetas incompatibles'.tr,
+                            icon: Icons.no_food,
+                            trailing: Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onTap: () {
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => _DietarySettingsPage(),
+                                  ),
+                                );
+                              }
+                            },
                           ),
-                        );
-                      }
-                    },
-                  ),
-                  ValueListenableBuilder<String>(
-                    valueListenable: SettingsManager.startScreenFeature,
-                    builder: (context, feature, child) {
-                      String subtitle = '';
-                      if (feature == 'search')
-                        subtitle = 'Buscar'.tr;
-                      else if (feature == 'saved')
-                        subtitle = 'Guardados'.tr;
-                      else if (feature == 'mealPlanner')
-                        subtitle = 'Planificador de comidas'.tr;
-                      else if (feature == 'shopping')
-                        subtitle = 'Lista de Compra'.tr;
-                      else if (feature == 'profile')
-                        subtitle = 'Inicio'.tr;
-
-                      return _SettingsTile(
-                        title: 'Pantalla predeterminada'.tr,
-                        icon: CupertinoIcons.home,
-                        subtitle: subtitle,
-                        trailing: const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 20,
-                          color: Colors.grey,
-                        ),
-                        onTap: () => _showStartScreenDialog(context, feature),
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<String>(
-                    valueListenable: SettingsManager.language,
-                    builder: (context, lang, child) {
-                      return _SettingsTile(
-                        title: 'Idioma / Language'.tr,
-                        icon: CupertinoIcons.globe,
-                        subtitle: lang == 'en' ? 'English' : 'Español',
-                        trailing: Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 20,
-                          color: Colors.grey,
-                        ),
-                        onTap: () => _showLanguageScreenDialog(context, lang),
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: SettingsManager.isDarkMode,
-                    builder: (context, isDark, child) {
-                      return _SettingsTile(
-                        title: 'Modo Oscuro'.tr,
-                        isSwitch: true,
-                        switchValue: isDark,
-                        onSwitchChanged: (value) =>
-                            SettingsManager.setDarkMode(value),
-                        icon: CupertinoIcons.moon_fill,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: SettingsManager.preventSleep,
-                    builder: (context, prevent, child) {
-                      return _SettingsTile(
-                        title: 'Mantener pantalla encendida'.tr,
-                        isSwitch: true,
-                        switchValue: prevent,
-                        onSwitchChanged: (value) =>
-                            SettingsManager.setPreventSleep(value),
-                        icon: CupertinoIcons.eye,
-                        lastItem: true,
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              _SettingsSection(
-                title: 'MIS DATOS'.tr,
-                children: [
-                  _SettingsTile(
-                    title: 'Configurar API Key'.tr,
-                    subtitle: 'Usar IA para extraer recetas de imágenes'.tr,
-                    icon: CupertinoIcons.sparkles,
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    onTap: () {
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => _AiSettingsPage(),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SettingsManager.showDefaultRecipes,
+                            builder: (context, showDefaults, child) {
+                              return _SettingsTile(
+                                title: 'Mostrar Recetas Predeterminadas'.tr,
+                                isSwitch: true,
+                                switchValue: showDefaults,
+                                onSwitchChanged: (value) =>
+                                    SettingsManager.setShowDefaults(value),
+                                icon: CupertinoIcons.book_fill,
+                                lastItem: true,
+                              );
+                            },
                           ),
-                        );
-                      }
-                    },
-                  ),
-                  _SettingsTile(
-                    title: 'Exportar recetas'.tr,
-                    icon: CupertinoIcons.share,
-                    onTap: () => SettingsManager.exportRecipes(context),
-                  ),
-                  _SettingsTile(
-                    title: 'Importar recetas'.tr,
-                    icon: CupertinoIcons.arrow_down_doc,
-                    onTap: () => SettingsManager.importRecipes(context),
-                  ),
-                  _SettingsTile(
-                    title: 'Borrar todos los datos'.tr,
-                    icon: CupertinoIcons.delete,
-                    iconColor: Colors.red,
-                    textColor: Colors.red,
-                    onTap: () => SettingsManager.clearData(context),
-                  ),
-                  _SettingsTile(
-                    title: 'Legal'.tr,
-                    subtitle: 'Política de Privacidad y Términos'.tr,
-                    icon: CupertinoIcons.doc_text,
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    onTap: () {
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => _LegalPage()),
-                        );
-                      }
-                    },
-                    lastItem: true,
-                  ),
-                ],
-              ),
+                        ],
+                      ),
 
-              SizedBox(height: 32),
-            ],
+                      _SettingsSection(
+                        title: 'APARIENCIA Y NAVEGACIÓN'.tr,
+                        children: [
+                          _SettingsTile(
+                            title: 'Menú principal'.tr,
+                            subtitle: 'Personalizar botones inferiores'.tr,
+                            icon: CupertinoIcons.rectangle_grid_2x2,
+                            trailing: const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onTap: () {
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const _BottomMenuSettingsPage(),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          ValueListenableBuilder<String>(
+                            valueListenable: SettingsManager.startScreenFeature,
+                            builder: (context, feature, child) {
+                              String subtitle = '';
+                              if (feature == 'search') {
+                                subtitle = 'Buscar'.tr;
+                              } else if (feature == 'saved') {
+                                subtitle = 'Guardados'.tr;
+                              } else if (feature == 'mealPlanner') {
+                                subtitle = 'Planificador de comidas'.tr;
+                              } else if (feature == 'profile') {
+                                subtitle = 'Inicio'.tr;
+                              }
+
+                              return _SettingsTile(
+                                title: 'Pantalla predeterminada'.tr,
+                                icon: CupertinoIcons.home,
+                                subtitle: subtitle,
+                                trailing: const Icon(
+                                  CupertinoIcons.chevron_right,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
+                                onTap: () =>
+                                    _showStartScreenDialog(context, feature),
+                              );
+                            },
+                          ),
+                          ValueListenableBuilder<String>(
+                            valueListenable: SettingsManager.language,
+                            builder: (context, lang, child) {
+                              return _SettingsTile(
+                                title: 'Idioma / Language'.tr,
+                                icon: CupertinoIcons.globe,
+                                subtitle: lang == 'en' ? 'English' : 'Español',
+                                trailing: Icon(
+                                  CupertinoIcons.chevron_right,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
+                                onTap: () =>
+                                    _showLanguageScreenDialog(context, lang),
+                              );
+                            },
+                          ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SettingsManager.isDarkMode,
+                            builder: (context, isDark, child) {
+                              return _SettingsTile(
+                                title: 'Modo Oscuro'.tr,
+                                isSwitch: true,
+                                switchValue: isDark,
+                                onSwitchChanged: (value) =>
+                                    SettingsManager.setDarkMode(value),
+                                icon: CupertinoIcons.moon_fill,
+                              );
+                            },
+                          ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SettingsManager.preventSleep,
+                            builder: (context, prevent, child) {
+                              return _SettingsTile(
+                                title: 'Mantener pantalla encendida'.tr,
+                                isSwitch: true,
+                                switchValue: prevent,
+                                onSwitchChanged: (value) =>
+                                    SettingsManager.setPreventSleep(value),
+                                icon: CupertinoIcons.eye,
+                                lastItem: true,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+
+                      _SettingsSection(
+                        title: 'MIS DATOS'.tr,
+                        children: [
+                          _SettingsTile(
+                            title: 'Configurar API Key'.tr,
+                            subtitle:
+                                'Usar IA para extraer recetas de imágenes'.tr,
+                            icon: CupertinoIcons.sparkles,
+                            trailing: Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onTap: () {
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => _AiSettingsPage(),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          _SettingsTile(
+                            title: 'Exportar recetas'.tr,
+                            icon: CupertinoIcons.share,
+                            onTap: () => SettingsManager.exportRecipes(context),
+                          ),
+                          _SettingsTile(
+                            title: 'Importar recetas'.tr,
+                            icon: CupertinoIcons.arrow_down_doc,
+                            onTap: () => SettingsManager.importRecipes(context),
+                          ),
+                          _SettingsTile(
+                            title: 'Borrar todos los datos'.tr,
+                            icon: CupertinoIcons.delete,
+                            iconColor: Colors.red,
+                            textColor: Colors.red,
+                            onTap: () => SettingsManager.clearData(context),
+                          ),
+                          _SettingsTile(
+                            title: 'Legal'.tr,
+                            subtitle: 'Política de Privacidad y Términos'.tr,
+                            icon: CupertinoIcons.doc_text,
+                            trailing: Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onTap: () {
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => _LegalPage(),
+                                  ),
+                                );
+                              }
+                            },
+                            lastItem: true,
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 32),
+                    ]
+                    .animate(interval: 50.ms)
+                    .fade(duration: 400.ms)
+                    .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
           ),
         );
       },
@@ -454,9 +452,6 @@ class SettingsPage extends StatelessWidget {
                         } else if (feature == 'mealPlanner') {
                           title = 'Planificador de comidas'.tr;
                           icon = Icons.calendar_month_outlined;
-                        } else if (feature == 'shopping') {
-                          title = 'Lista de Compra'.tr;
-                          icon = CupertinoIcons.cart;
                         } else if (feature == 'profile') {
                           title = 'Inicio'.tr;
                           icon = CupertinoIcons.house;
@@ -603,8 +598,6 @@ class SettingsPage extends StatelessWidget {
 
     navigator.pop();
   }
-
-
 }
 
 class _SelectionOption extends StatelessWidget {
@@ -666,7 +659,7 @@ class _SelectionOption extends StatelessWidget {
                 icon,
                 size: 20,
                 color: isSelected
-                    ? (isDestructive ? Colors.white : Colors.black)
+                    ? Colors.white
                     : (isDestructive
                           ? Colors.red
                           : (iconColor ?? theme.iconTheme.color)),
@@ -912,27 +905,27 @@ class _AiSettingsPageState extends State<_AiSettingsPage> {
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
-              children: [
-                RadioListTile<String>(
-                  title: Text('Google Gemini (Recomendado, Gratis)'.tr),
-                  value: 'gemini',
-                  groupValue: _provider,
-                  activeColor: theme.colorScheme.primary,
-                  onChanged: (val) {
-                    setState(() => _provider = val!);
-                  },
-                ),
-                RadioListTile<String>(
-                  title: Text('OpenAI / Otros compatibles'.tr),
-                  value: 'openai',
-                  groupValue: _provider,
-                  activeColor: theme.colorScheme.primary,
-                  onChanged: (val) {
-                    setState(() => _provider = val!);
-                  },
-                ),
-              ],
+            child: RadioGroup<String>(
+              groupValue: _provider,
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _provider = val);
+                }
+              },
+              child: Column(
+                children: [
+                  RadioListTile<String>(
+                    title: Text('Google Gemini (Recomendado, Gratis)'.tr),
+                    value: 'gemini',
+                    activeColor: theme.colorScheme.primary,
+                  ),
+                  RadioListTile<String>(
+                    title: Text('OpenAI / Otros compatibles'.tr),
+                    value: 'openai',
+                    activeColor: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
             ),
           ),
           SizedBox(height: 32),
@@ -981,14 +974,19 @@ class _AiSettingsPageState extends State<_AiSettingsPage> {
           ),
           SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _apiKeyController,
             decoration: InputDecoration(
               labelText: 'Clave de API (API Key)'.tr,
               hintText: _provider == 'gemini' ? 'AIzaSy...' : 'sk-...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
               filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
             ),
             obscureText: true,
           ),
@@ -1004,14 +1002,19 @@ class _AiSettingsPageState extends State<_AiSettingsPage> {
             ),
             SizedBox(height: 12),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _apiEndpointController,
               decoration: InputDecoration(
                 labelText: 'API Endpoint Url (Opcional)'.tr,
                 hintText: 'https://api.openai.com/v1/chat/completions',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
                 filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ],

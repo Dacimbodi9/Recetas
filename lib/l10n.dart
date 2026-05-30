@@ -397,6 +397,26 @@ class AppLocalization {
     "Del Planificador": "From Planner",
     "Cantidad para": "Amount for",
     "Ej: 200g, 1 un, al gusto...": "e.g., 200g, 1 unit, to taste...",
+    "Añadir artículo": "Add item",
+    "No hay ingredientes para comprar": "No ingredients to buy",
+    "Planifica comidas primero para generar tu lista de compra":
+        "Plan meals first to generate your shopping list",
+    "Sincronizado con el planificador": "Synced with planner",
+    "comprados": "purchased",
+    "Marcar todo": "Check all",
+    "Desmarcar todo": "Uncheck all",
+    "Añadir otra receta": "Add another recipe",
+    "Pérdida de Peso Equilibrada": "Balanced Weight Loss",
+    "Ganancia Muscular": "Muscle Gain",
+    "Vegetariano Completo": "Complete Vegetarian",
+    "Rápido y Fácil": "Quick & Easy",
+    "Plantilla predeterminada": "Default template",
+    "Avena Nocturna Proteica con Frutos Rojos": "Protein Overnight Oats with Berries",
+    "Ensalada de Quinoa, Garbanzos y Aguacate": "Quinoa, Chickpea & Avocado Salad",
+    "Salmón al Horno con Espárragos y Boniato": "Baked Salmon with Asparagus and Sweet Potato",
+    "Wrap de Pollo y Hummus": "Chicken & Hummus Wrap",
+    "Batido Verde Detox": "Green Detox Smoothie",
+    "Copia": "Copy",
   };
 }
 

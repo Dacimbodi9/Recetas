@@ -110,8 +110,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 
-
-
   Future<void> _toggleFavorite() async {
     await RecipeManager.toggleFavorite(widget.recipe);
   }
@@ -270,11 +268,13 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 
       await file.writeAsString(data);
 
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path)],
-        text: '${'¡Mira esta receta de'.tr} ${_currentRecipe.title}!',
-        subject: _currentRecipe.title,
-      ));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: '${'¡Mira esta receta de'.tr} ${_currentRecipe.title}!',
+          subject: _currentRecipe.title,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -424,19 +424,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               onPressed: () => Navigator.of(context).pop(),
             ),
             actions: [
-              IconButton(
-                icon: Icon(
-                  _isFavorite
-                      ? CupertinoIcons.bookmark_fill
-                      : CupertinoIcons.bookmark,
-                  color: _isFavorite ? Colors.amber : null,
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
+                  shape: BoxShape.circle,
                 ),
-                style: IconButton.styleFrom(
-                  backgroundColor: theme.scaffoldBackgroundColor.withValues(
-                    alpha: 0.75,
-                  ),
+                child: _LikeButton(
+                  isFavorite: _isFavorite,
+                  onTap: _toggleFavorite,
                 ),
-                onPressed: _toggleFavorite,
               ),
               IconButton(
                 icon: Icon(CupertinoIcons.globe),
@@ -477,30 +473,18 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     GestureDetector(
                       onTap: _pickImage,
                       child: displayImagePath.startsWith('assets/')
-                          ? Hero(
-                              tag: widget.heroTag ?? widget.recipe.title,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: Image.asset(
-                                  displayImagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _buildPlaceholder(),
-                                ),
-                              ),
-                            )
-                          : Hero(
-                              tag: widget.heroTag ?? widget.recipe.title,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: Image.file(
-                                  File(displayImagePath),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _buildPlaceholder(),
-                                ),
-                              ),
-                            ),
+                          ? Image.asset(
+                              displayImagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholder(),
+                            ).animate().fade(duration: 600.ms)
+                          : Image.file(
+                              File(displayImagePath),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholder(),
+                            ).animate().fade(duration: 600.ms),
                     )
                   else
                     GestureDetector(
@@ -541,89 +525,111 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   SizedBox(height: 16),
                   // Title
                   Text(
-                    _currentRecipe.title,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
+                        _currentRecipe.title,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
+                      )
+                      .animate()
+                      .fade(duration: 400.ms)
+                      .slideY(begin: 0.05, curve: Curves.easeOutCubic),
                   SizedBox(height: 16),
 
                   // Meta Row (Time, Rating)
                   SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: [
-                        if (_currentRecipe.prepTime != null) ...[
-                          _buildMetaChip(
-                            theme,
-                            icon: CupertinoIcons.clock,
-                            label: _currentRecipe.prepTime!,
-                          ),
-                          SizedBox(width: 8),
-                        ],
-                        GestureDetector(
-                          onTap: () {
-                            if (_scrollController.hasClients) {
-                              _scrollController.animateTo(
-                                _scrollController.position.maxScrollExtent,
-                                duration: const Duration(milliseconds: 600),
-                                curve: Curves.easeOutCubic,
-                              );
-                            }
-                          },
-                          child: _buildMetaChip(
-                            theme,
-                            icon: CupertinoIcons.star_fill,
-                            iconColor: Colors.amber,
-                            label: (_currentRecipe.rating ?? 0) > 0
-                                ? (_currentRecipe.rating!).toStringAsFixed(1)
-                                : 'Sin valorar'.tr,
-                          ),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            if (_currentRecipe.prepTime != null) ...[
+                              _buildMetaChip(
+                                theme,
+                                icon: CupertinoIcons.clock,
+                                label: _currentRecipe.prepTime!,
+                              ),
+                              SizedBox(width: 8),
+                            ],
+                            GestureDetector(
+                              onTap: () {
+                                if (_scrollController.hasClients) {
+                                  _scrollController.animateTo(
+                                    _scrollController.position.maxScrollExtent,
+                                    duration: const Duration(milliseconds: 600),
+                                    curve: Curves.easeOutCubic,
+                                  );
+                                }
+                              },
+                              child: _buildMetaChip(
+                                theme,
+                                icon: CupertinoIcons.star_fill,
+                                iconColor: Colors.amber,
+                                label: (_currentRecipe.rating ?? 0) > 0
+                                    ? (_currentRecipe.rating!).toStringAsFixed(
+                                        1,
+                                      )
+                                    : 'Sin valorar'.tr,
+                              ),
+                            ),
+                            if (!isPersonalized) ...[
+                              SizedBox(width: 8),
+                              _buildMetaChip(
+                                theme,
+                                icon: CupertinoIcons.checkmark_seal_fill,
+                                label: 'Predeterminada'.tr,
+                              ),
+                            ],
+                          ],
                         ),
-                        if (!isPersonalized) ...[
-                          SizedBox(width: 8),
-                          _buildMetaChip(
-                            theme,
-                            icon: CupertinoIcons.checkmark_seal_fill,
-                            label: 'Predeterminada'.tr,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                      )
+                      .animate(delay: 150.ms)
+                      .fade(duration: 400.ms)
+                      .slideY(begin: 0.05, curve: Curves.easeOutCubic),
                   SizedBox(height: 16),
                   Divider(
                     height: 1,
                     color: theme.dividerColor.withValues(alpha: 0.1),
                   ),
 
-                  if (hasIngredients) _IngredientsView(recipe: _currentRecipe),
+                  if (hasIngredients)
+                    _IngredientsView(recipe: _currentRecipe)
+                        .animate(delay: 200.ms)
+                        .fade(duration: 400.ms)
+                        .slideY(begin: 0.05, curve: Curves.easeOutCubic),
                   if (hasIngredients && (hasInstructions || hasInfo))
                     Divider(
                       height: 1,
                       color: theme.dividerColor.withValues(alpha: 0.1),
-                    ),
+                    ).animate(delay: 250.ms).fade(),
                   if (hasInstructions)
-                    _InstructionsView(recipe: _currentRecipe),
+                    _InstructionsView(recipe: _currentRecipe)
+                        .animate(delay: 250.ms)
+                        .fade(duration: 400.ms)
+                        .slideY(begin: 0.05, curve: Curves.easeOutCubic),
                   if (hasInstructions && hasInfo)
                     Divider(
                       height: 1,
                       color: theme.dividerColor.withValues(alpha: 0.1),
-                    ),
-                  if (hasInfo) _InfoView(recipe: _currentRecipe),
+                    ).animate(delay: 300.ms).fade(),
+                  if (hasInfo)
+                    _InfoView(recipe: _currentRecipe)
+                        .animate(delay: 300.ms)
+                        .fade(duration: 400.ms)
+                        .slideY(begin: 0.05, curve: Curves.easeOutCubic),
 
                   if (hasIngredients || hasInstructions || hasInfo)
                     Divider(
                       height: 1,
                       color: theme.dividerColor.withValues(alpha: 0.1),
-                    ),
+                    ).animate(delay: 350.ms).fade(),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: PremiumRatingButton(recipe: _currentRecipe),
-                  ),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: PremiumRatingButton(recipe: _currentRecipe),
+                      )
+                      .animate(delay: 350.ms)
+                      .fade(duration: 400.ms)
+                      .slideY(begin: 0.05, curve: Curves.easeOutCubic),
 
                   SizedBox(height: 80), // spacing for FAB
                 ],

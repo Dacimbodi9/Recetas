@@ -103,7 +103,6 @@ class _QrScannerPageState extends State<_QrScannerPage> {
   }
 
   Future<void> _importRecipe(Recipe recipe) async {
-
     final exists = RecipeManager.recipes.any((r) => r.title == recipe.title);
 
     showDialog(
@@ -209,7 +208,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-
   late TextEditingController _nameController;
 
   @override
@@ -306,11 +304,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
               // Editing name
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Nombre de usuario'.tr,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
@@ -375,219 +378,232 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               // Profile Card
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: theme.brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.05),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Avatar (Centered vertically)
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          GestureDetector(
-                            onTap: _showEditProfileMenu,
-                            child: Stack(
-                              children: [
-                                ValueListenableBuilder<String?>(
-                                  valueListenable:
-                                      SettingsManager.userPhotoPath,
-                                  builder: (context, photoPath, _) {
-                                    return CircleAvatar(
-                                      radius: 36,
-                                      backgroundColor: theme.colorScheme.primary
-                                          .withValues(alpha: 0.1),
-                                      backgroundImage:
-                                          (photoPath != null &&
-                                              photoPath.isNotEmpty)
-                                          ? FileImage(File(photoPath))
-                                          : null,
-                                      child:
-                                          (photoPath == null ||
-                                              photoPath.isEmpty)
-                                          ? Icon(
-                                              CupertinoIcons.person_fill,
-                                              size: 36,
-                                              color: theme.colorScheme.primary,
-                                            )
-                                          : null,
-                                    );
-                                  },
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: theme.cardColor,
-                                        width: 2,
+                          // Avatar (Centered vertically)
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: _showEditProfileMenu,
+                                child: Stack(
+                                  children: [
+                                    ValueListenableBuilder<String?>(
+                                      valueListenable:
+                                          SettingsManager.userPhotoPath,
+                                      builder: (context, photoPath, _) {
+                                        return CircleAvatar(
+                                          radius: 36,
+                                          backgroundColor: theme
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.1),
+                                          backgroundImage:
+                                              (photoPath != null &&
+                                                  photoPath.isNotEmpty)
+                                              ? FileImage(File(photoPath))
+                                              : null,
+                                          child:
+                                              (photoPath == null ||
+                                                  photoPath.isEmpty)
+                                              ? Icon(
+                                                  CupertinoIcons.person_fill,
+                                                  size: 36,
+                                                  color:
+                                                      theme.colorScheme.primary,
+                                                )
+                                              : null,
+                                        );
+                                      },
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: theme.cardColor,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          CupertinoIcons.camera_fill,
+                                          color: Colors.white,
+                                          size: 10,
+                                        ),
                                       ),
                                     ),
-                                    child: const Icon(
-                                      CupertinoIcons.camera_fill,
-                                      color: Colors.white,
-                                      size: 10,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-
-                      // Name display
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: ValueListenableBuilder<String>(
-                                  valueListenable: SettingsManager.userName,
-                                  builder: (context, name, _) {
-                                    return Text(
-                                      name,
-                                      maxLines: 1,
-                                      style: theme.textTheme.titleLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily:
-                                                GoogleFonts.playfairDisplay()
-                                                    .fontFamily,
-                                          ),
-                                    );
-                                  },
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
+                          const SizedBox(width: 16),
 
-                      // Settings button
-                      IconButton(
-                        icon: Icon(
-                          CupertinoIcons.settings,
-                          size: 20,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SettingsPage(),
+                          // Name display
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    physics: const BouncingScrollPhysics(),
+                                    child: ValueListenableBuilder<String>(
+                                      valueListenable: SettingsManager.userName,
+                                      builder: (context, name, _) {
+                                        return Text(
+                                          name,
+                                          maxLines: 1,
+                                          style: theme.textTheme.titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily:
+                                                    GoogleFonts.playfairDisplay()
+                                                        .fontFamily,
+                                              ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        },
+                          ),
+
+                          // Settings button
+                          IconButton(
+                            icon: Icon(
+                              CupertinoIcons.settings,
+                              size: 20,
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
+                  )
+                  .animate()
+                  .fade(duration: 500.ms)
+                  .slideY(begin: 0.03, curve: Curves.easeOutCubic),
               const SizedBox(height: 16),
               ValueListenableBuilder<List<String>>(
                 valueListenable: SettingsManager.bottomMenuFeatures,
                 builder: (context, features, _) {
                   return Column(
-                    children: [
-                      if (!features.contains('search')) ...[
-                        _buildProfileFeatureCard(
-                          theme,
-                          title: 'Buscar'.tr,
-                          subtitle: 'Busca recetas e ingredientes'.tr,
-                          icon: CupertinoIcons.search,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SearchPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (!features.contains('saved')) ...[
-                        _buildProfileFeatureCard(
-                          theme,
-                          title: 'Guardados'.tr,
-                          subtitle: 'Tus recetas guardadas y favoritas'.tr,
-                          icon: CupertinoIcons.book,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SavedPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (!features.contains('mealPlanner')) ...[
-                        _buildProfileFeatureCard(
-                          theme,
-                          title: 'Planificador de comidas'.tr,
-                          subtitle: 'Organiza tus comidas de la semana'.tr,
-                          icon: Icons.calendar_month_outlined,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const _MealPlannerPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (!features.contains('shopping')) ...[
-                        _buildProfileFeatureCard(
-                          theme,
-                          title: 'Lista de Compra'.tr,
-                          subtitle: 'Gestión de despensa e ingredientes'.tr,
-                          icon: CupertinoIcons.cart,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const _ShoppingPage(showAppBar: true),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ],
+                    children:
+                        [
+                              if (!features.contains('search')) ...[
+                                _buildProfileFeatureCard(
+                                  theme,
+                                  title: 'Buscar'.tr,
+                                  subtitle: 'Busca recetas e ingredientes'.tr,
+                                  icon: CupertinoIcons.search,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SearchPage(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              if (!features.contains('saved')) ...[
+                                _buildProfileFeatureCard(
+                                  theme,
+                                  title: 'Guardados'.tr,
+                                  subtitle:
+                                      'Tus recetas guardadas y favoritas'.tr,
+                                  icon: CupertinoIcons.book,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SavedPage(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              if (!features.contains('mealPlanner')) ...[
+                                _buildProfileFeatureCard(
+                                  theme,
+                                  title: 'Planificador de comidas'.tr,
+                                  subtitle:
+                                      'Organiza tus comidas de la semana'.tr,
+                                  icon: Icons.calendar_month_outlined,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const _MealPlannerPage(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              if (!features.contains('shoppingList')) ...[
+                                _buildProfileFeatureCard(
+                                  theme,
+                                  title: 'Lista de Compra'.tr,
+                                  subtitle: 'Lista de compra automática'.tr,
+                                  icon: Icons.shopping_cart_outlined,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const _ShoppingListPage(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ]
+                            .animate(interval: 100.ms, delay: 100.ms)
+                            .fade(duration: 400.ms)
+                            .slideY(begin: 0.05, curve: Curves.easeOutCubic),
                   );
                 },
               ),

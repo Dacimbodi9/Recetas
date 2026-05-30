@@ -36,6 +36,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _searchController,
               onChanged: (value) => setState(() => _searchQuery = value.trim()),
               decoration: InputDecoration(
@@ -43,10 +44,33 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                   '@cat',
                   widget.category.displayName,
                 ),
-                prefixIcon: Icon(CupertinoIcons.search),
+                prefixIcon: const Icon(
+                  CupertinoIcons.search,
+                  color: Colors.grey,
+                ),
+                filled: true,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.05),
+                  ),
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(CupertinoIcons.xmark_circle_fill),
+                        icon: const Icon(CupertinoIcons.xmark_circle_fill),
                         onPressed: () {
                           setState(() {
                             _searchQuery = '';
@@ -55,7 +79,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                         },
                       )
                     : IconButton(
-                        icon: Icon(CupertinoIcons.shuffle),
+                        icon: const Icon(CupertinoIcons.shuffle),
                         tooltip: 'Receta aleatoria',
                         onPressed: () {
                           if (searchFiltered.isNotEmpty) {
@@ -103,7 +127,14 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                         itemCount: searchFiltered.length,
                         itemBuilder: (context, index) {
                           final r = searchFiltered[index];
-                          return _RecipeCard(recipe: r, matchCount: 0);
+                          return _RecipeCard(recipe: r, matchCount: 0)
+                              .animate(delay: (index * 50).ms)
+                              .fade(duration: 400.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutCubic,
+                              );
                         },
                       ),
               ),
@@ -114,7 +145,6 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
     );
   }
 }
-
 
 class IngredientsByCategoryPage extends StatelessWidget {
   const IngredientsByCategoryPage({
@@ -318,13 +348,21 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                       ),
                     ],
                     SizedBox(height: 12),
-                    ...results.map(
-                      (sr) => _RecipeCard(
-                        recipe: sr.recipe,
-                        matchCount: sr.matchCount,
-                        matchedIngredients: sr.matchedIngredients,
-                      ),
-                    ),
+                    ...results.map((sr) {
+                      final idx = results.indexOf(sr);
+                      return _RecipeCard(
+                            recipe: sr.recipe,
+                            matchCount: sr.matchCount,
+                            matchedIngredients: sr.matchedIngredients,
+                          )
+                          .animate(delay: (idx * 50).ms)
+                          .fade(duration: 400.ms)
+                          .slideY(
+                            begin: 0.1,
+                            end: 0,
+                            curve: Curves.easeOutCubic,
+                          );
+                    }),
                   ],
                 ),
         ),

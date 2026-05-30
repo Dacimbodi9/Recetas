@@ -243,6 +243,7 @@ class _CreateFolderDialogState extends State<_CreateFolderDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Nombre de la carpeta'.tr,
@@ -607,7 +608,14 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.exclamationmark_circle, size: 42),
+          Icon(CupertinoIcons.exclamationmark_circle, size: 42)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .moveY(
+                begin: -4,
+                end: 4,
+                duration: 2500.ms,
+                curve: Curves.easeInOut,
+              ),
           SizedBox(height: 12),
           Text(
             'No existen recetas'.tr,
@@ -654,25 +662,12 @@ class _RecipeCard extends StatelessWidget {
     final displayImagePath = customImagePath ?? recipe.imagePath;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [],
-      ),
-      child: OpenContainer(
-        transitionDuration: Duration(milliseconds: 500),
-        openBuilder: (context, _) =>
-            RecipeDetailPage(recipe: recipe, heroTag: heroTag),
-        closedElevation: 0,
-        openElevation: 0,
-        closedShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        closedColor: Colors.transparent,
-        middleColor: theme.cardColor,
-        tappable: false,
-        closedBuilder: (context, openContainer) {
-          return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [],
+          ),
+          child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
                   ? theme.cardColor
@@ -688,7 +683,15 @@ class _RecipeCard extends StatelessWidget {
             child: Stack(
               children: [
                 InkWell(
-                  onTap: openContainer,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            RecipeDetailPage(recipe: recipe, heroTag: null),
+                      ),
+                    );
+                  },
                   onLongPress:
                       showFolderOptions && RecipeManager.isFavorite(recipe)
                       ? () => _showRecipeFolderMenu(context)
@@ -829,10 +832,16 @@ class _RecipeCard extends StatelessWidget {
                   ),
               ],
             ),
-          );
-        },
-      ),
-    );
+          ),
+        )
+        .animate()
+        .fade(duration: 400.ms)
+        .slideY(
+          begin: 0.03,
+          end: 0,
+          duration: 400.ms,
+          curve: Curves.easeOutCubic,
+        );
   }
 
   void _showDeleteDialog(BuildContext context) {
@@ -909,52 +918,22 @@ class _RecipeAvatar extends StatelessWidget {
           ? ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: imagePath!.startsWith('assets/')
-                  ? (heroTag != null
-                        ? Hero(
-                            tag: heroTag ?? title,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Image.asset(
-                                imagePath!,
-                                width: 56,
-                                height: 56,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    _buildFallback(title),
-                              ),
-                            ),
-                          )
-                        : Image.asset(
-                            imagePath!,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildFallback(title),
-                          ))
-                  : (heroTag != null
-                        ? Hero(
-                            tag: heroTag!,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Image.file(
-                                File(imagePath!),
-                                width: 56,
-                                height: 56,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    _buildFallback(title),
-                              ),
-                            ),
-                          )
-                        : Image.file(
-                            File(imagePath!),
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildFallback(title),
-                          )),
+                  ? Image.asset(
+                      imagePath!,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildFallback(title),
+                    )
+                  : Image.file(
+                      File(imagePath!),
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildFallback(title),
+                    ),
             )
           : _buildFallback(title),
     );
@@ -1290,7 +1269,6 @@ class _LikeButtonState extends State<_LikeButton>
 
   @override
   Widget build(BuildContext context) {
-
     return ScaleTransition(
       scale: _scaleAnimation,
       child: IconButton(
@@ -1307,6 +1285,7 @@ class _LikeButtonState extends State<_LikeButton>
           // If we want a "pop" effect on both check/uncheck, we can run it.
           // Usually hearts pop when filled.
           if (!widget.isFavorite) {
+            HapticFeedback.mediumImpact();
             _controller.forward(from: 0.0);
           }
           widget.onTap();
@@ -1336,7 +1315,10 @@ class _IngredientRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(8),
         child: AnimatedOpacity(
           duration: Duration(milliseconds: 300),
@@ -1629,8 +1611,6 @@ class _InfoView extends StatelessWidget {
       ),
     );
   }
-
-
 }
 
 class _SettingsSection extends StatelessWidget {
@@ -1825,8 +1805,6 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-
-
 class _PartialStar extends StatelessWidget {
   const _PartialStar({required this.filledPercentage, required this.size});
 
@@ -1883,36 +1861,64 @@ class _EmptyStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-            ),
-            SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      child:
+          Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 48,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        )
+                        .animate(
+                          onPlay: (controller) =>
+                              controller.repeat(reverse: true),
+                        )
+                        .moveY(
+                          begin: -4,
+                          end: 4,
+                          duration: 2500.ms,
+                          curve: Curves.easeInOut,
+                        ),
+                    SizedBox(height: 24),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.grey.withValues(alpha: 0.7),
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+              .animate()
+              .fade(duration: 500.ms)
+              .scaleXY(begin: 0.9, end: 1.0, curve: Curves.easeOutBack),
     );
   }
 }
@@ -2128,6 +2134,7 @@ class _InteractiveStarRating extends StatelessWidget {
             final width = starSize;
             final dx = details.localPosition.dx;
             double newRating = index + (dx < width / 2 ? 0.5 : 1.0);
+            if (newRating != rating) HapticFeedback.selectionClick();
             onRatingChanged(newRating);
           },
           child: Icon(_getIcon(index), size: starSize, color: Colors.amber),
@@ -2146,7 +2153,7 @@ class _InteractiveStarRating extends StatelessWidget {
 class PremiumRatingButton extends StatelessWidget {
   final Recipe recipe;
 
-  const PremiumRatingButton({required this.recipe});
+  const PremiumRatingButton({super.key, required this.recipe});
 
   @override
   Widget build(BuildContext context) {

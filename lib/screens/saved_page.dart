@@ -206,15 +206,38 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                     children: [
                       Expanded(
                         child: TextField(
+                          textCapitalization: TextCapitalization.sentences,
                           controller: widget.searchController,
                           onChanged: widget.onSearchChanged,
                           textAlignVertical: TextAlignVertical.center,
                           decoration: InputDecoration(
-                            hintText: 'Buscar en guardados...'.tr.tr,
-                            prefixIcon: Icon(CupertinoIcons.search),
+                            hintText: 'Buscar en guardados...'.tr,
+                            prefixIcon: const Icon(
+                              CupertinoIcons.search,
+                              color: Colors.grey,
+                            ),
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide(
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.black.withValues(alpha: 0.05),
+                              ),
+                            ),
                             suffixIcon: widget.searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: Icon(
+                                    icon: const Icon(
                                       CupertinoIcons.xmark_circle_fill,
                                     ),
                                     onPressed: () {
@@ -228,16 +251,26 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                       ),
                       SizedBox(width: 8),
                       Container(
-                        height: 56,
-                        width: 56,
+                        height: 52,
+                        width: 52,
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.3,
+                              ),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: IconButton(
-                          icon: Icon(CupertinoIcons.add),
+                          icon: const Icon(
+                            CupertinoIcons.add,
+                            color: Colors.white,
+                          ),
                           onPressed: () => _showCreateFolderDialog(
                             context,
                             _currentFolderId,
@@ -291,31 +324,58 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                                   widget.searchQuery,
                                 )))
                           _ValoracionesFolderCard(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const RatedRecipesPage(),
-                                ),
-                              );
-                            },
-                          ),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const RatedRecipesPage(),
+                                    ),
+                                  );
+                                },
+                              )
+                              .animate()
+                              .fade(duration: 400.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutCubic,
+                              ),
                         // Folders
-                        ...foldersToShow.map(
-                          (folder) => _FolderCard(
-                            folder: folder,
-                            onTap: () => _navigateToFolder(folder.id),
-                            onLongPress: () =>
-                                _showFolderOptions(context, folder),
-                          ),
-                        ),
+                        ...foldersToShow.map((folder) {
+                          final idx = foldersToShow.indexOf(folder);
+                          return _FolderCard(
+                                folder: folder,
+                                onTap: () => _navigateToFolder(folder.id),
+                                onLongPress: () =>
+                                    _showFolderOptions(context, folder),
+                              )
+                              .animate(delay: (idx * 50 + 50).ms)
+                              .fade(duration: 400.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutCubic,
+                              );
+                        }),
                         // Recipes
-                        ...recipesToShow.map(
-                          (recipe) => _RecipeCard(
-                            recipe: recipe,
-                            matchCount: 0,
-                            showFolderOptions: true,
-                          ),
-                        ),
+                        ...recipesToShow.map((recipe) {
+                          final idx = recipesToShow.indexOf(recipe);
+                          return _RecipeCard(
+                                recipe: recipe,
+                                matchCount: 0,
+                                showFolderOptions: true,
+                              )
+                              .animate(
+                                delay:
+                                    (idx * 50 + foldersToShow.length * 50 + 100)
+                                        .ms,
+                              )
+                              .fade(duration: 400.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutCubic,
+                              );
+                        }),
                       ],
                     ),
             ),
@@ -396,6 +456,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                         vertical: 8,
                       ),
                       child: TextField(
+                        textCapitalization: TextCapitalization.sentences,
                         controller: widget.searchController,
                         onChanged: widget.onSearchChanged,
                         decoration: InputDecoration(
@@ -403,22 +464,40 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                             '@fld',
                             currentFolder.name,
                           ),
-                          prefixIcon: Icon(CupertinoIcons.search),
+                          prefixIcon: const Icon(
+                            CupertinoIcons.search,
+                            color: Colors.grey,
+                          ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.black.withValues(alpha: 0.05),
+                            ),
+                          ),
                           suffixIcon: widget.searchQuery.isNotEmpty
                               ? IconButton(
-                                  icon: Icon(CupertinoIcons.xmark_circle_fill),
+                                  icon: const Icon(
+                                    CupertinoIcons.xmark_circle_fill,
+                                  ),
                                   onPressed: () {
                                     widget.searchController.clear();
                                     widget.onSearchChanged('');
                                   },
                                 )
                               : null,
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
                         ),
                       ),
                     ),
@@ -442,22 +521,40 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // Folders
-                      ...foldersToShow.map(
-                        (folder) => _FolderCard(
-                          folder: folder,
-                          onTap: () => _navigateToFolder(folder.id),
-                          onLongPress: () =>
-                              _showFolderOptions(context, folder),
-                        ),
-                      ),
+                      ...foldersToShow.map((folder) {
+                        final idx = foldersToShow.indexOf(folder);
+                        return _FolderCard(
+                              folder: folder,
+                              onTap: () => _navigateToFolder(folder.id),
+                              onLongPress: () =>
+                                  _showFolderOptions(context, folder),
+                            )
+                            .animate(delay: (idx * 50).ms)
+                            .fade(duration: 400.ms)
+                            .slideY(
+                              begin: 0.1,
+                              end: 0,
+                              curve: Curves.easeOutCubic,
+                            );
+                      }),
                       // Recipes
-                      ...recipesToShow.map(
-                        (recipe) => _RecipeCard(
-                          recipe: recipe,
-                          matchCount: 0,
-                          showFolderOptions: true,
-                        ),
-                      ),
+                      ...recipesToShow.map((recipe) {
+                        final idx = recipesToShow.indexOf(recipe);
+                        return _RecipeCard(
+                              recipe: recipe,
+                              matchCount: 0,
+                              showFolderOptions: true,
+                            )
+                            .animate(
+                              delay: (idx * 50 + foldersToShow.length * 50).ms,
+                            )
+                            .fade(duration: 400.ms)
+                            .slideY(
+                              begin: 0.1,
+                              end: 0,
+                              curve: Curves.easeOutCubic,
+                            );
+                      }),
                     ]),
                   ),
                 ),
@@ -648,11 +745,18 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
                     itemBuilder: (context, index) {
                       final recipe = ratedRecipes[index];
                       return _RecipeCard(
-                        recipe: recipe,
-                        matchCount: 0,
-                        heroTag: 'rated_${recipe.title}',
-                        showRating: true,
-                      );
+                            recipe: recipe,
+                            matchCount: 0,
+                            heroTag: 'rated_${recipe.title}',
+                            showRating: true,
+                          )
+                          .animate(delay: (index * 50).ms)
+                          .fade(duration: 400.ms)
+                          .slideY(
+                            begin: 0.1,
+                            end: 0,
+                            curve: Curves.easeOutCubic,
+                          );
                     },
                   ),
                 ),

@@ -61,10 +61,10 @@ class SettingsManager {
       'icon': Icons.calendar_month_outlined,
     },
     {
-      'id': 'shopping',
+      'id': 'shoppingList',
       'title': 'Lista de Compra'.tr,
-      'subtitle': 'Gestión de despensa e ingredientes'.tr,
-      'icon': CupertinoIcons.cart,
+      'subtitle': 'Lista de compra automática'.tr,
+      'icon': Icons.shopping_cart_outlined,
     },
   ];
 
@@ -272,6 +272,7 @@ class SettingsManager {
       }
 
       // Ask user choice
+      if (!context.mounted) return;
       final choice = await showModalBottomSheet<String>(
         context: context,
         builder: (BuildContext context) {
@@ -303,10 +304,12 @@ class SettingsManager {
         final file = File('${directory.path}/recetas_backup.json');
         await file.writeAsString(jsonStr);
 
-        final result = await SharePlus.instance.share(ShareParams(
-          files: [XFile(file.path)],
-          text: 'Copia de seguridad de Guardados'
-        ));
+        final result = await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: 'Copia de seguridad de Guardados',
+          ),
+        );
 
         if (result.status == ShareResultStatus.success) {
           if (context.mounted) {
@@ -379,7 +382,7 @@ class SettingsManager {
             importFolderId = newId;
           }
         } catch (e) {
-          print('Error handling Importados folder: $e');
+          debugPrint('Error handling Importados folder: $e');
         }
 
         for (var item in jsonList) {
@@ -401,7 +404,7 @@ class SettingsManager {
               skippedCount++;
             }
           } catch (e) {
-            print('Skipping invalid recipe during import: $e');
+            debugPrint('Skipping invalid recipe during import: $e');
           }
         }
 
@@ -528,7 +531,7 @@ class RecipeManager {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_customImagesKey, json.encode(_customImages));
     } catch (e) {
-      print('Error saving custom images: $e');
+      debugPrint('Error saving custom images: $e');
     }
   }
 
@@ -547,7 +550,7 @@ class RecipeManager {
       final map = _customMappings.map((k, v) => MapEntry(k, v.index));
       await prefs.setString(_customMappingsKey, json.encode(map));
     } catch (e) {
-      print('Error saving custom mappings: $e');
+      debugPrint('Error saving custom mappings: $e');
     }
   }
 
@@ -668,13 +671,15 @@ class RecipeManager {
           try {
             _defaultRecipes.add(Recipe.fromJson(item));
           } catch (e) {
-            print('Error loading recipe \"${item['title'] ?? 'unknown'}\": $e');
+            debugPrint(
+              'Error loading recipe "${item['title'] ?? 'unknown'}": $e',
+            );
           }
         }
       }
       _notifyListeners();
     } catch (e) {
-      print('Error loading default recipes from JSON: $e');
+      debugPrint('Error loading default recipes from JSON: $e');
       _defaultRecipes.clear();
     }
   }
@@ -718,7 +723,7 @@ class RecipeManager {
               .map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>))
               .toList();
         } catch (e) {
-          print('Error loading folders: $e');
+          debugPrint('Error loading folders: $e');
           _folders = [];
         }
       } else {
@@ -733,7 +738,7 @@ class RecipeManager {
             (k, v) => MapEntry(k, IngredientCategory.values[v as int]),
           );
         } catch (e) {
-          print('Error loading custom mappings: $e');
+          debugPrint('Error loading custom mappings: $e');
           _customMappings = {};
         }
       }
@@ -744,14 +749,14 @@ class RecipeManager {
           final Map<String, dynamic> decoded = json.decode(imagesJson);
           _customImages = decoded.map((k, v) => MapEntry(k, v as String));
         } catch (e) {
-          print('Error loading custom images: $e');
+          debugPrint('Error loading custom images: $e');
           _customImages = {};
         }
       }
 
       _notifyListeners();
     } catch (e) {
-      print('Error loading recipes: $e');
+      debugPrint('Error loading recipes: $e');
     }
   }
 
@@ -775,7 +780,7 @@ class RecipeManager {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_favoritesKey, _favoriteIds.toList());
     } catch (e) {
-      print('Error saving favorites: $e');
+      debugPrint('Error saving favorites: $e');
     }
   }
 
@@ -903,7 +908,7 @@ class RecipeManager {
       final foldersJson = json.encode(_folders.map((f) => f.toJson()).toList());
       await prefs.setString(_foldersKey, foldersJson);
     } catch (e) {
-      print('Error saving folders: $e');
+      debugPrint('Error saving folders: $e');
     }
   }
 
@@ -935,7 +940,7 @@ class RecipeManager {
       final recipesJson = _recipes.map((r) => json.encode(r.toJson())).toList();
       await prefs.setStringList(_storageKey, recipesJson);
     } catch (e) {
-      print('Error saving recipes: $e');
+      debugPrint('Error saving recipes: $e');
     }
   }
 
@@ -991,7 +996,7 @@ class DeepLinkHandler {
       final uriString = await _channel.invokeMethod<String>('getIntentData');
       if (uriString != null) await _handleFileUri(uriString);
     } catch (e) {
-      print('Error checking initial file intent: $e');
+      debugPrint('Error checking initial file intent: $e');
     }
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onNewFileIntent') {
@@ -1023,7 +1028,7 @@ class DeepLinkHandler {
         }
       }
     } catch (e) {
-      print('Error handling file URI: $e');
+      debugPrint('Error handling file URI: $e');
     }
   }
 
@@ -1108,7 +1113,7 @@ class MealPlanManager {
           }
         }
       } catch (e) {
-        print('Error loading meal plan: $e');
+        debugPrint('Error loading meal plan: $e');
       }
     }
     await _loadTemplates();
@@ -1173,7 +1178,77 @@ class MealPlanManager {
   static const String _templatesKey = 'meal_templates';
   static final List<MealTemplate> _templates = [];
 
-  static List<MealTemplate> get templates => List.unmodifiable(_templates);
+  static final List<MealTemplate> _defaultTemplates = [
+    MealTemplate(
+      name: 'Pérdida de Peso Equilibrada',
+      days: {
+        1: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_ensalada_quinoa'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+        ],
+        2: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Pollo asado al limón y hierbas'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Merluza en salsa verde'),
+        ],
+        3: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Lentejas estofadas con chorizo'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+        ],
+      },
+    ),
+    MealTemplate(
+      name: 'Ganancia Muscular',
+      days: {
+        1: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_wrap_pollo'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Estofado de ternera con patatas'),
+        ],
+        2: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Paella valenciana'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+        ],
+      },
+    ),
+    MealTemplate(
+      name: 'Vegetariano Completo',
+      days: {
+        1: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_ensalada_quinoa'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Tortilla de patatas con cebolla'),
+        ],
+        2: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Macarrones con tomate y queso'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Pisto manchego con huevo frito'),
+        ],
+      },
+    ),
+    MealTemplate(
+      name: 'Rápido y Fácil',
+      days: {
+        1: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_wrap_pollo'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Salmón a la plancha con eneldo'),
+        ],
+        2: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Fajitas de pollo con pimientos'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_ensalada_quinoa'),
+        ],
+      },
+    ),
+  ];
+
+  static List<MealTemplate> get templates => List.unmodifiable([..._defaultTemplates, ..._templates]);
+
+  static int get defaultTemplatesCount => _defaultTemplates.length;
 
   static Future<void> _loadTemplates() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1188,7 +1263,7 @@ class MealPlanManager {
           }
         }
       } catch (e) {
-        print('Error loading meal templates: $e');
+        debugPrint('Error loading meal templates: $e');
       }
     }
   }
@@ -1208,16 +1283,20 @@ class MealPlanManager {
   }
 
   static Future<void> updateTemplate(int index, MealTemplate template) async {
-    if (index >= 0 && index < _templates.length) {
-      _templates[index] = template;
+    if (index < _defaultTemplates.length) return; // Cannot update default templates directly
+    final realIndex = index - _defaultTemplates.length;
+    if (realIndex >= 0 && realIndex < _templates.length) {
+      _templates[realIndex] = template;
       await _saveTemplates();
       _notifyListeners();
     }
   }
 
   static Future<void> deleteTemplate(int index) async {
-    if (index >= 0 && index < _templates.length) {
-      _templates.removeAt(index);
+    if (index < _defaultTemplates.length) return; // Cannot delete default templates
+    final realIndex = index - _defaultTemplates.length;
+    if (realIndex >= 0 && realIndex < _templates.length) {
+      _templates.removeAt(realIndex);
       await _saveTemplates();
       _notifyListeners();
     }
@@ -1255,213 +1334,199 @@ class MealPlanManager {
   }
 }
 
-class AutoIngredientInfo {
-  final String ingredient;
-  final String name;
-  final String quantity;
-  final String recipeTitle;
-  final DateTime date;
-  final String autoKey;
-  final bool isBought;
+/// Manages a shopping list derived from planned meals + manual items.
+class ShoppingListManager {
+  static const String _checkedKey = 'shopping_checked_items';
+  static const String _manualKey = 'shopping_manual_items';
+  static const String _startDateKey = 'shopping_start_date';
+  static const String _endDateKey = 'shopping_end_date';
 
-  AutoIngredientInfo({
-    required this.ingredient,
-    required this.name,
-    required this.quantity,
-    required this.recipeTitle,
-    required this.date,
-    required this.autoKey,
-    required this.isBought,
-  });
-}
-
-class ShoppingManager {
-  static const String _boughtAutoKey = 'bought_auto_items';
-  static const String _manualShoppingKey = 'manual_shopping_list';
-  static const String _manualPantryKey = 'manual_pantry_list';
-  static const String _autoEnabledKey = 'auto_shopping_enabled';
-
-  static final ValueNotifier<bool> autoShoppingEnabled = ValueNotifier(true);
-
-  static Set<String> _boughtAutoItems = {};
-  static List<DetailedIngredient> _manualShoppingList = [];
-  static List<DetailedIngredient> _manualPantryList = [];
-
-  static List<DetailedIngredient> get manualShoppingList => _manualShoppingList;
-  static List<DetailedIngredient> get manualPantry => _manualPantryList;
-
+  static Set<String> _checkedItems = {};
+  static List<Map<String, String>> _manualItems = [];
   static final List<Function()> _listeners = [];
+
+  /// The date range used for ingredient aggregation.
+  static late DateTime _rangeStart;
+  static late DateTime _rangeEnd;
+
+  static DateTime get rangeStart => _rangeStart;
+  static DateTime get rangeEnd => _rangeEnd;
+
+  static Set<String> get checkedItems => Set.unmodifiable(_checkedItems);
+  static List<Map<String, String>> get manualItems =>
+      List.unmodifiable(_manualItems);
 
   static void addListener(Function() listener) => _listeners.add(listener);
   static void removeListener(Function() listener) =>
       _listeners.remove(listener);
-  static void notifyListeners() {
-    for (var l in _listeners) {
-      l();
+  static void _notifyListeners() {
+    for (final listener in _listeners) {
+      listener();
     }
-  }
-
-  static List<DetailedIngredient> _loadDetailedList(List<String> rawList) {
-    return rawList.map((raw) {
-      try {
-        final decoded = jsonDecode(raw) as Map<String, dynamic>;
-        return DetailedIngredient.fromJson(decoded);
-      } catch (e) {
-        return DetailedIngredient(name: raw, quantity: '');
-      }
-    }).toList();
-  }
-
-  static List<String> _saveDetailedList(List<DetailedIngredient> list) {
-    return list.map((item) => jsonEncode(item.toJson())).toList();
   }
 
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    autoShoppingEnabled.value = prefs.getBool(_autoEnabledKey) ?? true;
-    _boughtAutoItems = (prefs.getStringList(_boughtAutoKey) ?? []).toSet();
 
-    _manualShoppingList = _loadDetailedList(
-      prefs.getStringList(_manualShoppingKey) ?? [],
-    );
-    _manualPantryList = _loadDetailedList(
-      prefs.getStringList(_manualPantryKey) ?? [],
-    );
+    // Checked items
+    final checkedList = prefs.getStringList(_checkedKey) ?? [];
+    _checkedItems = checkedList.toSet();
 
-    MealPlanManager.addListener(notifyListeners);
-  }
-
-  static Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_boughtAutoKey, _boughtAutoItems.toList());
-    await prefs.setStringList(
-      _manualShoppingKey,
-      _saveDetailedList(_manualShoppingList),
-    );
-    await prefs.setStringList(
-      _manualPantryKey,
-      _saveDetailedList(_manualPantryList),
-    );
-    notifyListeners();
-  }
-
-  static Future<void> setAutoShoppingEnabled(bool val) async {
-    autoShoppingEnabled.value = val;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_autoEnabledKey, val);
-    notifyListeners();
-  }
-
-  static void addManualShoppingItem(DetailedIngredient item) {
-    if (item.name.trim().isNotEmpty) {
-      _manualShoppingList.add(item);
-      _save();
-    }
-  }
-
-  static void removeManualShoppingItem(DetailedIngredient item) {
-    _manualShoppingList.removeWhere(
-      (i) => i.name == item.name && i.quantity == item.quantity,
-    );
-    _save();
-  }
-
-  static void toggleManualShoppingItemBought(DetailedIngredient item) {
-    removeManualShoppingItem(item);
-    addManualPantryItem(item);
-  }
-
-  static void addManualPantryItem(DetailedIngredient item) {
-    if (item.name.trim().isNotEmpty) {
-      _manualPantryList.add(item);
-      _save();
-    }
-  }
-
-  static void removeManualPantryItem(DetailedIngredient item) {
-    _manualPantryList.removeWhere(
-      (i) => i.name == item.name && i.quantity == item.quantity,
-    );
-    _save();
-  }
-
-  static void toggleAutoItemBought(String autoKey) {
-    if (_boughtAutoItems.contains(autoKey)) {
-      _boughtAutoItems.remove(autoKey);
-    } else {
-      _boughtAutoItems.add(autoKey);
-    }
-    _save();
-  }
-
-  static void cleanUpBoughtItems() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final end = today.add(const Duration(days: 14));
-
-    final Set<String> activeKeys = {};
-    for (final meal in MealPlanManager.meals) {
-      if (meal.completed) continue;
-      if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
-
-      final recipe = RecipeManager.recipes
-          .where((r) => r.id == meal.recipeId)
-          .firstOrNull;
-      if (recipe == null) continue;
-
-      for (int i = 0; i < recipe.ingredients.length; i++) {
-        activeKeys.add(
-          '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_$i',
-        );
-      }
-    }
-
-    _boughtAutoItems.removeWhere((k) => !activeKeys.contains(k));
-    _save();
-  }
-
-  static List<AutoIngredientInfo> getAutoIngredients() {
-    if (!autoShoppingEnabled.value) return [];
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final end = today.add(const Duration(days: 14));
-
-    final List<AutoIngredientInfo> result = [];
-    for (final meal in MealPlanManager.meals) {
-      if (meal.completed) continue;
-      if (meal.date.isBefore(today) || meal.date.isAfter(end)) continue;
-
-      final recipe = RecipeManager.recipes
-          .where((r) => r.id == meal.recipeId)
-          .firstOrNull;
-      if (recipe == null) continue;
-
-      for (int i = 0; i < recipe.ingredients.length; i++) {
-        final ing = recipe.ingredients[i];
-        final key = '${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}_$i';
-        final isBought = _boughtAutoItems.contains(key);
-
-        String name = ing;
-        String quantity = '';
-        if (i < recipe.detailedIngredients.length) {
-          name = recipe.detailedIngredients[i].name;
-          quantity = recipe.detailedIngredients[i].quantity;
+    // Manual items
+    final manualRaw = prefs.getString(_manualKey);
+    _manualItems = [];
+    if (manualRaw != null) {
+      try {
+        final List<dynamic> decoded = json.decode(manualRaw);
+        for (final item in decoded) {
+          if (item is Map<String, dynamic>) {
+            _manualItems.add({
+              'name': item['name']?.toString() ?? '',
+              'quantity': item['quantity']?.toString() ?? '',
+            });
+          }
         }
-
-        result.add(
-          AutoIngredientInfo(
-            ingredient: ing,
-            name: name,
-            quantity: quantity,
-            recipeTitle: recipe
-                .title, // Keep title for display, use ID internally if needed
-            date: meal.date,
-            autoKey: key,
-            isBought: isBought,
-          ),
-        );
+      } catch (e) {
+        debugPrint('Error loading manual shopping items: $e');
       }
     }
-    return result;
+
+    // Date range (default: today → today+6 = 7 days)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final startStr = prefs.getString(_startDateKey);
+    final endStr = prefs.getString(_endDateKey);
+    _rangeStart = startStr != null ? DateTime.parse(startStr) : today;
+    _rangeEnd = endStr != null
+        ? DateTime.parse(endStr)
+        : today.add(const Duration(days: 6));
+    // If the saved range is entirely in the past, reset to default
+    if (_rangeEnd.isBefore(today)) {
+      _rangeStart = today;
+      _rangeEnd = today.add(const Duration(days: 6));
+    }
+  }
+
+  static Future<void> setDateRange(DateTime start, DateTime end) async {
+    _rangeStart = DateTime(start.year, start.month, start.day);
+    _rangeEnd = DateTime(end.year, end.month, end.day);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _startDateKey,
+      '${_rangeStart.year}-${_rangeStart.month.toString().padLeft(2, '0')}-${_rangeStart.day.toString().padLeft(2, '0')}',
+    );
+    await prefs.setString(
+      _endDateKey,
+      '${_rangeEnd.year}-${_rangeEnd.month.toString().padLeft(2, '0')}-${_rangeEnd.day.toString().padLeft(2, '0')}',
+    );
+    _notifyListeners();
+  }
+
+  /// Represents a single shopping item with source info.
+  /// Returns a list of maps: { name, sources: [ {recipeName, quantity} ] }
+  static List<Map<String, dynamic>> generateFromPlanner() {
+    final meals = MealPlanManager.meals.where((m) {
+      final d = DateTime(m.date.year, m.date.month, m.date.day);
+      return !d.isBefore(_rangeStart) && !d.isAfter(_rangeEnd);
+    }).toList();
+
+    // Map: ingredientNameLower → { name (display), sources: [{recipeName, quantity}] }
+    final Map<String, Map<String, dynamic>> aggregated = {};
+
+    for (final meal in meals) {
+      final recipe = RecipeManager.recipes
+          .where((r) => r.id == meal.recipeId)
+          .firstOrNull;
+      if (recipe == null) continue;
+
+      // Prefer detailedIngredients for quantity info
+      if (recipe.detailedIngredients.isNotEmpty) {
+        for (final di in recipe.detailedIngredients) {
+          final key = di.name.trim().toLowerCase();
+          if (key.isEmpty) continue;
+          if (!aggregated.containsKey(key)) {
+            aggregated[key] = {
+              'name': di.name.trim(),
+              'category': di.category,
+              'sources': <Map<String, String>>[],
+            };
+          }
+          (aggregated[key]!['sources'] as List<Map<String, String>>).add({
+            'recipeName': recipe.title,
+            'quantity': di.quantity,
+          });
+        }
+      } else {
+        for (final ingredient in recipe.ingredients) {
+          final key = ingredient.trim().toLowerCase();
+          if (key.isEmpty) continue;
+          if (!aggregated.containsKey(key)) {
+            aggregated[key] = {
+              'name': ingredient.trim(),
+              'category': null,
+              'sources': <Map<String, String>>[],
+            };
+          }
+          (aggregated[key]!['sources'] as List<Map<String, String>>).add({
+            'recipeName': recipe.title,
+            'quantity': '',
+          });
+        }
+      }
+    }
+
+    return aggregated.values.toList();
+  }
+
+  static bool isChecked(String itemName) =>
+      _checkedItems.contains(itemName.toLowerCase());
+
+  static Future<void> toggleChecked(String itemName) async {
+    final key = itemName.toLowerCase();
+    if (_checkedItems.contains(key)) {
+      _checkedItems.remove(key);
+    } else {
+      _checkedItems.add(key);
+    }
+    await _saveChecked();
+    _notifyListeners();
+  }
+
+  static Future<void> checkAll(List<String> names) async {
+    for (final n in names) {
+      _checkedItems.add(n.toLowerCase());
+    }
+    await _saveChecked();
+    _notifyListeners();
+  }
+
+  static Future<void> uncheckAll() async {
+    _checkedItems.clear();
+    await _saveChecked();
+    _notifyListeners();
+  }
+
+  static Future<void> addManualItem(String name, String quantity) async {
+    _manualItems.add({'name': name, 'quantity': quantity});
+    await _saveManual();
+    _notifyListeners();
+  }
+
+  static Future<void> removeManualItem(int index) async {
+    if (index >= 0 && index < _manualItems.length) {
+      _manualItems.removeAt(index);
+      await _saveManual();
+      _notifyListeners();
+    }
+  }
+
+  static Future<void> _saveChecked() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_checkedKey, _checkedItems.toList());
+  }
+
+  static Future<void> _saveManual() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_manualKey, json.encode(_manualItems));
   }
 }

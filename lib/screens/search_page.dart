@@ -53,8 +53,6 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(title: Text('Buscar'.tr))
@@ -78,13 +76,15 @@ class _SearchPageState extends State<SearchPage> {
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: [
-                _RecetasView(
-                  searchController: _searchController,
-                  searchQuery: _searchQuery,
-                  onSearchChanged: (value) =>
-                      setState(() => _searchQuery = value),
+                _KeepAlivePage(
+                  child: _RecetasView(
+                    searchController: _searchController,
+                    searchQuery: _searchQuery,
+                    onSearchChanged: (value) =>
+                        setState(() => _searchQuery = value),
+                  ),
                 ),
-                IngredientSearchPage(),
+                const _KeepAlivePage(child: IngredientSearchPage()),
               ],
             ),
           ),
@@ -92,7 +92,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddRecipeDialog(context),
-        child: Icon(CupertinoIcons.plus),
+        child: const Icon(CupertinoIcons.plus),
       ),
     );
   }
@@ -100,10 +100,30 @@ class _SearchPageState extends State<SearchPage> {
   void _showAddRecipeDialog(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => NewRecipePage(),
+        builder: (context) => const NewRecipePage(),
         fullscreenDialog: true,
       ),
     );
+  }
+}
+
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -138,21 +158,42 @@ class _RecetasView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: searchController,
             onChanged: onSearchChanged,
             decoration: InputDecoration(
               hintText: 'Buscar recetas por nombre...'.tr,
-              prefixIcon: Icon(CupertinoIcons.search),
+              prefixIcon: const Icon(CupertinoIcons.search, color: Colors.grey),
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
+                ),
+              ),
               suffixIcon: searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: Icon(CupertinoIcons.xmark_circle_fill),
+                      icon: const Icon(CupertinoIcons.xmark_circle_fill),
                       onPressed: () {
                         searchController.clear();
                         onSearchChanged('');
                       },
                     )
                   : IconButton(
-                      icon: Icon(CupertinoIcons.shuffle),
+                      icon: const Icon(CupertinoIcons.shuffle),
                       tooltip: 'Receta aleatoria',
                       onPressed: () {
                         final allRecipes = RecipeManager.recipes;
@@ -189,7 +230,14 @@ class _RecetasView extends StatelessWidget {
                         itemCount: searchResults.length,
                         itemBuilder: (context, index) {
                           final recipe = searchResults[index];
-                          return _RecipeCard(recipe: recipe, matchCount: 0);
+                          return _RecipeCard(recipe: recipe, matchCount: 0)
+                              .animate(delay: (index * 50).ms)
+                              .fade(duration: 400.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOutCubic,
+                              );
                         },
                       )
               : categories.isEmpty
@@ -210,54 +258,58 @@ class _RecetasView extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final c = categories[index];
                     return Container(
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.05),
-                          width: 1,
-                        ),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RecipesByCategoryPage(category: c),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  c.icon,
-                                  size: 40,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  c.displayName,
-                                  textAlign: TextAlign.center,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.black.withValues(alpha: 0.05),
+                              width: 1,
                             ),
                           ),
-                        ),
-                      ),
-                    );
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        RecipesByCategoryPage(category: c),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      c.icon,
+                                      size: 40,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      c.displayName,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .animate(delay: (index * 50).ms)
+                        .fade(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
                   },
                 ),
         ),
@@ -376,6 +428,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _controller,
                   focusNode: _focusNode,
                   onChanged: (v) => setState(() => _query = v.trim()),
@@ -389,11 +442,33 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
                     hintText: 'Búsqueda por ingredientes...'.tr.tr,
-                    prefixIcon: Icon(CupertinoIcons.search),
+                    prefixIcon: const Icon(
+                      CupertinoIcons.search,
+                      color: Colors.grey,
+                    ),
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                    ),
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
-                            icon: Icon(CupertinoIcons.xmark_circle_fill),
+                            icon: const Icon(CupertinoIcons.xmark_circle_fill),
                             onPressed: () {
                               setState(() {
                                 _query = '';
@@ -477,13 +552,20 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
                     itemBuilder: (context, index) {
                       final item = filtered[index];
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                        ),
-                        leading: Icon(CupertinoIcons.plus_circled),
-                        title: Text(item),
-                        onTap: () => _add(item),
-                      );
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            leading: Icon(CupertinoIcons.plus_circled),
+                            title: Text(item),
+                            onTap: () => _add(item),
+                          )
+                          .animate(delay: (index * 30).ms)
+                          .fade(duration: 300.ms)
+                          .slideY(
+                            begin: 0.1,
+                            end: 0,
+                            curve: Curves.easeOutCubic,
+                          );
                     },
                   ),
           ),
@@ -541,60 +623,62 @@ class _PopularIngredientsGrid extends StatelessWidget {
         final category = entry.key;
 
         return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).cardColor
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1,
-            ),
-            boxShadow: [],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => IngredientsByCategoryPage(
-                      category: category,
-                      onPick: onPick,
-                      isSelected: isSelected,
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).cardColor
+                    : Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+                boxShadow: [],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => IngredientsByCategoryPage(
+                          category: category,
+                          onPick: onPick,
+                          isSelected: isSelected,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          category.icon,
+                          size: 40,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          category.displayName,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      category.icon,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      category.displayName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ),
               ),
-            ),
-          ),
-        );
+            )
+            .animate(delay: (index * 50).ms)
+            .fade(duration: 400.ms)
+            .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
       },
     );
   }
