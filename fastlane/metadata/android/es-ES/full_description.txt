@@ -1,19 +1,11 @@
-Sazón es tu recetario personal, diseñado con mimo y centrado en tu privacidad.
-
-🍳 TU COCINA, TU ARTE
-
-Más de 1000 recetas integradas. Crea las tuyas. Planifica tu semana.
-Todo sin conexión, sin cuentas, sin rastreo.
+Recetas es una aplicación gratuita para gestionar tus recetas con privacidad por diseño.
 
 ✨ Características
 
 *  **Offline y Privado:** Todos tus datos se guardan en el dispositivo, sin analíticas ni rastreo.
 *  **Búsqueda Inteligente:** Búsqueda rápida por nombre o por ingredientes para saber qué cocinar con lo que tienes.
 *  **Dietas:** Filtros personalizados vegano, vegetariano, sin gluten, sin lactosa, etc con avisos de incompatibilidad.
-*  **Planificador de Comidas:** Calendario semanal con plantillas reutilizables.
-*  **Lista de Compra:** Generada automáticamente desde tu planificador.
-*  **Estadísticas Nutricionales:** Calorías, macros, IMC, racha de consistencia.
 *  **Organización:** Carpetas, valoraciones y favoritos.
-*  **Experiencia Premium:** Interfaz artesanal y personalizable con modo oscuro.
+*  **Experiencia Premium:** Interfaz minimalista y personalizable centrada en el modo oscuro.
 
-Cocina con intención. Cocina con Sazón.
+Descubre más de 1000 recetas que vienen integradas y compártelas de forma rápida sin comprometer tu información personal.

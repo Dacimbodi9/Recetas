@@ -1,6 +1,6 @@
 {
-    "name": "Sazón",
-    "short_name": "Sazón",
+    "name": "recetas",
+    "short_name": "recetas",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

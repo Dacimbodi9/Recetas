@@ -1,1 +1,1 @@
-Your personal cookbook. Offline, private, with 1000+ recipes and meal planner.
+Offline, privacy-focused recipe manager with ingredient and diet search.

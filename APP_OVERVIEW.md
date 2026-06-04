@@ -1,11 +1,11 @@
-# Sazón - Complete App Overview
+# Recetas - Complete App Overview
 
-**Sazón** is a premium Flutter application designed for modern home cooks who value both functionality and aesthetic beauty. It transitions the traditional recipe box into a digital, AI-enhanced experience while maintaining a warm, organic feel.
+**Recetas** is a premium Flutter application designed for modern home cooks who value both functionality and aesthetic beauty. It transitions the traditional recipe box into a digital, AI-enhanced experience while maintaining a warm, organic feel.
 
 ---
 
 ## 🌟 Vision & Purpose
-Sazón is born from the idea that cooking should be an inviting, tactile experience, even when digitized. The app focuses on **offline-first reliability**, **privacy-centric data management**, and a **premium visual language** that feels more like a physical cookbook than a utility app.
+Recetas is born from the idea that cooking should be an inviting, tactile experience, even when digitized. The app focuses on **offline-first reliability**, **privacy-centric data management**, and a **premium visual language** that feels more like a physical cookbook than a utility app.
 
 ### Target Audience
 - **Home Chefs:** Individuals looking for a beautiful way to organize their culinary repertoire.
@@ -46,8 +46,8 @@ Sazón is born from the idea that cooking should be an inviting, tactile experie
 
 ---
 
-## 🎨 Design System ("The Artisan's Kitchen")
-*Sazón uses a curated design language to evoke a warm, organic kitchen environment.*
+## 🎨 Design System ("The Artisan Look")
+*Recetas uses a curated design language to evoke a warm, organic kitchen environment.*
 
 ### Core Philosophy
 - **Light Mode: "Artisan Bakery"** — Toasted parchment, rich creams, and earthy natural tones.
@@ -115,4 +115,4 @@ graph TD
 
 ---
 
-*Last Updated: 2026-06-04*
+*Last Updated: 2026-04-26*
