@@ -1,31 +1,60 @@
 part of '../main.dart';
 
-bool _fuzzyMatch(String text, String query) {
+double _fuzzyMatchScore(String text, String query) {
   final normalizedText = _removeDiacritics(text.toLowerCase());
   final normalizedQuery = _removeDiacritics(query.toLowerCase().trim());
 
-  if (normalizedQuery.isEmpty) return false;
+  if (normalizedQuery.isEmpty) return 0.0;
+  if (normalizedText == normalizedQuery) return 1.0;
 
   final queryWords = normalizedQuery.split(RegExp(r'\s+'));
   final textWords = normalizedText.split(RegExp(r'\s+'));
 
-  return queryWords.every((qWord) {
-    // 1. Exact substring match (existing behavior)
-    if (normalizedText.contains(qWord)) return true;
+  double totalScore = 0.0;
+  bool allWordsMatched = true;
 
-    // 2. Fuzzy match against individual text words
-    return textWords.any((tWord) {
-      // Optimization: Length difference check
-      if ((qWord.length - tWord.length).abs() > 2) return false;
+  for (final qWord in queryWords) {
+    if (qWord.isEmpty) continue;
 
-      final dist = _levenshtein(qWord, tWord);
+    double bestWordScore = 0.0;
+    if (normalizedText.contains(qWord)) {
+      bestWordScore = 0.9;
+    }
 
-      // Allow distance 1 for short words (>=3 chars), distance 2 for long words (>=6 chars)
-      if (qWord.length < 3) return dist == 0; // Strict for very short words
-      if (qWord.length < 6) return dist <= 1;
-      return dist <= 2;
-    });
-  });
+    for (final tWord in textWords) {
+      if (tWord.isEmpty) continue;
+
+      if (tWord == qWord) {
+        bestWordScore = 1.0;
+        break;
+      }
+
+      if ((qWord.length - tWord.length).abs() <= 2) {
+        final dist = _levenshtein(qWord, tWord);
+        double wordScore = 0.0;
+        if (qWord.length < 3 && dist == 0) wordScore = 0.8;
+        else if (qWord.length >= 3 && qWord.length < 6 && dist <= 1) wordScore = 0.7;
+        else if (qWord.length >= 6 && dist <= 2) wordScore = 0.6;
+
+        if (wordScore > bestWordScore) {
+          bestWordScore = wordScore;
+        }
+      }
+    }
+
+    if (bestWordScore == 0.0) {
+      allWordsMatched = false;
+      break;
+    }
+    totalScore += bestWordScore;
+  }
+
+  if (!allWordsMatched) return 0.0;
+  return totalScore / queryWords.length;
+}
+
+bool _fuzzyMatch(String text, String query) {
+  return _fuzzyMatchScore(text, query) > 0.0;
 }
 
 int _levenshtein(String s, String t) {
@@ -67,46 +96,28 @@ String _removeDiacritics(String str) {
 List<String> _sortIngredients(List<String> ingredients, String query) {
   if (query.isEmpty) return ingredients;
 
-  final normalizedQuery = _removeDiacritics(query.toLowerCase().trim());
+  final matches = <MapEntry<String, double>>[];
+  for (final ingredient in ingredients) {
+    final score = _fuzzyMatchScore(ingredient, query);
+    if (score > 0) {
+      matches.add(MapEntry(ingredient, score));
+    } else {
+      // Fallback for partial internal substring matches not covered by word-level fuzzy match
+      final normIng = _removeDiacritics(ingredient.toLowerCase());
+      final normQuery = _removeDiacritics(query.toLowerCase().trim());
+      if (normIng.contains(normQuery)) {
+        matches.add(MapEntry(ingredient, 0.5));
+      }
+    }
+  }
 
-  // Filter matches first
-  final matches = ingredients.where((ingredient) {
-    final normalizedIngredient = _removeDiacritics(ingredient.toLowerCase());
-    return normalizedIngredient.contains(normalizedQuery);
-  }).toList();
-
-  // Sort matches
   matches.sort((a, b) {
-    final normA = _removeDiacritics(a.toLowerCase());
-    final normB = _removeDiacritics(b.toLowerCase());
-
-    // 1. Exact match
-    if (normA == normalizedQuery && normB != normalizedQuery) return -1;
-    if (normB == normalizedQuery && normA != normalizedQuery) return 1;
-
-    // 2. Starts with
-    final aStarts = normA.startsWith(normalizedQuery);
-    final bStarts = normB.startsWith(normalizedQuery);
-    if (aStarts && !bStarts) return -1;
-    if (!aStarts && bStarts) return 1;
-
-    // 3. Word boundary starts with (e.g. "Salsa de Tomate" vs "Jitomate" for "Tomate")
-    // "Tomate" starts "Tomate..." -> handled by 2.
-    // "Salsa de Tomate" contains " Tomate". "Jitomate" contains "tomate" but not " tomate".
-    // Or just prefer shortest length if multiple matches?
-    // Let's prefer matches where the token is at the start of a word.
-    final aWordStart =
-        normA.contains(' $normalizedQuery') ||
-        normA.startsWith(normalizedQuery);
-    final bWordStart =
-        normB.contains(' $normalizedQuery') ||
-        normB.startsWith(normalizedQuery);
-    if (aWordStart && !bWordStart) return -1;
-    if (!aWordStart && bWordStart) return 1;
-
-    // 4. Length (shorter is better match, likely)
-    return normA.length.compareTo(normB.length);
+    // Sort by score descending
+    final scoreComp = b.value.compareTo(a.value);
+    if (scoreComp != 0) return scoreComp;
+    // Tiebreaker by length (shorter is better)
+    return a.key.length.compareTo(b.key.length);
   });
 
-  return matches;
+  return matches.map((e) => e.key).toList();
 }

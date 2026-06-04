@@ -167,12 +167,19 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
 
       if (widget.searchQuery.isNotEmpty) {
         // GLOBAL SEARCH
-        recipesToShow = RecipeManager.favoriteRecipes
-            .where((r) => _fuzzyMatch(r.title, widget.searchQuery))
-            .toList();
-        foldersToShow = RecipeManager.allFolders
-            .where((f) => _fuzzyMatch(f.name, widget.searchQuery))
-            .toList();
+        final scoredRecipes = RecipeManager.favoriteRecipes
+            .map((r) => MapEntry(r, _fuzzyMatchScore(r.title, widget.searchQuery)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        recipesToShow = scoredRecipes.map((e) => e.key).toList();
+
+        final scoredFolders = RecipeManager.allFolders
+            .map((f) => MapEntry(f, _fuzzyMatchScore(f.name, widget.searchQuery)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        foldersToShow = scoredFolders.map((e) => e.key).toList();
       } else {
         // NORMAL ROOT VIEW
         final allRecipesInFolders = <String>{};
@@ -398,12 +405,19 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
 
       if (widget.searchQuery.isNotEmpty) {
         // RECURSIVE SEARCH
-        recipesToShow = RecipeManager.getRecipesInFolderRecursive(
-          _currentFolderId!,
-        ).where((r) => _fuzzyMatch(r.title, widget.searchQuery)).toList();
-        foldersToShow = RecipeManager.getSubFoldersRecursive(
-          _currentFolderId!,
-        ).where((f) => _fuzzyMatch(f.name, widget.searchQuery)).toList();
+        final scoredRecipes = RecipeManager.getRecipesInFolderRecursive(_currentFolderId!)
+            .map((r) => MapEntry(r, _fuzzyMatchScore(r.title, widget.searchQuery)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        recipesToShow = scoredRecipes.map((e) => e.key).toList();
+        
+        final scoredFolders = RecipeManager.getSubFoldersRecursive(_currentFolderId!)
+            .map((f) => MapEntry(f, _fuzzyMatchScore(f.name, widget.searchQuery)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        foldersToShow = scoredFolders.map((e) => e.key).toList();
       } else {
         recipesToShow = RecipeManager.getRecipesInFolder(currentFolder);
         foldersToShow = subFolders;

@@ -255,26 +255,33 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
     final List<_ScoredRecipe> results =
         RecipeManager.recipes
             .map((r) {
-              final matches = widget.selectedIngredients
-                  .where(
-                    (needle) =>
-                        r.ingredients.any((i) => _ingredientsMatch(i, needle)),
-                  )
-                  .length;
-              // Get the actual recipe ingredients that matched (to highlight them correctly)
-              final matchedRecipeIngredients = r.ingredients
-                  .where(
-                    (ingredient) => widget.selectedIngredients.any(
-                      (needle) => _ingredientsMatch(ingredient, needle),
-                    ),
-                  )
-                  .map((e) => e.toLowerCase())
-                  .toList();
+              int matches = 0;
+              double totalScore = 0.0;
+              final matchedRecipeIngredients = <String>[];
+
+              for (final needle in widget.selectedIngredients) {
+                double bestIngScore = 0.0;
+                String? bestMatch;
+                for (final ing in r.ingredients) {
+                  final score = _fuzzyMatchScore(ing, needle);
+                  if (score > bestIngScore) {
+                    bestIngScore = score;
+                    bestMatch = ing;
+                  }
+                }
+                if (bestIngScore > 0) {
+                  matches++;
+                  totalScore += bestIngScore;
+                  if (bestMatch != null) matchedRecipeIngredients.add(bestMatch.toLowerCase());
+                }
+              }
+              
               final remainingIngredients = r.ingredients.length - matches;
               return _ScoredRecipe(
                 recipe: r,
                 matchCount: matches,
                 remainingIngredients: remainingIngredients,
+                relevanceScore: totalScore,
                 matchedIngredients: matchedRecipeIngredients,
               );
             })
@@ -285,8 +292,11 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
             // Primero ordenar por matchCount (mayor a menor)
             final matchComparison = b.matchCount.compareTo(a.matchCount);
             if (matchComparison != 0) return matchComparison;
-            // Si hay empate, ordenar por ingredientes sobrantes (mayor a menor)
-            return b.remainingIngredients.compareTo(a.remainingIngredients);
+            // Luego ordenar por score de relevancia
+            final scoreComparison = b.relevanceScore.compareTo(a.relevanceScore);
+            if (scoreComparison != 0) return scoreComparison;
+            // Si hay empate, ordenar por ingredientes sobrantes (menor a mayor - mejor resultado)
+            return a.remainingIngredients.compareTo(b.remainingIngredients);
           });
 
     return Scaffold(
@@ -388,26 +398,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
     return standardMatch && customMatch;
   }
 
-  bool _ingredientsMatch(String recipeIngredient, String searchIngredient) {
-    final r = recipeIngredient.toLowerCase().trim();
-    final s = searchIngredient.toLowerCase().trim();
 
-    if (r == s) return true;
-
-    // Check for plural forms (e.g. "tomate" matches "tomates", "huevo" matches "huevos")
-    // If recipe has "tomates" and search is "tomate" -> r contains s
-    // AND length diff is small to avoid "pan" matching "empanada" purely by string containment without checking boundaries here
-    if (r.contains(s) && r.length <= s.length + 2) return true;
-
-    // If recipe has "tomate" and search is "tomates" -> s contains r
-    if (s.contains(r) && s.length <= r.length + 2) return true;
-
-    // Word boundary check (allows "pan" -> "pan integral")
-    // Matches if 's' appears as a whole word inside 'r'
-    if (RegExp(r'\b' + RegExp.escape(s) + r'\b').hasMatch(r)) return true;
-
-    return false;
-  }
 
   void _showFilterDialog(BuildContext context) {
     showDialog(

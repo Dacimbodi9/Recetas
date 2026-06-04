@@ -147,11 +147,15 @@ class _RecetasView extends StatelessWidget {
         .toList();
 
     // Search for recipes by name
-    final searchResults = searchQuery.isEmpty
-        ? <Recipe>[]
-        : RecipeManager.recipes.where((recipe) {
-            return _fuzzyMatch(recipe.title, searchQuery);
-          }).toList();
+    final searchResultsScore = searchQuery.isEmpty
+        ? <MapEntry<Recipe, double>>[]
+        : RecipeManager.recipes
+            .map((recipe) => MapEntry(recipe, _fuzzyMatchScore(recipe.title, searchQuery)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+    
+    final searchResults = searchResultsScore.map((e) => e.key).toList();
 
     return Column(
       children: [

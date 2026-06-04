@@ -573,12 +573,14 @@ class _ScoredRecipe {
     required this.recipe,
     required this.matchCount,
     required this.remainingIngredients,
+    this.relevanceScore = 0.0,
     this.matchedIngredients = const [],
   });
 
   final Recipe recipe;
   final int matchCount;
   final int remainingIngredients;
+  final double relevanceScore;
   final List<String> matchedIngredients;
 }
 
