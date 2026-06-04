@@ -75,6 +75,14 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                     label: 'Compra'.tr,
                   ),
                 );
+              } else if (feature == 'stats') {
+                pages.add(const StatsPage(showAppBar: false));
+                destinations.add(
+                  NavigationDestination(
+                    icon: const Icon(Icons.bar_chart_rounded),
+                    label: 'Estadísticas'.tr,
+                  ),
+                );
               }
             }
 

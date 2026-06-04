@@ -844,97 +844,17 @@ class _NewRecipePageState extends State<NewRecipePage> {
   }
 
   void _showAddCustomIngredientDialog() {
-    final nameCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController();
-    IngredientCategory? selectedCat;
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text('Crear ingrediente'.tr),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: nameCtrl,
-                decoration: InputDecoration(labelText: 'Nombre'.tr),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: qtyCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Cantidad (ej: 100g)'.tr,
-                ),
-              ),
-              SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).cardColor
-                      : Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Theme.of(context).brightness == Brightness.dark
-                      ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-                      : null,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<IngredientCategory>(
-                    isExpanded: true,
-                    value: selectedCat,
-                    hint: Text(
-                      'Categoría (Opcional)'.tr,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-                    ),
-                    items: IngredientCategory.values
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c.displayName),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => selectedCat = v),
-                    icon: Icon(CupertinoIcons.chevron_down, size: 16),
-                    borderRadius: BorderRadius.circular(12),
-                    dropdownColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'.tr),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameCtrl.text.trim();
-                if (name.isNotEmpty) {
-                  if (selectedCat != null) {
-                    RecipeManager.addCustomMapping(name, selectedCat!);
-                  }
-                  _addIngredient(
-                    DetailedIngredient(
-                      name: name,
-                      quantity: qtyCtrl.text.trim(),
-                    ),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Añadir'.tr),
-            ),
-          ],
-        ),
+      builder: (ctx) => _AddIngredientDialog(
+        onAdd: (name, qty, category) {
+          if (name.isNotEmpty) {
+            if (category != null) {
+              RecipeManager.addCustomMapping(name, category);
+            }
+            _addIngredient(DetailedIngredient(name: name, quantity: qty));
+          }
+        },
       ),
     );
   }
@@ -1244,7 +1164,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           child: _buildCompactNutriInput(
                             theme,
                             _caloriesController,
-                            'Calorías (kcal)',
+                            'Calorías (kcal)'.tr,
                           ),
                         ),
                         SizedBox(width: 8),
@@ -1252,7 +1172,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           child: _buildCompactNutriInput(
                             theme,
                             _proteinController,
-                            'Proteína (g)',
+                            'Proteína (g)'.tr,
                           ),
                         ),
                       ],
@@ -1264,7 +1184,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           child: _buildCompactNutriInput(
                             theme,
                             _carbsController,
-                            'Carbohidratos (g)',
+                            'Carbohidratos (g)'.tr,
                           ),
                         ),
                         SizedBox(width: 8),
@@ -1272,7 +1192,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                           child: _buildCompactNutriInput(
                             theme,
                             _fatController,
-                            'Grasas (g)',
+                            'Grasas (g)'.tr,
                           ),
                         ),
                       ],
@@ -1588,7 +1508,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
                         horizontal: 12,
                       ), // Restore some padding
                     ),
-                    child: Icon(Icons.drag_handle, size: 20),
+                    child: Icon(Icons.swap_vert, size: 20),
                   ),
                   SizedBox(width: 8),
                   FilledButton.icon(
@@ -1926,7 +1846,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Añadir ingrediente'.tr),
+      title: Text('Crear ingrediente'.tr),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1935,7 +1855,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
             controller: _nameController,
             decoration: InputDecoration(
               hintText: 'Nombre del ingrediente'.tr.tr,
-              labelText: 'Ingrediente',
+              labelText: 'Ingrediente'.tr,
             ),
             autofocus: true,
           ),
@@ -1945,14 +1865,14 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
             controller: _quantityController,
             decoration: InputDecoration(
               hintText: 'Ej: 200g'.tr.tr,
-              labelText: 'Cantidad',
+              labelText: 'Cantidad'.tr,
             ),
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<IngredientCategory>(
             initialValue: _selectedCategory,
             decoration: InputDecoration(
-              labelText: 'Categoría',
+              labelText: 'Categoría'.tr,
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 12,
@@ -1997,7 +1917,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
               if (context.mounted) Navigator.of(context).pop();
             }
           },
-          child: Text('Añadir'.tr),
+          child: Text('Crear'.tr),
         ),
       ],
     );
@@ -2037,7 +1957,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
         controller: _controller,
         decoration: InputDecoration(
           hintText: 'Describe el paso de la receta'.tr.tr,
-          labelText: 'Paso',
+          labelText: 'Paso'.tr,
         ),
         autofocus: true,
         maxLines: 3,

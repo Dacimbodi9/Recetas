@@ -312,6 +312,21 @@ class SettingsPage extends StatelessWidget {
                                 onSwitchChanged: (value) =>
                                     SettingsManager.setPreventSleep(value),
                                 icon: CupertinoIcons.eye,
+                                lastItem: false,
+                              );
+                            },
+                          ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SettingsManager.showTodayMealsInHome,
+                            builder: (context, showInHome, child) {
+                              return _SettingsTile(
+                                title: 'Comidas de hoy en Inicio'.tr,
+                                subtitle: 'Mostrar resumen en vez de en planificador'.tr,
+                                isSwitch: true,
+                                switchValue: showInHome,
+                                onSwitchChanged: (value) =>
+                                    SettingsManager.setShowTodayMealsInHome(value),
+                                icon: CupertinoIcons.square_list,
                                 lastItem: true,
                               );
                             },
@@ -322,6 +337,26 @@ class SettingsPage extends StatelessWidget {
                       _SettingsSection(
                         title: 'MIS DATOS'.tr,
                         children: [
+                          _SettingsTile(
+                            title: 'Perfil Físico'.tr,
+                            subtitle: 'Configura tus datos de salud para recomendaciones'.tr,
+                            icon: Icons.accessibility_new_rounded,
+                            trailing: Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                            onTap: () {
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BodyProfileSettingsPage(),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
                           _SettingsTile(
                             title: 'Configurar API Key'.tr,
                             subtitle:
@@ -1062,6 +1097,152 @@ class _LegalPage extends StatelessWidget {
             _LegalContent(isPrivacy: false),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class BodyProfileSettingsPage extends StatefulWidget {
+  const BodyProfileSettingsPage({super.key});
+
+  @override
+  State<BodyProfileSettingsPage> createState() => _BodyProfileSettingsPageState();
+}
+
+class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
+  late TextEditingController _weightController;
+  late TextEditingController _heightController;
+  late TextEditingController _ageController;
+  String? _sex;
+  double? _activityLevel;
+
+  @override
+  void initState() {
+    super.initState();
+    _weightController = TextEditingController(text: SettingsManager.userWeight.value?.toString() ?? '');
+    _heightController = TextEditingController(text: SettingsManager.userHeight.value?.toString() ?? '');
+    _ageController = TextEditingController(text: SettingsManager.userAge.value?.toString() ?? '');
+    _sex = SettingsManager.userSex.value;
+    _activityLevel = SettingsManager.userActivityLevel.value;
+  }
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _heightController.dispose();
+    _ageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final weight = double.tryParse(_weightController.text);
+    final height = double.tryParse(_heightController.text);
+    final age = int.tryParse(_ageController.text);
+    
+    await SettingsManager.setUserWeight(weight);
+    await SettingsManager.setUserHeight(height);
+    await SettingsManager.setUserAge(age);
+    await SettingsManager.setUserSex(_sex);
+    await SettingsManager.setUserActivityLevel(_activityLevel);
+    
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text('Perfil Físico'.tr)),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(
+            'Estos datos se usan para calcular recomendaciones nutricionales personalizadas'.tr,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _weightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'Peso (kg)'.tr,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _heightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'Altura (cm)'.tr,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _ageController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Edad'.tr,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            initialValue: _sex,
+            decoration: InputDecoration(
+              labelText: 'Sexo'.tr,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            items: [
+              DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
+              DropdownMenuItem(value: 'female', child: Text('Femenino'.tr)),
+            ],
+            onChanged: (val) {
+              setState(() {
+                _sex = val;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<double>(
+            initialValue: _activityLevel ?? 1.55,
+            decoration: InputDecoration(
+              labelText: 'Nivel de Actividad'.tr,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              helperMaxLines: 3,
+              helperText: _activityLevel == 1.2 ? 'Sedentario: Trabajo de oficina, poco o ningún ejercicio.'.tr :
+                          _activityLevel == 1.375 ? 'Ligeramente activo: Ejercicio ligero 1-3 días a la semana.'.tr :
+                          _activityLevel == 1.55 || _activityLevel == null ? 'Moderadamente activo: Ejercicio 3-5 días a la semana.'.tr :
+                          _activityLevel == 1.725 ? 'Muy activo: Ejercicio fuerte 6-7 días a la semana.'.tr :
+                          'Extremadamente activo: Trabajo físico duro o entrenamiento doble.'.tr,
+            ),
+            items: [
+              DropdownMenuItem(value: 1.2, child: Text('Sedentario (Poco/ningún ejercicio)'.tr)),
+              DropdownMenuItem(value: 1.375, child: Text('Ligero (1-3 días/sem)'.tr)),
+              DropdownMenuItem(value: 1.55, child: Text('Moderado (3-5 días/sem)'.tr)),
+              DropdownMenuItem(value: 1.725, child: Text('Muy activo (6-7 días/sem)'.tr)),
+              DropdownMenuItem(value: 1.9, child: Text('Extremo (Trabajo físico/Atleta)'.tr)),
+            ],
+            onChanged: (val) {
+              setState(() {
+                _activityLevel = val;
+              });
+            },
+          ),
+          const SizedBox(height: 32),
+          FilledButton(
+            onPressed: _save,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: Text('Guardar Configuración'.tr),
+          ),
+        ],
       ),
     );
   }

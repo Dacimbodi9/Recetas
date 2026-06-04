@@ -522,7 +522,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   .fade(duration: 500.ms)
                   .slideY(begin: 0.03, curve: Curves.easeOutCubic),
               const SizedBox(height: 16),
-              const _TodayMealsCard(),
+              ValueListenableBuilder<bool>(
+                valueListenable: SettingsManager.showTodayMealsInHome,
+                builder: (context, showTodayMeals, _) {
+                  if (!showTodayMeals) return const SizedBox.shrink();
+                  return const _TodayMealsCard();
+                },
+              ),
               ValueListenableBuilder<List<String>>(
                 valueListenable: SettingsManager.bottomMenuFeatures,
                 builder: (context, features, _) {
@@ -601,6 +607,23 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 const SizedBox(height: 16),
                               ],
+                              if (!features.contains('stats')) ...[
+                                _buildProfileFeatureCard(
+                                  theme,
+                                  title: 'Estadísticas'.tr,
+                                  subtitle: 'Consulta tus datos de nutrición'.tr,
+                                  icon: Icons.bar_chart_rounded,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const StatsPage(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                             ]
                             .animate(interval: 100.ms, delay: 100.ms)
                             .fade(duration: 400.ms)
@@ -608,7 +631,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   );
                 },
               ),
-              const _NutritionalGraphCard(),
+              // Graph card removed as per user request
             ],
           ),
         ),
@@ -671,7 +694,7 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _TodayMealsCard extends StatefulWidget {
-  const _TodayMealsCard({super.key});
+  const _TodayMealsCard();
 
   @override
   State<_TodayMealsCard> createState() => _TodayMealsCardState();
@@ -731,11 +754,21 @@ class _TodayMealsCardState extends State<_TodayMealsCard> {
             children: [
               Icon(Icons.restaurant, color: theme.colorScheme.primary, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Comidas de hoy'.tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'Comidas de hoy'.tr,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add, size: 20),
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Añadir comida extra'.tr,
+                onPressed: () {
+                  showGlobalAddMealSheet(context, DateTime.now(), MealType.snack);
+                },
               ),
             ],
           ),
@@ -749,45 +782,86 @@ class _TodayMealsCardState extends State<_TodayMealsCard> {
                 ? '${typeName[0].toUpperCase()}${typeName.substring(1)}'.tr 
                 : '';
 
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: GestureDetector(
-                onTap: () {
-                  MealPlanManager.toggleCompleted(meal);
-                },
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: meal.completed ? theme.colorScheme.primary : Colors.grey,
-                      width: 2,
-                    ),
-                    color: meal.completed ? theme.colorScheme.primary : Colors.transparent,
-                  ),
-                  child: meal.completed
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : null,
-                ),
-              ),
-              title: Text(
-                recipe.title,
-                style: TextStyle(
-                  decoration: meal.completed ? TextDecoration.lineThrough : null,
-                  color: meal.completed ? Colors.grey : null,
-                ),
-              ),
-              subtitle: Text(
-                capitalizedType,
-                style: TextStyle(fontSize: 12, color: theme.colorScheme.primary),
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => RecipeDetailPage(recipe: recipe)),
-                );
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Dismissible(
+              key: Key('today_meal_${meal.dateKey}_${meal.mealType.name}_${meal.recipeId}'),
+              direction: DismissDirection.startToEnd,
+              confirmDismiss: (direction) async {
+                MealPlanManager.toggleCompleted(meal);
+                return false;
               },
+              background: const SizedBox.shrink(),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: -1000,
+                    width: 1000,
+                    top: 4,
+                    bottom: 4,
+                    child: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: meal.completed 
+                            ? Colors.orange.withValues(alpha: 0.15)
+                            : theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+                      ),
+                      child: Icon(
+                        meal.completed ? Icons.undo : Icons.check,
+                        color: meal.completed ? Colors.orange : theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                leading: GestureDetector(
+                  onTap: () {
+                    MealPlanManager.toggleCompleted(meal);
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: meal.completed ? theme.colorScheme.primary : Colors.grey,
+                        width: 2,
+                      ),
+                      color: meal.completed ? theme.colorScheme.primary : Colors.transparent,
+                    ),
+                    child: meal.completed
+                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                        : null,
+                  ),
+                ),
+                title: Text(
+                  recipe.title,
+                  style: TextStyle(
+                    decoration: meal.completed ? TextDecoration.lineThrough : null,
+                    color: meal.completed ? Colors.grey : null,
+                  ),
+                ),
+                subtitle: Text(
+                  capitalizedType,
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.primary),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => RecipeDetailPage(recipe: recipe)),
+                  );
+                },
+              ),
+              ),
+              ],
+              ),
+            ),
             );
           }),
         ],

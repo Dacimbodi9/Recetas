@@ -10,7 +10,7 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 4;
+  final int _totalPages = 5;
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
@@ -93,7 +93,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   _buildStep1Welcome(theme, _currentPage == 0),
                   _buildStep2Features(theme, isDark, _currentPage == 1),
                   _buildStep3Settings(theme, isDark, _currentPage == 2),
-                  _buildStep4BottomMenu(theme, isDark, _currentPage == 3),
+                  _buildStep4BodyProfile(theme, isDark, _currentPage == 3),
+                  _buildStep5BottomMenu(theme, isDark, _currentPage == 4),
                 ],
               ),
             ),
@@ -615,8 +616,109 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  // Step 4: Bottom Menu Features
-  Widget _buildStep4BottomMenu(ThemeData theme, bool isDark, bool isActive) {
+  // Step 4: Body Profile
+  Widget _buildStep4BodyProfile(ThemeData theme, bool isDark, bool isActive) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Perfil Físico'.tr,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Estos datos se usan para calcular recomendaciones nutricionales personalizadas'.tr,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32),
+            _buildNumberInput(theme, isDark, 'Peso (kg)'.tr, SettingsManager.userWeight.value?.toString(), (v) {
+              final val = double.tryParse(v);
+              if (val != null) SettingsManager.setUserWeight(val);
+            }),
+            SizedBox(height: 16),
+            _buildNumberInput(theme, isDark, 'Altura (cm)'.tr, SettingsManager.userHeight.value?.toString(), (v) {
+              final val = double.tryParse(v);
+              if (val != null) SettingsManager.setUserHeight(val);
+            }),
+            SizedBox(height: 16),
+            _buildNumberInput(theme, isDark, 'Edad'.tr, SettingsManager.userAge.value?.toString(), (v) {
+              final val = int.tryParse(v);
+              if (val != null) SettingsManager.setUserAge(val);
+            }),
+            SizedBox(height: 16),
+            _buildDropdownInput(theme, isDark, 'Sexo'.tr, SettingsManager.userSex.value, (v) {
+              SettingsManager.setUserSex(v);
+            }, [
+              DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
+              DropdownMenuItem(value: 'female', child: Text('Femenino'.tr)),
+            ]),
+            SizedBox(height: 32),
+            Text(
+              'Estos datos son opcionales y se guardan solo en tu dispositivo'.tr,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ].asMap().entries.map((e) => e.value
+              .animate(target: isActive ? 1 : 0)
+              .fade(duration: 400.ms, delay: (e.key * 100).ms)
+              .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic)
+          ).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberInput(ThemeData theme, bool isDark, String label, String? initialValue, Function(String) onChanged) {
+    return TextField(
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: onChanged,
+      controller: TextEditingController(text: initialValue),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+          ),
+        ),
+        filled: true,
+        fillColor: isDark ? theme.cardColor : Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDropdownInput(ThemeData theme, bool isDark, String label, String? value, Function(String?) onChanged, List<DropdownMenuItem<String>> items) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      onChanged: onChanged,
+      items: items,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+          ),
+        ),
+        filled: true,
+        fillColor: isDark ? theme.cardColor : Colors.white,
+      ),
+    );
+  }
+
+  // Step 5: Bottom Menu Features
+  Widget _buildStep5BottomMenu(ThemeData theme, bool isDark, bool isActive) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(24),

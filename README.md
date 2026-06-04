@@ -1,6 +1,6 @@
-# Recetas 🍳
+# Sazón 🍳
 
-A beautiful, privacy-focused recipe management application built with Flutter.  **Recetas** helps you organize your culinary life without compromising your data privacy.
+A beautiful, privacy-focused recipe management application built with Flutter.  **Sazón** helps you organize your culinary life without compromising your data privacy.
 
 ## 🚀 Getting Started
 
@@ -33,7 +33,7 @@ This project is not yet available for download in Google Play Store or Apple App
 
 ## 🔒 Privacy Policy
 
-**Recetas** is designed with **Privacy by Design**.
+**Sazón** is designed with **Privacy by Design**.
 *   We do not collect usage data.
 *   We do not upload your photos.
 *   All backups are local files under your control.

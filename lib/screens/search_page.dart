@@ -231,7 +231,7 @@ class _RecetasView extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final recipe = searchResults[index];
                           return _RecipeCard(recipe: recipe, matchCount: 0)
-                              .animate(delay: (index * 50).ms)
+                              .animate(delay: (index < 12 ? index * 50 : 0).ms)
                               .fade(duration: 400.ms)
                               .slideY(
                                 begin: 0.1,
@@ -307,7 +307,7 @@ class _RecetasView extends StatelessWidget {
                             ),
                           ),
                         )
-                        .animate(delay: (index * 50).ms)
+                        .animate(delay: (index < 12 ? index * 50 : 0).ms)
                         .fade(duration: 400.ms)
                         .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
                   },
@@ -559,7 +559,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
                             title: Text(item),
                             onTap: () => _add(item),
                           )
-                          .animate(delay: (index * 30).ms)
+                          .animate(delay: (index < 15 ? index * 30 : 0).ms)
                           .fade(duration: 300.ms)
                           .slideY(
                             begin: 0.1,
@@ -676,7 +676,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
                 ),
               ),
             )
-            .animate(delay: (index * 50).ms)
+            .animate(delay: (index < 12 ? index * 50 : 0).ms)
             .fade(duration: 400.ms)
             .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
       },

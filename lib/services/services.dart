@@ -25,6 +25,12 @@ class SettingsManager {
     'search',
     'saved',
   ]);
+  static final ValueNotifier<double?> userWeight = ValueNotifier(null);
+  static final ValueNotifier<double?> userHeight = ValueNotifier(null);
+  static final ValueNotifier<int?> userAge = ValueNotifier(null);
+  static final ValueNotifier<String?> userSex = ValueNotifier(null);
+  static final ValueNotifier<double?> userActivityLevel = ValueNotifier(null);
+  static final ValueNotifier<bool> showTodayMealsInHome = ValueNotifier(false);
   static const _themeKey = 'is_dark_mode';
   static const _languageKey = 'app_language';
   static const _defaultsKey = 'show_default_recipes';
@@ -40,6 +46,12 @@ class SettingsManager {
   static const _aiApiEndpointPref = 'ai_api_endpoint';
   static const _aiProviderPref = 'ai_provider';
   static const _bottomMenuFeaturesKey = 'bottom_menu_features';
+  static const _userWeightKey = 'user_weight';
+  static const _userHeightKey = 'user_height';
+  static const _userAgeKey = 'user_age';
+  static const _userSexKey = 'user_sex';
+  static const _userActivityLevelKey = 'user_activity_level';
+  static const _showTodayMealsInHomeKey = 'show_today_meals_in_home';
 
   static List<Map<String, dynamic>> get availableFeatures => [
     {
@@ -65,6 +77,12 @@ class SettingsManager {
       'title': 'Lista de Compra'.tr,
       'subtitle': 'Lista de compra automática'.tr,
       'icon': Icons.shopping_cart_outlined,
+    },
+    {
+      'id': 'stats',
+      'title': 'Estadísticas'.tr,
+      'subtitle': 'Tus estadísticas nutricionales'.tr,
+      'icon': Icons.bar_chart_rounded,
     },
   ];
 
@@ -112,12 +130,32 @@ class SettingsManager {
     final defaultLang = deviceLocale.startsWith('es') ? 'es' : 'en';
     language.value = prefs.getString(_languageKey) ?? defaultLang;
     AppLocalization.instance.setLanguage(language.value);
+
+    final savedWeight = prefs.getDouble(_userWeightKey);
+    userWeight.value = savedWeight;
+    final savedHeight = prefs.getDouble(_userHeightKey);
+    userHeight.value = savedHeight;
+    final savedAge = prefs.getInt(_userAgeKey);
+    userAge.value = savedAge;
+    userSex.value = prefs.getString(_userSexKey);
+    userActivityLevel.value = prefs.getDouble(_userActivityLevelKey);
+    showTodayMealsInHome.value = prefs.getBool(_showTodayMealsInHomeKey) ?? false;
   }
 
   static Future<void> setUserName(String name) async {
     userName.value = name;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userNameKey, name);
+  }
+
+  static Future<void> setUserActivityLevel(double? level) async {
+    userActivityLevel.value = level;
+    final prefs = await SharedPreferences.getInstance();
+    if (level == null) {
+      await prefs.remove(_userActivityLevelKey);
+    } else {
+      await prefs.setDouble(_userActivityLevelKey, level);
+    }
   }
 
   static Future<void> setUserPhotoPath(String? path) async {
@@ -146,6 +184,52 @@ class SettingsManager {
     aiProvider.value = provider;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_aiProviderPref, provider);
+  }
+
+  static Future<void> setUserWeight(double? weight) async {
+    userWeight.value = weight;
+    final prefs = await SharedPreferences.getInstance();
+    if (weight == null) {
+      await prefs.remove(_userWeightKey);
+    } else {
+      await prefs.setDouble(_userWeightKey, weight);
+    }
+  }
+
+  static Future<void> setShowTodayMealsInHome(bool show) async {
+    showTodayMealsInHome.value = show;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showTodayMealsInHomeKey, show);
+  }
+
+  static Future<void> setUserHeight(double? height) async {
+    userHeight.value = height;
+    final prefs = await SharedPreferences.getInstance();
+    if (height == null) {
+      await prefs.remove(_userHeightKey);
+    } else {
+      await prefs.setDouble(_userHeightKey, height);
+    }
+  }
+
+  static Future<void> setUserAge(int? age) async {
+    userAge.value = age;
+    final prefs = await SharedPreferences.getInstance();
+    if (age == null) {
+      await prefs.remove(_userAgeKey);
+    } else {
+      await prefs.setInt(_userAgeKey, age);
+    }
+  }
+
+  static Future<void> setUserSex(String? sex) async {
+    userSex.value = sex;
+    final prefs = await SharedPreferences.getInstance();
+    if (sex == null) {
+      await prefs.remove(_userSexKey);
+    } else {
+      await prefs.setString(_userSexKey, sex);
+    }
   }
 
   static Future<void> setLanguage(String lang) async {
@@ -576,6 +660,10 @@ class RecipeManager {
     }
 
     return allRecipes;
+  }
+
+  static Recipe? getRecipeById(String id) {
+    return [..._defaultRecipes, ..._recipes].where((r) => r.id == id).firstOrNull;
   }
 
   static bool isRecipeCompatible(Recipe recipe) {
@@ -1183,19 +1271,46 @@ class MealPlanManager {
       name: 'Pérdida de Peso Equilibrada',
       days: {
         1: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_ensalada_quinoa'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '23200bb2-cc86-4105-994f-6c13e82ea1e9'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '7952a4ae-be9b-4271-b527-d01acc3710d0'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '7862f19f-9e9b-4227-92b2-b078aac288cc'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f5ff054d-e3ea-4d2c-b52f-69e0da59b307'),
         ],
         2: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Pollo asado al limón y hierbas'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Merluza en salsa verde'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '3160602f-9826-4625-9e8f-e4e974448768'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '39dd5b2e-9efc-413d-a9ae-a72df06f6987'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '43941400-3f85-4050-b531-997ba320b1cb'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'a92acfc7-2d17-4b8e-b578-ff3e9cb086c0'),
         ],
         3: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Lentejas estofadas con chorizo'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'c464d212-dfd3-496f-8e7f-c098260e7708'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '7952a4ae-be9b-4271-b527-d01acc3710d0'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'a0e33988-9820-4111-bcba-f21e22d12e17'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'fe04a516-994d-4b5c-abe1-cf3863c53d37'),
+        ],
+        4: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '625647b2-302c-4464-ac3e-23380cf2d7d5'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'a5feb510-0947-4b9e-8150-ccc6b1519681'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'f85ee162-d344-4a0e-b332-c3a41ee1057f'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '41d37467-29fd-4756-b5e9-670a4ac5a493'),
+        ],
+        5: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'fb11eb5a-07fd-47e4-8ce8-2cf493321b49'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '5787494c-cb06-43f7-887b-9aa9067eb925'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '1ab8346e-08bc-483a-9cb4-a4ede59915b6'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '636e83dc-c6ba-444b-8481-87c4d5950675'),
+        ],
+        6: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'f69cb75b-4807-4cea-ac29-f64299231059'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '15251729-9e83-4b7c-a22f-654fd81aa783'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '43941400-3f85-4050-b531-997ba320b1cb'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '532cf003-ae6f-4c49-8481-eaa5f5024bd8'),
+        ],
+        7: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '9a755a5e-3ff9-4cc2-b676-eb5437703945'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '3c2f61e9-4cf8-461e-9cea-a3647bc8cede'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '7451c974-645a-42eb-b795-67641817521c'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f5ff054d-e3ea-4d2c-b52f-69e0da59b307'),
         ],
       },
     ),
@@ -1203,14 +1318,46 @@ class MealPlanManager {
       name: 'Ganancia Muscular',
       days: {
         1: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_wrap_pollo'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Estofado de ternera con patatas'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'e452eca6-3f68-4e19-a48e-9c07329be362'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '89a8997d-087d-4043-930d-80e87129cdeb'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '41d37467-29fd-4756-b5e9-670a4ac5a493'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'ef7894aa-edda-49bc-ab83-6f44c6f877a3'),
         ],
         2: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Paella valenciana'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_salmon_esparragos'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '1f69ad92-68d1-4eeb-be9b-69bb86ebe0bc'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'e452eca6-3f68-4e19-a48e-9c07329be362'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '34004491-676b-4669-a5e8-38a48c84df26'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f5ff054d-e3ea-4d2c-b52f-69e0da59b307'),
+        ],
+        3: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '5f563a13-761b-4ee1-b359-3570fdafa218'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'f1750881-a1fa-40a7-93d5-0e399c56cef8'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'edb02970-4e44-494c-aff8-ff394f2e5447'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '5ed398e6-39ee-4708-895e-ca36659b9df9'),
+        ],
+        4: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'c0a84a44-9d22-4588-bd9c-e935a1dcd5c3'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'c9931f07-d1b0-4430-8d44-50e8b9b53435'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'd63c1177-e7fd-4eac-838a-4db3f4c4cf02'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '8b65889c-c627-417a-850d-edaa1061e392'),
+        ],
+        5: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '991b742a-3931-4915-ae40-320bb376661a'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '977943b0-c7e6-4669-a94e-cc01909d463f'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '75025bfd-c6dc-4c52-b6e8-629c3c1d4da0'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '4a29d2e5-c9b2-4754-8a24-cc7667cb79b9'),
+        ],
+        6: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'ef8d136a-a21b-497b-b0e1-f8f185123652'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '694c52f6-9ce7-4f0d-b03e-c2da2a796a2b'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '41d37467-29fd-4756-b5e9-670a4ac5a493'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '113ff5bc-8e6a-48b3-91a3-7b915e58775c'),
+        ],
+        7: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'c8af1ed2-f992-490b-aac5-957812a29d17'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '45103c98-e820-4162-9b8d-83b60c5df347'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '34004491-676b-4669-a5e8-38a48c84df26'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'ba24853f-87b9-4004-b443-9dbfc305464f'),
         ],
       },
     ),
@@ -1218,14 +1365,46 @@ class MealPlanManager {
       name: 'Vegetariano Completo',
       days: {
         1: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_ensalada_quinoa'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Tortilla de patatas con cebolla'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '771b9935-fa25-4827-af1f-d4dfa0c8441d'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '7952a4ae-be9b-4271-b527-d01acc3710d0'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'edb02970-4e44-494c-aff8-ff394f2e5447'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '532cf003-ae6f-4c49-8481-eaa5f5024bd8'),
         ],
         2: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Macarrones con tomate y queso'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Pisto manchego con huevo frito'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '7150dbd6-74d9-43e8-a379-64efe399fa81'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'f1750881-a1fa-40a7-93d5-0e399c56cef8'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '40f1971f-6fd8-4f91-9015-e84634844136'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'd3ba8c5e-152d-49bd-bf9e-9676a1b86d04'),
+        ],
+        3: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '99ea6a2b-3a4d-453c-9b67-06efdc01436f'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '0c265671-e26b-4868-bddc-c91004825e15'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '43941400-3f85-4050-b531-997ba320b1cb'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '88d6cb67-be52-4153-b47a-55444274232e'),
+        ],
+        4: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '507be0e9-aa12-4142-aba0-31a602b86b10'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'd3b29188-7498-4cba-aa23-41ee9e04d2ef'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'fef1be05-8c20-47c6-a6b3-4d34e02f9048'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f1750881-a1fa-40a7-93d5-0e399c56cef8'),
+        ],
+        5: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '0d174248-df29-4754-a80f-cba3b0412b82'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '7952a4ae-be9b-4271-b527-d01acc3710d0'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'edb02970-4e44-494c-aff8-ff394f2e5447'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'd3ba8c5e-152d-49bd-bf9e-9676a1b86d04'),
+        ],
+        6: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '7ec7d8ba-6192-4a85-b063-c94b8717d032'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '88d6cb67-be52-4153-b47a-55444274232e'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '43941400-3f85-4050-b531-997ba320b1cb'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '532cf003-ae6f-4c49-8481-eaa5f5024bd8'),
+        ],
+        7: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'c333dfe8-3930-46e4-9a4d-835ecadc3e62'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '0c265671-e26b-4868-bddc-c91004825e15'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '7ec7d8ba-6192-4a85-b063-c94b8717d032'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'd3b29188-7498-4cba-aa23-41ee9e04d2ef'),
         ],
       },
     ),
@@ -1233,14 +1412,46 @@ class MealPlanManager {
       name: 'Rápido y Fácil',
       days: {
         1: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_avena_nocturna'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'recipe_wrap_pollo'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'Salmón a la plancha con eneldo'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '9ce6ec7a-900c-49ea-98ca-05051a6ce8eb'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '89a8997d-087d-4043-930d-80e87129cdeb'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'e368f6dc-fd46-4cc3-8d5a-a31432d054c8'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f5ff054d-e3ea-4d2c-b52f-69e0da59b307'),
         ],
         2: [
-          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'recipe_batido_verde'),
-          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'Fajitas de pollo con pimientos'),
-          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'recipe_ensalada_quinoa'),
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '7624dc94-a1ef-4c14-9458-8c1b4c5ff62c'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '89a8997d-087d-4043-930d-80e87129cdeb'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'd63c1177-e7fd-4eac-838a-4db3f4c4cf02'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '7952a4ae-be9b-4271-b527-d01acc3710d0'),
+        ],
+        3: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'c416f1f2-3413-42d5-b804-071bba21faea'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'f1750881-a1fa-40a7-93d5-0e399c56cef8'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '41d37467-29fd-4756-b5e9-670a4ac5a493'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'a5feb510-0947-4b9e-8150-ccc6b1519681'),
+        ],
+        4: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '093abc40-9391-4936-84a5-030ff7ce3280'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'a0e33988-9820-4111-bcba-f21e22d12e17'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '43941400-3f85-4050-b531-997ba320b1cb'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '532cf003-ae6f-4c49-8481-eaa5f5024bd8'),
+        ],
+        5: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '7451c974-645a-42eb-b795-67641817521c'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '636e83dc-c6ba-444b-8481-87c4d5950675'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '859ab58c-f9a4-4a4b-9872-6c80d8579395'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '3a6b8ff0-17b9-4ad0-9b19-de8974443703'),
+        ],
+        6: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '28e43e0b-7ba7-465f-8d43-ac96d8749908'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: '8b65889c-c627-417a-850d-edaa1061e392'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: '41d37467-29fd-4756-b5e9-670a4ac5a493'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: 'f5ff054d-e3ea-4d2c-b52f-69e0da59b307'),
+        ],
+        7: [
+          const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'e8bd0e7e-f84b-4a39-8cca-5afe4878d88a'),
+          const TemplateMealEntry(mealType: MealType.almuerzo, recipeId: 'd3b29188-7498-4cba-aa23-41ee9e04d2ef'),
+          const TemplateMealEntry(mealType: MealType.snack, recipeId: 'd63c1177-e7fd-4eac-838a-4db3f4c4cf02'),
+          const TemplateMealEntry(mealType: MealType.cena, recipeId: '39dd5b2e-9efc-413d-a9ae-a72df06f6987'),
         ],
       },
     ),
@@ -1304,6 +1515,17 @@ class MealPlanManager {
 
   /// Apply a template to a week starting at [weekMonday].
   /// Clears all existing meals for that week first.
+  static Future<void> clearWeek(DateTime weekMonday) async {
+    for (int d = 0; d < 7; d++) {
+      final date = weekMonday.add(Duration(days: d));
+      final key =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      _meals.removeWhere((m) => m.dateKey == key);
+    }
+    await _save();
+    _notifyListeners();
+  }
+
   static Future<void> applyTemplate(
     MealTemplate template,
     DateTime weekMonday,
@@ -1379,6 +1601,7 @@ class ShoppingListManager {
             _manualItems.add({
               'name': item['name']?.toString() ?? '',
               'quantity': item['quantity']?.toString() ?? '',
+              if (item['category'] != null) 'category': item['category'].toString(),
             });
           }
         }
@@ -1499,8 +1722,12 @@ class ShoppingListManager {
     _notifyListeners();
   }
 
-  static Future<void> addManualItem(String name, String quantity) async {
-    _manualItems.add({'name': name, 'quantity': quantity});
+  static Future<void> addManualItem(String name, String quantity, [IngredientCategory? category]) async {
+    _manualItems.add({
+      'name': name, 
+      'quantity': quantity,
+      if (category != null) 'category': category.name,
+    });
     await _saveManual();
     _notifyListeners();
   }
@@ -1556,5 +1783,243 @@ class ShoppingListManager {
   static Future<void> _saveManual() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_manualKey, json.encode(_manualItems));
+  }
+}
+
+class NutritionStatsService {
+  /// Get completed meals for a specific date
+  static List<PlannedMeal> _getCompletedMealsForDate(DateTime date) {
+    final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return MealPlanManager.meals.where((m) => m.dateKey == key && m.completed).toList();
+  }
+
+  /// Get completed meals for a date range (inclusive)
+  static List<PlannedMeal> _getCompletedMealsForRange(DateTime start, DateTime end) {
+    final meals = <PlannedMeal>[];
+    var current = DateTime(start.year, start.month, start.day);
+    final endDate = DateTime(end.year, end.month, end.day);
+    while (!current.isAfter(endDate)) {
+      meals.addAll(_getCompletedMealsForDate(current));
+      current = current.add(const Duration(days: 1));
+    }
+    return meals;
+  }
+
+  /// Look up a Recipe by its ID
+  static Recipe? _findRecipe(String recipeId) {
+    return RecipeManager.recipes.where((r) => r.id == recipeId || r.title == recipeId).firstOrNull;
+  }
+
+  /// Sum nutrition facts from a list of meals
+  static Map<String, double> _sumNutrition(List<PlannedMeal> meals) {
+    final totals = <String, double>{};
+    for (final meal in meals) {
+      final recipe = _findRecipe(meal.recipeId);
+      if (recipe == null) continue;
+      for (final fact in recipe.nutritionFacts) {
+        final key = fact.label.toLowerCase();
+        totals[key] = (totals[key] ?? 0) + fact.value;
+      }
+    }
+    return totals;
+  }
+
+  /// Get total nutrition for a specific date from completed meals
+  static Map<String, double> getNutritionForDate(DateTime date) {
+    return _sumNutrition(_getCompletedMealsForDate(date));
+  }
+
+  /// Get nutrition aggregated over a date range
+  static Map<String, double> getNutritionForDateRange(DateTime start, DateTime end) {
+    return _sumNutrition(_getCompletedMealsForRange(start, end));
+  }
+
+  /// Get daily nutrition values for each day in a range (for bar charts)
+  static List<Map<String, double>> getDailyNutritionList(DateTime start, DateTime end) {
+    final result = <Map<String, double>>[];
+    var current = DateTime(start.year, start.month, start.day);
+    final endDate = DateTime(end.year, end.month, end.day);
+    while (!current.isAfter(endDate)) {
+      result.add(getNutritionForDate(current));
+      current = current.add(const Duration(days: 1));
+    }
+    return result;
+  }
+
+  /// Get weekly averages for the last 4 weeks (for monthly chart)
+  static List<Map<String, double>> getWeeklyAverages() {
+    final result = <Map<String, double>>[];
+    final now = DateTime.now();
+    for (int week = 3; week >= 0; week--) {
+      final weekEnd = DateTime(now.year, now.month, now.day).subtract(Duration(days: week * 7));
+      final weekStart = weekEnd.subtract(const Duration(days: 6));
+      final weekData = getNutritionForDateRange(weekStart, weekEnd);
+      // Average per day
+      final avg = <String, double>{};
+      for (final entry in weekData.entries) {
+        avg[entry.key] = entry.value / 7;
+      }
+      result.add(avg);
+    }
+    return result;
+  }
+
+  /// Get monthly averages for the last 12 months (for yearly chart)
+  static List<Map<String, double>> getMonthlyAverages() {
+    final result = <Map<String, double>>[];
+    final now = DateTime.now();
+    for (int month = 11; month >= 0; month--) {
+      final m = DateTime(now.year, now.month - month, 1);
+      final mEnd = DateTime(m.year, m.month + 1, 0); // Last day of month
+      final monthData = getNutritionForDateRange(m, mEnd);
+      final daysInMonth = mEnd.day;
+      final avg = <String, double>{};
+      for (final entry in monthData.entries) {
+        avg[entry.key] = entry.value / daysInMonth;
+      }
+      result.add(avg);
+    }
+    return result;
+  }
+
+  /// Get macro distribution as percentages for a date
+  static Map<String, double> getMacroDistribution(DateTime date) {
+    final nutrition = getNutritionForDate(date);
+    final protein = nutrition['proteína'] ?? nutrition['proteínas'] ?? nutrition['proteins'] ?? nutrition['protein'] ?? 0;
+    final carbs = nutrition['carbohidratos'] ?? nutrition['carbohydrates'] ?? nutrition['carbs'] ?? 0;
+    final fat = nutrition['grasas'] ?? nutrition['fats'] ?? nutrition['fat'] ?? 0;
+    
+    // Convert to calories: protein 4cal/g, carbs 4cal/g, fat 9cal/g
+    final proteinCal = protein * 4;
+    final carbsCal = carbs * 4;
+    final fatCal = fat * 9;
+    final total = proteinCal + carbsCal + fatCal;
+    
+    if (total == 0) return {'proteínas': 0, 'carbohidratos': 0, 'grasas': 0};
+    
+    return {
+      'proteínas': (proteinCal / total) * 100,
+      'carbohidratos': (carbsCal / total) * 100,
+      'grasas': (fatCal / total) * 100,
+    };
+  }
+
+  /// Get most consumed recipes in last N days
+  static List<MapEntry<Recipe, int>> getMostConsumedRecipes(int days) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: days));
+    final meals = _getCompletedMealsForRange(start, DateTime(now.year, now.month, now.day));
+    
+    final counts = <String, int>{};
+    for (final meal in meals) {
+      counts[meal.recipeId] = (counts[meal.recipeId] ?? 0) + 1;
+    }
+    
+    final result = <MapEntry<Recipe, int>>[];
+    for (final entry in counts.entries) {
+      final recipe = _findRecipe(entry.key);
+      if (recipe != null) {
+        result.add(MapEntry(recipe, entry.value));
+      }
+    }
+    
+    result.sort((a, b) => b.value.compareTo(a.value));
+    return result.take(5).toList();
+  }
+
+  /// Get consecutive streak days (days with at least one completed meal)
+  static int getStreakDays() {
+    final now = DateTime.now();
+    var current = DateTime(now.year, now.month, now.day);
+    int streak = 0;
+    
+    while (true) {
+      final meals = _getCompletedMealsForDate(current);
+      if (meals.isEmpty) break;
+      streak++;
+      current = current.subtract(const Duration(days: 1));
+    }
+    
+    return streak;
+  }
+
+  /// Get category distribution for last N days
+  static Map<RecipeCategory, int> getCategoryDistribution(int days) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: days));
+    final meals = _getCompletedMealsForRange(start, DateTime(now.year, now.month, now.day));
+    
+    final counts = <RecipeCategory, int>{};
+    for (final meal in meals) {
+      final recipe = _findRecipe(meal.recipeId);
+      if (recipe != null) {
+        for (final cat in recipe.categories) {
+          counts[cat] = (counts[cat] ?? 0) + 1;
+        }
+      }
+    }
+    
+    return counts;
+  }
+
+  /// Calculate BMI from user profile
+  static double? calculateBMI() {
+    final weight = SettingsManager.userWeight.value;
+    final height = SettingsManager.userHeight.value;
+    if (weight == null || height == null || height == 0) return null;
+    return weight / ((height / 100) * (height / 100));
+  }
+
+  /// Get BMI category label
+  static String? getBMICategory() {
+    final bmi = calculateBMI();
+    if (bmi == null) return null;
+    if (bmi < 18.5) return 'Bajo peso'.tr;
+    if (bmi < 25) return 'Normal'.tr;
+    if (bmi < 30) return 'Sobrepeso'.tr;
+    return 'Obesidad'.tr;
+  }
+
+  /// Calculate BMR using Mifflin-St Jeor equation
+  static double? calculateBMR() {
+    final weight = SettingsManager.userWeight.value;
+    final height = SettingsManager.userHeight.value;
+    final age = SettingsManager.userAge.value;
+    final sex = SettingsManager.userSex.value;
+    if (weight == null || height == null || age == null || sex == null) return null;
+    
+    // Mifflin-St Jeor: 10×weight(kg) + 6.25×height(cm) − 5×age + constant
+    final base = 10 * weight + 6.25 * height - 5 * age;
+    return sex == 'male' ? base + 5 : base - 161;
+  }
+
+  static double? calculateTDEE() {
+    final bmr = calculateBMR();
+    if (bmr == null) return null;
+    final activityMultiplier = SettingsManager.userActivityLevel.value ?? 1.55;
+    return bmr * activityMultiplier;
+  }
+
+  /// Get daily calorie goal based on TDEE, or null if no profile
+  static double? getDailyCalorieGoal() {
+    return calculateTDEE();
+  }
+
+  /// Get the total number of completed meals across all time
+  static int getTotalCompletedMeals() {
+    return MealPlanManager.meals.where((m) => m.completed).length;
+  }
+
+  /// Get details of completed meals for a date with recipe info
+  static List<MapEntry<PlannedMeal, Recipe>> getCompletedMealDetails(DateTime date) {
+    final meals = _getCompletedMealsForDate(date);
+    final result = <MapEntry<PlannedMeal, Recipe>>[];
+    for (final meal in meals) {
+      final recipe = _findRecipe(meal.recipeId);
+      if (recipe != null) {
+        result.add(MapEntry(meal, recipe));
+      }
+    }
+    return result;
   }
 }

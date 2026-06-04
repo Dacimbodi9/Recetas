@@ -61,101 +61,11 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
   }
 
   void _showAddManualItemSheet() {
-    _manualNameController.clear();
-    _manualQtyController.clear();
-    final theme = Theme.of(context);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.brightness == Brightness.dark
-                  ? const Color(0xFF1C1C1E)
-                  : Colors.white,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Añadir artículo'.tr,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  textCapitalization: TextCapitalization.sentences,
-                  controller: _manualNameController,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Nombre del ingrediente'.tr,
-                    prefixIcon: const Icon(Icons.shopping_basket_outlined),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  textCapitalization: TextCapitalization.sentences,
-                  controller: _manualQtyController,
-                  decoration: InputDecoration(
-                    hintText: 'Ej: 200g, 1 un, al gusto...'.tr,
-                    prefixIcon: const Icon(Icons.scale_outlined),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(CupertinoIcons.plus, size: 16),
-                    label: Text('Añadir'.tr),
-                    onPressed: () {
-                      final name = _manualNameController.text.trim();
-                      if (name.isNotEmpty) {
-                        ShoppingListManager.addManualItem(
-                          name,
-                          _manualQtyController.text.trim(),
-                        );
-                        Navigator.pop(ctx);
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (ctx) => const _AddIngredientSearchSheet(),
     );
   }
 
@@ -197,16 +107,53 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     final manualItems = ShoppingListManager.manualItems;
-    final allItemNames = [
-      ..._plannerItems.map((i) => i['name'] as String),
-      ...manualItems.map((i) => i['name'] ?? ''),
-    ];
+    final List<Map<String, dynamic>> combinedItems = [];
+    // Deep copy planner items to avoid mutating state directly
+    for (final pi in _plannerItems) {
+      combinedItems.add({
+        ...pi,
+        'sources': List<Map<String, String>>.from(pi['sources'] ?? []),
+      });
+    }
+
+    for (int i = 0; i < manualItems.length; i++) {
+      final mi = manualItems[i];
+      final name = mi['name'] ?? '';
+      final qty = mi['quantity'] ?? '';
+      
+      final existingIndex = combinedItems.indexWhere((item) => (item['name'] as String).toLowerCase() == name.toLowerCase());
+      
+      if (existingIndex != -1) {
+        final existingSources = combinedItems[existingIndex]['sources'] as List<Map<String, String>>;
+        if (qty.isNotEmpty) {
+          existingSources.add({
+            'recipeName': '',
+            'quantity': qty,
+            'manualIndex': i.toString(),
+          });
+        }
+      } else {
+        IngredientCategory? cat;
+        if (mi['category'] != null) {
+          try {
+            cat = IngredientCategory.values.firstWhere((e) => e.name == mi['category']);
+          } catch (_) {}
+        }
+        combinedItems.add({
+          'name': name,
+          'category': cat,
+          'sources': qty.isNotEmpty ? [{'recipeName': '', 'quantity': qty, 'manualIndex': i.toString()}] : <Map<String, String>>[],
+        });
+      }
+    }
+
+    final allItemNames = combinedItems.map((i) => i['name'] as String).toList();
     final checkedCount = allItemNames
         .where((n) => ShoppingListManager.isChecked(n))
         .length;
     final totalCount = allItemNames.length;
 
-    final groupedPlanner = _groupByCategory(_plannerItems);
+    final groupedPlanner = _groupByCategory(combinedItems);
     // Sort categories: known ones first (by index), null last
     final sortedCategories = groupedPlanner.keys.toList()
       ..sort((a, b) {
@@ -249,64 +196,28 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
 
             const SizedBox(height: 24),
 
-            if (totalCount == 0 && manualItems.isEmpty)
+            if (totalCount == 0)
               _buildEmptyState(theme)
             else ...[
-              // ─── Planner Section Header ───
-              if (_plannerItems.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, left: 4),
-                  child: Text(
-                    'Del Planificador'.tr,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ).animate(delay: 200.ms).fade(duration: 400.ms).slideY(
-                      begin: 0.1,
+              // ─── Categorized ingredients ───
+              ...sortedCategories.asMap().entries.map((entry) {
+                final catIndex = entry.key;
+                final category = entry.value;
+                final items = groupedPlanner[category]!;
+                return _buildCategorySection(
+                      theme,
+                      isDark,
+                      category,
+                      items,
+                    )
+                    .animate(delay: (100 + catIndex * 60).ms)
+                    .fade(duration: 400.ms)
+                    .slideY(
+                      begin: 0.08,
                       end: 0,
                       curve: Curves.easeOutCubic,
-                    ),
-
-                    // ─── Categorized ingredients ───
-                    ...sortedCategories.asMap().entries.map((entry) {
-                      final catIndex = entry.key;
-                      final category = entry.value;
-                      final items = groupedPlanner[category]!;
-                      return _buildCategorySection(
-                            theme,
-                            isDark,
-                            category,
-                            items,
-                          )
-                          .animate(delay: (250 + catIndex * 60).ms)
-                          .fade(duration: 400.ms)
-                          .slideY(
-                            begin: 0.08,
-                            end: 0,
-                            curve: Curves.easeOutCubic,
-                          );
-                    }),
-                  ],
-
-                  // ─── Manual Items Section ───
-                  if (manualItems.isEmpty) ...[
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12, left: 4),
-                      child: Text(
-                        'Añadidos Manualmente'.tr,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ),
-                    _buildManualItemsCard(theme, isDark, manualItems),
-                  ],
+                    );
+              }),
 
               // Bottom padding for FAB
               const SizedBox(height: 80),
@@ -380,7 +291,7 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
         return [1, 2, 3, 4, 5, 6, 7, 10, 14].map((d) {
           return PopupMenuItem(
             value: d,
-            child: Text('$d ${d == 1 ? 'día' : 'días'}'),
+            child: Text('$d ${d == 1 ? 'día'.tr : 'días'.tr}'),
           );
         }).toList();
       },
@@ -404,27 +315,8 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                   ),
                 ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.date_range_outlined, color: theme.colorScheme.primary),
-            const SizedBox(height: 4),
-            Text(
-              '+$days',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-                fontSize: 16,
-              ),
-            ),
-            Text(
-              days == 1 ? 'día' : 'días',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ],
+        child: Center(
+          child: Icon(Icons.date_range_outlined, color: theme.colorScheme.primary),
         ),
       ),
     );
@@ -576,9 +468,56 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
 
     return InkWell(
       onTap: () => ShoppingListManager.toggleChecked(name),
+      onLongPress: () {
+        if (sources.isEmpty) return;
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('${'Cantidades de'.tr} $name'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: sources.map((s) {
+                    final qty = s['quantity'] ?? '';
+                    final recipeName = s['recipeName'] ?? '';
+                    String label = '';
+                    if (qty.isNotEmpty && recipeName.isNotEmpty) {
+                      label = '$qty · $recipeName';
+                    } else if (qty.isNotEmpty) {
+                      label = qty;
+                    } else if (recipeName.isNotEmpty) {
+                      label = recipeName;
+                    }
+                    if (label.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.arrow_right, size: 16, color: theme.colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cerrar'.tr),
+                ),
+              ],
+            );
+          },
+        );
+      },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             // Checkbox
@@ -603,198 +542,246 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
                   : null,
             ),
             const SizedBox(width: 12),
-            // Name + sources
+            // Name
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                      decoration: isChecked ? TextDecoration.lineThrough : null,
-                      color: isChecked ? Colors.grey : null,
-                    ),
-                  ),
-                  if (sources.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 2,
-                      children: sources.map((s) {
-                        final qty = s['quantity'] ?? '';
-                        final recipeName = s['recipeName'] ?? '';
-                        final label = qty.isNotEmpty
-                            ? '$qty · $recipeName'
-                            : recipeName;
-                        return Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isChecked
-                                ? Colors.grey.withValues(alpha: 0.5)
-                                : Colors.grey,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ],
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  decoration: isChecked ? TextDecoration.lineThrough : null,
+                  color: isChecked ? Colors.grey : null,
+                ),
               ),
             ),
+            if (sources.isNotEmpty)
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: isChecked ? Colors.grey.withValues(alpha: 0.5) : Colors.grey,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildManualItemsCard(
-    ThemeData theme,
-    bool isDark,
-    List<Map<String, String>> items,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
+}
+
+class _AddIngredientSearchSheet extends StatefulWidget {
+  const _AddIngredientSearchSheet();
+
+  @override
+  State<_AddIngredientSearchSheet> createState() => _AddIngredientSearchSheetState();
+}
+
+class _AddIngredientSearchSheetState extends State<_AddIngredientSearchSheet> {
+  final TextEditingController _ingredientController = TextEditingController();
+  String _ingredientQuery = '';
+
+  @override
+  void dispose() {
+    _ingredientController.dispose();
+    super.dispose();
+  }
+
+  Future<String?> _pickQuantityDialog(String ingredientName) async {
+    final qtyController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${'Cantidad de'.tr} $ingredientName'),
+        content: TextField(
+          textCapitalization: TextCapitalization.sentences,
+          controller: qtyController,
+          decoration: InputDecoration(
+            hintText: 'Ej: 200g, 1 un, al gusto...'.tr,
+            labelText: 'Cantidad'.tr,
+          ),
+          autofocus: true,
+          onSubmitted: (value) {
+            Navigator.of(context).pop(value.trim());
+          },
         ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(qtyController.text.trim()),
+            child: Text('Añadir'.tr),
+          ),
+        ],
       ),
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Row(
+    );
+  }
+
+  void _showAddCustomIngredientDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _AddIngredientDialog(
+        onAdd: (name, qty, category) {
+          if (name.isNotEmpty) {
+            ShoppingListManager.addManualItem(name, qty, category);
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+    );
+  }
+
+  List<String> _sortIngredients(List<String> allIngredients, String query) {
+    if (query.isEmpty) return allIngredients;
+    final q = query.toLowerCase();
+    return allIngredients.where((ing) => ing.toLowerCase().contains(q)).toList()
+      ..sort((a, b) {
+        final aLower = a.toLowerCase();
+        final bLower = b.toLowerCase();
+        if (aLower.startsWith(q) && !bLower.startsWith(q)) return -1;
+        if (!aLower.startsWith(q) && bLower.startsWith(q)) return 1;
+        return aLower.compareTo(bLower);
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final allIngredients = RecipeManager.allIngredients;
+    final filteredList = _ingredientQuery.isEmpty
+        ? allIngredients.take(30).toList()
+        : _sortIngredients(allIngredients, _ingredientQuery);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.dark
+              ? const Color(0xFF1C1C1E)
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Añadir artículo'.tr,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
               children: [
+                Expanded(
+                  child: TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    controller: _ingredientController,
+                    onChanged: (val) => setState(() => _ingredientQuery = val),
+                    textAlignVertical: TextAlignVertical.center,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar ingredientes...'.tr,
+                      prefixIcon: const Icon(
+                        CupertinoIcons.search,
+                        color: Colors.grey,
+                      ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      suffixIcon: _ingredientQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                CupertinoIcons.xmark_circle_fill,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                _ingredientController.clear();
+                                setState(() => _ingredientQuery = '');
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  height: 52,
+                  width: 52,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    CupertinoIcons.pencil,
-                    size: 16,
                     color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.3,
+                        ),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Añadido Manualmente'.tr,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${items.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
+                  child: IconButton(
+                    icon: const Icon(CupertinoIcons.add, color: Colors.white),
+                    onPressed: _showAddCustomIngredientDialog,
+                    tooltip: 'Crear nuevo'.tr,
                   ),
                 ),
               ],
             ),
-          ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          ...items.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final item = entry.value;
-            final name = item['name'] ?? '';
-            final qty = item['quantity'] ?? '';
-            final isChecked = ShoppingListManager.isChecked(name);
-
-            return Dismissible(
-              key: ValueKey('manual_${idx}_$name'),
-              direction: DismissDirection.endToStart,
-              onDismissed: (_) => ShoppingListManager.removeManualItem(idx),
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  CupertinoIcons.trash,
-                  color: Colors.redAccent,
-                  size: 20,
-                ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: filteredList.length,
+                separatorBuilder: (_, __) => Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final ing = filteredList[index];
+                  return ListTile(
+                    title: Text(ing),
+                    leading: Icon(CupertinoIcons.add, size: 16),
+                    onTap: () async {
+                      final qty = await _pickQuantityDialog(ing);
+                      if (qty != null) {
+                        ShoppingListManager.addManualItem(ing, qty);
+                        if (context.mounted) Navigator.pop(context);
+                      }
+                    },
+                  );
+                },
               ),
-              child: InkWell(
-                onTap: () => ShoppingListManager.toggleChecked(name),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: isChecked
-                              ? theme.colorScheme.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                            color: isChecked
-                                ? theme.colorScheme.primary
-                                : Colors.grey.withValues(alpha: 0.4),
-                            width: 2,
-                          ),
-                        ),
-                        child: isChecked
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          qty.isNotEmpty ? '$name ($qty)' : name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            decoration: isChecked
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: isChecked ? Colors.grey : null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 4),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

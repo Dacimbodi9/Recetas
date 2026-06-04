@@ -1,11 +1,19 @@
-Recetas is a free, beautifully designed app to manage your recipes with privacy in mind.
+Sazón is your personal cookbook — beautifully crafted, privacy-first, and offline.
+
+🍳 YOUR KITCHEN, YOUR CRAFT
+
+Over 1,000 built-in recipes. Create your own. Plan your week.
+All offline. No accounts. No tracking. Ever.
 
 ✨ Features
 
 *  **Offline & Private:** All your data stays on your device. No tracking, no servers.
 *  **Smart Search:** Fast fuzzy search by name, or select ingredients you have in your fridge to find matching recipes.
 *  **Dietary Compliance:** Permanent dietary filters (Vegan, Gluten-Free, Keto, etc.) with incompatible recipe warnings.
+*  **Meal Planner:** Weekly calendar with reusable templates.
+*  **Shopping List:** Auto-generated from your meal plan.
+*  **Nutrition Stats:** Calories, macros, BMI, consistency streaks.
 *  **Organization:** Create folders, rate your recipes, and manage your favorites.
-*  **Premium Experience:** Beautiful dark mode aesthetics and highly customizable settings.
+*  **Premium Experience:** Artisan interface with beautiful dark mode.
 
-Discover over 1,000 built-in recipes, create your own, and fully control your data.
+Cook with intention. Cook with Sazón.

@@ -37,6 +37,7 @@ part 'screens/onboarding_page.dart';
 part 'screens/profile_page.dart';
 part 'screens/meal_planner.dart';
 part 'screens/shopping_list_page.dart';
+part 'screens/stats_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 

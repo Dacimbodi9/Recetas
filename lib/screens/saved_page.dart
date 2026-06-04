@@ -305,8 +305,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                               icon: CupertinoIcons.book,
                               title: 'No hay recetas'.tr,
                               subtitle:
-                                  'Crea carpetas o guarda recetas para verlas aquí'
-                                      .tr,
+                                  'Crea carpetas o guarda recetas para verlas aquí'.tr,
                             ),
                     )
                   : ListView(
@@ -348,7 +347,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                                 onLongPress: () =>
                                     _showFolderOptions(context, folder),
                               )
-                              .animate(delay: (idx * 50 + 50).ms)
+                              .animate(delay: (idx < 12 ? idx * 50 + 50 : 0).ms)
                               .fade(duration: 400.ms)
                               .slideY(
                                 begin: 0.1,
@@ -529,7 +528,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                               onLongPress: () =>
                                   _showFolderOptions(context, folder),
                             )
-                            .animate(delay: (idx * 50).ms)
+                            .animate(delay: (idx < 12 ? idx * 50 : 0).ms)
                             .fade(duration: 400.ms)
                             .slideY(
                               begin: 0.1,
@@ -750,7 +749,7 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
                             heroTag: 'rated_${recipe.title}',
                             showRating: true,
                           )
-                          .animate(delay: (index * 50).ms)
+                          .animate(delay: (index < 12 ? index * 50 : 0).ms)
                           .fade(duration: 400.ms)
                           .slideY(
                             begin: 0.1,

@@ -1,7 +1,7 @@
-# Recetas Design System
+# Sazón Design System
 
 ## Core Philosophy
-The design of **Recetas** is built around the concept of a warm, inviting, and organic kitchen environment. It transitions between two primary aesthetic themes:
+The design of **Sazón** is built around the concept of a warm, inviting, and organic kitchen environment. It transitions between two primary aesthetic themes:
 - **Light Mode: "Artisan Bakery"** — Evoking the feeling of a sunlit bakery with toasted parchment, rich creams, and earthy natural tones.
 - **Dark Mode: "Rustic Organic Kitchen"** — Inspired by a deep forest at twilight, with dark woods, truffle tones, and herbal sage accents.
 

@@ -128,7 +128,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                         itemBuilder: (context, index) {
                           final r = searchFiltered[index];
                           return _RecipeCard(recipe: r, matchCount: 0)
-                              .animate(delay: (index * 50).ms)
+                              .animate(delay: (index < 12 ? index * 50 : 0).ms)
                               .fade(duration: 400.ms)
                               .slideY(
                                 begin: 0.1,
@@ -355,7 +355,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                             matchCount: sr.matchCount,
                             matchedIngredients: sr.matchedIngredients,
                           )
-                          .animate(delay: (idx * 50).ms)
+                          .animate(delay: (idx < 12 ? idx * 50 : 0).ms)
                           .fade(duration: 400.ms)
                           .slideY(
                             begin: 0.1,
