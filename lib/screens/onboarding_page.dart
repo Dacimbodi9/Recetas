@@ -10,7 +10,7 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 5;
+  final int _totalPages = 4;
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
@@ -91,10 +91,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 onPageChanged: (index) => setState(() => _currentPage = index),
                 children: [
                   _buildStep1Welcome(theme, _currentPage == 0),
-                  _buildStep2Features(theme, isDark, _currentPage == 1),
-                  _buildStep3Settings(theme, isDark, _currentPage == 2),
-                  _buildStep4BodyProfile(theme, isDark, _currentPage == 3),
-                  _buildStep5BottomMenu(theme, isDark, _currentPage == 4),
+                  _buildStep3Settings(theme, isDark, _currentPage == 1),
+                  _buildStep4BodyProfile(theme, isDark, _currentPage == 2),
+                  _buildStep5BottomMenu(theme, isDark, _currentPage == 3),
                 ],
               ),
             ),
