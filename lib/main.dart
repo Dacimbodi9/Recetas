@@ -23,7 +23,12 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 part 'models/models.dart';
-part 'services/services.dart';
+part 'services/settings_manager.dart';
+part 'services/recipe_manager.dart';
+part 'services/deep_link_handler.dart';
+part 'services/meal_plan_manager.dart';
+part 'services/shopping_list_manager.dart';
+part 'services/nutrition_stats_service.dart';
 part 'utils/utils.dart';
 part 'widgets/widgets.dart';
 part 'screens/main_navigation.dart';
@@ -398,3 +403,4 @@ class _RecetasAppState extends State<RecetasApp> {
     );
   }
 }
+
