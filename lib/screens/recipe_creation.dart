@@ -1540,42 +1540,52 @@ class _NewRecipePageState extends State<NewRecipePage> {
                       _steps.insert(newIndex, item);
                     });
                   },
+                  proxyDecorator: (child, index, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (BuildContext context, Widget? child) {
+                        final double animValue = Curves.easeInOut.transform(animation.value);
+                        return Transform.scale(
+                          scale: 1 + (animValue * 0.02),
+                          child: Material(
+                            type: MaterialType.transparency,
+                            elevation: 0,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: child,
+                    );
+                  },
                   children: [
                     for (int index = 0; index < _steps.length; index++)
                       Container(
-                            key: ValueKey('step_${_steps[index]}_$index'),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.05,
-                                ),
-                              ),
+                        key: ValueKey('step_${_steps[index]}_$index'),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.05,
                             ),
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.drag_indicator,
-                                color: Colors.grey,
-                              ),
-                              title: Text(_steps[index]),
-                              trailing: Text(
-                                '${index + 1}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          )
-                          .animate(delay: (index * 50).ms)
-                          .fade(duration: 400.ms)
-                          .slideY(
-                            begin: 0.1,
-                            end: 0,
-                            curve: Curves.easeOutCubic,
                           ),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.drag_indicator,
+                            color: Colors.grey,
+                          ),
+                          title: Text(_steps[index]),
+                          trailing: Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 )
               : ListView.builder(
@@ -1871,6 +1881,9 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
           SizedBox(height: 16),
           DropdownButtonFormField<IngredientCategory>(
             initialValue: _selectedCategory,
+            borderRadius: BorderRadius.circular(16),
+            dropdownColor: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
+            icon: Icon(CupertinoIcons.chevron_down, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             decoration: InputDecoration(
               labelText: 'Categoría'.tr,
               border: OutlineInputBorder(),

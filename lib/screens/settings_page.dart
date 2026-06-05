@@ -1194,6 +1194,9 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _sex,
+            borderRadius: BorderRadius.circular(16),
+            dropdownColor: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
+            icon: Icon(CupertinoIcons.chevron_down, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             decoration: InputDecoration(
               labelText: 'Sexo'.tr,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
@@ -1211,6 +1214,9 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
           const SizedBox(height: 16),
           DropdownButtonFormField<double>(
             initialValue: _activityLevel ?? 1.55,
+            borderRadius: BorderRadius.circular(16),
+            dropdownColor: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
+            icon: Icon(CupertinoIcons.chevron_down, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             decoration: InputDecoration(
               labelText: 'Nivel de Actividad'.tr,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),

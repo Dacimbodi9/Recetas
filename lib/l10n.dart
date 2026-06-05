@@ -524,6 +524,8 @@ class AppLocalization {
     "Paso": "Step",
     "Categoría": "Category",
     "Ingrediente": "Ingredient",
+    "Cantidad": "Amount",
+    "día": "day",
   };
 }
 

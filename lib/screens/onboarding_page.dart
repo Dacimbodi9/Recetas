@@ -703,6 +703,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       initialValue: value,
       onChanged: onChanged,
       items: items,
+      borderRadius: BorderRadius.circular(16),
+      dropdownColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+      icon: Icon(CupertinoIcons.chevron_down, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
