@@ -61,3 +61,7 @@ app.*.map.json
 
 # Large files
 app-release.apk
+
+# AI and local cache
+.agents/
+scripts/translation_cache.json
