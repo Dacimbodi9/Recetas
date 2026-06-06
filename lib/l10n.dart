@@ -9,7 +9,7 @@ class AppLocalization {
   }
 
   String translate(String input) {
-    if (currentLanguage == 'es') return input;
+    if (currentLanguage == 'es') return spanishOverrides[input] ?? input;
     return translations[input] ?? input;
   }
 
@@ -526,6 +526,179 @@ class AppLocalization {
     "Ingrediente": "Ingredient",
     "Cantidad": "Amount",
     "día": "day",
+    "Borrador encontrado": "Draft found",
+    "Comida eliminada": "Meal removed",
+    "Deshacer": "Undo",
+    "Receta actualizada": "Recipe updated",
+    "Receta creada": "Recipe created",
+    "Restaurar": "Restore",
+    "legal_privacy": """PRIVACY POLICY
+Last updated: January 10, 2026
+
+1. Introduction
+This Privacy Policy describes how Recetas ("we", "our", or "us"), developed by Daniel Cimbollek Díaz, handles your information.
+
+We are committed to protecting your privacy. The core principle of "Recetas" is privacy by design: we do not collect, transmit, or store your personal data on any external servers. The application functions entirely offline, and all data you input remains locally on your device.
+
+2. Data Collection and Usage
+We do not collect any personal information, usage statistics, or analytics.
+
+User Data (Recipes & Preferences): All recipes, ingredients, dietary settings, and saved recipes created within the app are stored locally on your device's internal memory using SharedPreferences and local file storage. This data is never transmitted to us or any third party.
+
+Voluntary Backups: If you choose to use the "Export" or "Backup" feature, a JSON file is generated. You control where this file is stored or shared. We do not have access to these files.
+
+3. Device Permissions
+To provide specific features, the app may request access to certain system permissions. These permissions are used solely for the functionality described below:
+
+Camera & Photo Gallery: Used strictly to allow you to take or select photos to attach to your custom recipes. These images are stored locally on your device. We do not view, process, or upload your photos.
+
+Storage (Files/Media): Used to save recipe backups (JSON files) and to read files you explicitly select for importing recipes.
+
+4. Third-Party Services
+This application does not contain third-party advertising (e.g., AdMob), analytics (e.g., Google Analytics), or tracking SDKs. It does not require an internet connection to function.
+
+5. Children's Privacy
+Our application is safe for general audiences, including children. We do not knowingly collect personally identifiable information from children under 13 (or any age), as we do not collect data at all.
+
+6. Your Rights (GDPR)
+Since we do not store your data on our servers, we cannot "delete" or "export" your account data for you because we do not have it. You retain full ownership and control of your data. You can delete your data at any time by:
+
+Using the "Clear Data" (Borrar todo) option within the app settings.
+
+Uninstalling the application, which will remove all local data.
+
+7. Links to Other Sites
+Our Service may contain links to other sites that are not operated by us (e.g., when using the "Search on Internet" button). If you click on a third-party link, you will be directed to that third party's site. We strongly advise you to review the Privacy Policy of every site you visit. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
+
+8. Contact Us
+If you have any questions about this Privacy Policy, please contact us at:
+
+Email: recetasaplicacion@gmail.com
+
+Developer: Daniel Cimbollek Díaz""",
+    "legal_tos": """TERMS OF SERVICE
+Last updated: January 10, 2026
+
+1. Acceptance of Terms
+By downloading or using the Recetas application, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application.
+
+2. License to Use
+Daniel Cimbollek Díaz grants you a personal, non-exclusive, non-transferable, and revocable license to use the "Recetas" application for personal and non-commercial purposes.
+
+3. User Content
+Ownership: You retain all rights and ownership of the recipes, photos, and texts ("Content") that you create or store within the application.
+
+Responsibility: You are solely responsible for the Content you create. Since the application works offline, you are responsible for backing up your own data using the provided export features. We are not responsible for any data loss caused by device failure, app uninstallation, or file corruption.
+
+4. Content Disclaimer (AI)
+Recipe Origins: You acknowledge that the default recipes provided within the application were generated with the assistance of Artificial Intelligence.
+
+Accuracy: While we strive to provide quality content, AI-generated text may occasionally contain errors, inaccuracies, or "hallucinations" regarding ingredients, amounts, or cooking instructions.
+
+User Responsibility: You agree to use your own judgment and common sense when following these recipes. It is your responsibility to ensure food safety, verify cooking times/temperatures, and check for potential allergens. Recetas and Daniel Cimbollek Díaz are not responsible for any illness, injury, or culinary failure resulting from the use of these recipes.
+
+5. External Links
+The application may contain links to third-party websites or services (such as Google search results) that are not owned or controlled by Recetas. Daniel Cimbollek Díaz has no control over and assumes no responsibility for the content, privacy policies, or practices of any third-party websites or services. You acknowledge and agree that Recetas shall not be responsible or liable, directly or indirectly, for any damage or loss caused by the use of any such content, goods, or services available on or through any such web sites.
+
+6. Disclaimer of Warranties
+The application is provided "AS IS" and "AS AVAILABLE", without warranty of any kind, express or implied. We do not warrant that the application will be error-free or that access to it will be continuous or uninterrupted.
+
+7. Intellectual Property
+The source code, design, and "Recetas" brand are the intellectual property of Daniel Cimbollek Díaz.
+
+8. Governing Law
+These terms shall be governed and construed in accordance with the laws of Spain, without regard to its conflict of law provisions.
+
+9. Changes to Terms
+We reserve the right to modify these terms at any time. We will notify you of any changes by updating the "Last updated" date at the top of this document. Continued use of the application constitutes acceptance of those changes.
+
+10. Contact Us
+For any questions regarding these Terms, please contact: recetasaplicacion@gmail.com"""
+  };
+
+  static const Map<String, String> spanishOverrides = {
+    "legal_privacy": """POLÍTICA DE PRIVACIDAD
+Última actualización: 10 de enero de 2026
+
+1. Introducción
+Esta Política de Privacidad describe cómo Recetas ("nosotros", "nuestro" o "la aplicación"), desarrollada por Daniel Cimbollek Díaz, trata su información.
+
+Estamos comprometidos con la protección de su privacidad. El principio fundamental de "Recetas" es la privacidad desde el diseño: no recopilamos, transmitimos ni almacenamos sus datos personales en servidores externos. La aplicación funciona completamente sin conexión (offline) y todos los datos que usted introduce permanecen localmente en su dispositivo.
+
+2. Recopilación y Uso de Datos
+No recopilamos información personal, estadísticas de uso ni datos analíticos.
+
+Datos del Usuario (Recetas y Preferencias): Todas las recetas, ingredientes, configuraciones dietéticas y guardados creados dentro de la aplicación se almacenan localmente en la memoria interna de su dispositivo (utilizando SharedPreferences y almacenamiento de archivos local). Estos datos nunca se transmiten a nosotros ni a terceros.
+
+Copias de Seguridad Voluntarias: Si decide utilizar la función de "Exportar" o "Copia de seguridad", se generará un archivo JSON. Usted tiene el control total sobre dónde almacenar o con quién compartir este archivo. Nosotros no tenemos acceso a estos archivos.
+
+3. Permisos del Dispositivo
+Para proporcionar funcionalidades específicas, la aplicación puede solicitar acceso a ciertos permisos del sistema. Estos permisos se utilizan únicamente para la funcionalidad descrita a continuación:
+
+Cámara y Galería de Fotos: Se utiliza estrictamente para permitirle tomar o seleccionar fotos para adjuntarlas a sus recetas personalizadas. Estas imágenes se guardan localmente en su dispositivo. No visualizamos, procesamos ni subimos sus fotos.
+
+Almacenamiento (Archivos/Medios): Se utiliza para guardar copias de seguridad de recetas (archivos JSON) y para leer archivos que usted seleccione explícitamente para importar recetas.
+
+4. Servicios de Terceros
+Esta aplicación no contiene publicidad de terceros (por ejemplo, AdMob), analíticas (por ejemplo, Google Analytics) ni SDKs de rastreo. No requiere conexión a Internet para funcionar.
+
+5. Privacidad del Menor
+Nuestra aplicación es segura para el público general, incluidos los niños. No recopilamos a sabiendas información de identificación personal de niños menores de 13 años (ni de ninguna edad), ya que no recopilamos datos en absoluto.
+
+6. Sus Derechos (RGPD / LOPD)
+Dado que no almacenamos sus datos en nuestros servidores, no podemos "eliminar" o "exportar" los datos de su cuenta por usted, ya que no tenemos acceso a ellos. Usted conserva la propiedad y el control total de sus datos. Puede eliminar sus datos en cualquier momento mediante:
+
+El uso de la opción "Borrar todo" dentro de la configuración de la aplicación.
+
+La desinstalación de la aplicación, lo cual eliminarará todos los datos locales.
+
+7. Enlaces a Otros Sitios
+Nuestra aplicación puede contener enlaces a sitios externos que no son operados por nosotros (por ejemplo, al utilizar el botón de "Buscar en Internet"). Si hace clic en un enlace de terceros, será dirigido al sitio de ese tercero. Le recomendamos encarecidamente que revise la Política de Privacidad de cada sitio que visite. No tenemos control ni asumimos responsabilidad por el contenido, las políticas de privacidad o las prácticas de sitios o servicios de terceros.
+
+8. Contacto
+Si tiene alguna pregunta sobre esta Política de Privacidad, por favor contáctenos en:
+
+Correo electrónico: recetasaplicacion@gmail.com
+
+Desarrollador: Daniel Cimbollek Díaz""",
+    "legal_tos": """TÉRMINOS Y CONDICIONES DE USO
+Última actualización: 10 de enero de 2026
+
+1. Aceptación de los Términos
+Al descargar o utilizar la aplicación Recetas, usted acepta estar vinculado por estos Términos y Condiciones. Si no está de acuerdo con estos términos, por favor no utilice la aplicación.
+
+2. Licencia de Uso
+Daniel Cimbollek Díaz le otorga una licencia personal, no exclusiva, intransferible y revocable para utilizar la aplicación "Recetas" con fines personales y no comerciales.
+
+3. Contenido del Usuario
+Propiedad: Usted conserva todos los derechos y la propiedad de las recetas, fotos y textos ("Contenido") que cree o almacene dentro de la aplicación.
+
+Responsabilidad: Usted es el único responsable del Contenido que crea. Dado que la aplicación funciona sin conexión, usted es responsable de realizar copias de seguridad de sus propios datos utilizando las funciones de exportación proporcionadas. No nos hacemos responsables de ninguna pérdida de datos causada por fallos del dispositivo, desinstalación de la aplicación o corrupción de archivos.
+
+4. Renuncia de Responsabilidad sobre el Contenido (IA)
+Origen de las Recetas: Usted reconoce que las recetas predeterminadas proporcionadas dentro de la aplicación fueron generadas con la asistencia de Inteligencia Artificial.
+
+Exactitud: Aunque nos esforzamos por ofrecer contenido de calidad, el texto generado por IA puede contener ocasionalmente errores, inexactitudes o "alucinaciones" con respecto a ingredientes, cantidades o instrucciones de cocción.
+
+Responsabilidad del Usuario: Usted acepta utilizar su propio juicio y sentido común al seguir estas recetas. Es su responsabilidad garantizar la seguridad alimentaria, verificar los tiempos/temperaturas de cocción y comprobar posibles alérgenos. Recetas y Daniel Cimbollek Díaz no se hacen responsables de ninguna enfermedad, lesión o fallo culinario resultante del uso de estas recetas.
+
+5. Enlaces Externos
+La aplicación puede contener enlaces a sitios web o servicios de terceros (como resultados de búsqueda de Google) que no son propiedad ni están controlados por Recetas. Daniel Cimbollek Díaz no tiene control ni asume responsabilidad por el contenido, las políticas de privacidad o las prácticas de los sitios web o servicios de terceros. Usted reconoce y acepta que Recetas no será responsable, directa o indirectamente, de cualquier daño o pérdida causada por el uso de dicho contenido, bienes o servicios disponibles a través de dichos sitios web.
+
+6. Exención de Garantías
+La aplicación se proporciona "TAL CUAL" y "SEGÚN DISPONIBILIDAD", sin garantía de ningún tipo, expresa o implícita. No garantizamos que la aplicación esté libre de errores o que el acceso a la misma sea continuo o ininterrumpido.
+
+7. Propiedad Intelectual
+El código fuente, el diseño y la marca "Recetas" son propiedad intelectual de Daniel Cimbollek Díaz.
+
+8. Ley Aplicable
+Estos términos se regirán e interpretarán de acuerdo con las leyes de España, sin tener en cuenta sus disposiciones sobre conflictos de leyes.
+
+9. Cambios en los Términos
+Nos reservamos el derecho de modificar estos términos en cualquier momento. Le notificaremos cualquier cambio actualizando la fecha de "Última actualización" en la parte superior de este documento. El uso continuado de la aplicación constituye la aceptación de dichos cambios.
+
+10. Contacto
+Para cualquier pregunta relacionada con estos Términos, por favor contacte a: recetasaplicacion@gmail.com"""
   };
 }
 

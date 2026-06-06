@@ -1,4 +1,14 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/services/meal_plan_manager.dart';
+import 'package:recetas/services/nutrition_stats_service.dart';
+import 'package:recetas/screens/settings_page.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'dart:math';
 
 class StatsPage extends StatefulWidget {
   final bool showAppBar;
@@ -717,22 +727,10 @@ class _TopRecipesSection extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(
-            child: Column(
-              children: [
-                Icon(Icons.restaurant_menu, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
-                const SizedBox(height: 16),
-                Text(
-                  'No hay recetas consumidas aún'.tr,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Completa comidas para ver las más consumidas'.tr,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
+            child: EmptyStateWidget(
+              icon: Icons.restaurant_menu,
+              title: 'No hay recetas consumidas aún'.tr,
+              subtitle: 'Completa comidas para ver las más consumidas'.tr,
             ),
           ),
         ),
@@ -1465,3 +1463,5 @@ class _BMIGaugePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _BMIGaugePainter oldDelegate) => oldDelegate.bmi != bmi;
 }
+
+

@@ -1,6 +1,6 @@
-part of '../main.dart';
+import 'dart:math';
 
-double _fuzzyMatchScore(String text, String query) {
+double fuzzyMatchScore(String text, String query) {
   final normalizedText = _removeDiacritics(text.toLowerCase());
   final normalizedQuery = _removeDiacritics(query.toLowerCase().trim());
 
@@ -32,9 +32,13 @@ double _fuzzyMatchScore(String text, String query) {
       if ((qWord.length - tWord.length).abs() <= 2) {
         final dist = _levenshtein(qWord, tWord);
         double wordScore = 0.0;
-        if (qWord.length < 3 && dist == 0) wordScore = 0.8;
-        else if (qWord.length >= 3 && qWord.length < 6 && dist <= 1) wordScore = 0.7;
-        else if (qWord.length >= 6 && dist <= 2) wordScore = 0.6;
+        if (qWord.length < 3 && dist == 0) {
+          wordScore = 0.8;
+        } else if (qWord.length >= 3 && qWord.length < 6 && dist <= 1) {
+          wordScore = 0.7;
+        } else if (qWord.length >= 6 && dist <= 2) {
+          wordScore = 0.6;
+        }
 
         if (wordScore > bestWordScore) {
           bestWordScore = wordScore;
@@ -53,8 +57,8 @@ double _fuzzyMatchScore(String text, String query) {
   return totalScore / queryWords.length;
 }
 
-bool _fuzzyMatch(String text, String query) {
-  return _fuzzyMatchScore(text, query) > 0.0;
+bool fuzzyMatch(String text, String query) {
+  return fuzzyMatchScore(text, query) > 0.0;
 }
 
 int _levenshtein(String s, String t) {
@@ -93,12 +97,12 @@ String _removeDiacritics(String str) {
   return str;
 }
 
-List<String> _sortIngredients(List<String> ingredients, String query) {
+List<String> sortIngredients(List<String> ingredients, String query) {
   if (query.isEmpty) return ingredients;
 
   final matches = <MapEntry<String, double>>[];
   for (final ingredient in ingredients) {
-    final score = _fuzzyMatchScore(ingredient, query);
+    final score = fuzzyMatchScore(ingredient, query);
     if (score > 0) {
       matches.add(MapEntry(ingredient, score));
     } else {

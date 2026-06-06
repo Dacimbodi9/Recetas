@@ -1,4 +1,13 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'dart:io';
+import 'dart:async';
 
 class SettingsManager {
   static final ValueNotifier<String> userName = ValueNotifier('Chef');
@@ -117,7 +126,22 @@ class SettingsManager {
     hideIncompatibleRecipes.value =
         prefs.getBool(_hideIncompatibleKey) ?? false;
     hasSeenOnboarding.value = prefs.getBool(_onboardingKey) ?? false;
-    aiApiKey.value = prefs.getString(_aiApiKeyPref) ?? '';
+    
+    // Secure Storage Migration
+    const secureStorage = FlutterSecureStorage();
+    String? secureApiKey = await secureStorage.read(key: _aiApiKeyPref);
+    
+    if (secureApiKey == null) {
+      // Check if it exists in SharedPreferences (needs migration)
+      final legacyKey = prefs.getString(_aiApiKeyPref);
+      if (legacyKey != null && legacyKey.isNotEmpty) {
+        await secureStorage.write(key: _aiApiKeyPref, value: legacyKey);
+        await prefs.remove(_aiApiKeyPref);
+        secureApiKey = legacyKey;
+      }
+    }
+    
+    aiApiKey.value = secureApiKey ?? '';
     aiApiEndpoint.value =
         prefs.getString(_aiApiEndpointPref) ??
         'https://api.openai.com/v1/chat/completions';
@@ -170,8 +194,12 @@ class SettingsManager {
 
   static Future<void> setAiApiKey(String key) async {
     aiApiKey.value = key;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_aiApiKeyPref, key);
+    const secureStorage = FlutterSecureStorage();
+    if (key.isEmpty) {
+      await secureStorage.delete(key: _aiApiKeyPref);
+    } else {
+      await secureStorage.write(key: _aiApiKeyPref, value: key);
+    }
   }
 
   static Future<void> setAiApiEndpoint(String endpoint) async {
@@ -343,207 +371,4 @@ class SettingsManager {
   }
 
   // Data Management
-  static Future<void> exportRecipes(BuildContext context) async {
-    try {
-      final recipes = await RecipeManager.getCustomRecipes();
-      if (recipes.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No hay recetas para exportar'.tr)),
-          );
-        }
-        return;
-      }
-
-      // Ask user choice
-      if (!context.mounted) return;
-      final choice = await showModalBottomSheet<String>(
-        context: context,
-        builder: (BuildContext context) {
-          return SafeArea(
-            child: Wrap(
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.share),
-                  title: Text('Compartir'.tr),
-                  onTap: () => Navigator.pop(context, 'share'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.save),
-                  title: Text('Guardar en dispositivo'.tr),
-                  onTap: () => Navigator.pop(context, 'save'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-
-      if (choice == null) return;
-
-      final jsonStr = jsonEncode(recipes.map((r) => r.toJson()).toList());
-
-      if (choice == 'share') {
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/recetas_backup.json');
-        await file.writeAsString(jsonStr);
-
-        final result = await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(file.path)],
-            text: 'Copia de seguridad de Guardados',
-          ),
-        );
-
-        if (result.status == ShareResultStatus.success) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Copia de seguridad compartida'.tr)),
-            );
-          }
-        }
-      } else if (choice == 'save') {
-        final bytes = Uint8List.fromList(utf8.encode(jsonStr));
-        String? outputFile = await FilePicker.platform.saveFile(
-          dialogTitle: 'Guardar copia de seguridad',
-          fileName: 'recetas_backup.json',
-          type: FileType.custom,
-          allowedExtensions: ['json'],
-          bytes: bytes,
-        );
-
-        if (outputFile != null) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Recetas guardadas exitosamente'.tr)),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al exportar: $e')));
-      }
-    }
-  }
-
-  static Future<void> importRecipes(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final jsonStr = await file.readAsString();
-        final List<dynamic> jsonList = jsonDecode(jsonStr);
-
-        int importedCount = 0;
-        int skippedCount = 0;
-
-        // Find or create "Importados" folder
-        String? importFolderId;
-        try {
-          final existing = RecipeManager.allFolders
-              .where((f) => f.name == 'Importados')
-              .firstOrNull;
-
-          if (existing != null) {
-            importFolderId = existing.id;
-          } else {
-            // Create New
-            final newId = DateTime.now().millisecondsSinceEpoch.toString();
-            final newFolder = FavoriteFolder(
-              id: newId,
-              name: 'Importados',
-              icon: Icons.drive_file_move,
-              recipeIds: [],
-            );
-            await RecipeManager.addFolder(newFolder);
-            importFolderId = newId;
-          }
-        } catch (e) {
-          debugPrint('Error handling Importados folder: $e');
-        }
-
-        for (var item in jsonList) {
-          try {
-            final recipe = Recipe.fromJson(item);
-            if (!RecipeManager.recipes.any((r) => r.id == recipe.id)) {
-              await RecipeManager.addRecipe(recipe);
-
-              if (importFolderId != null) {
-                await RecipeManager.addRecipeToFolder(importFolderId, recipe);
-              }
-
-              if (!RecipeManager.isFavorite(recipe)) {
-                await RecipeManager.toggleFavorite(recipe);
-              }
-
-              importedCount++;
-            } else {
-              skippedCount++;
-            }
-          } catch (e) {
-            debugPrint('Skipping invalid recipe during import: $e');
-          }
-        }
-
-        RecipeManager.notifyListeners();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Importado: $importedCount. Omitido (duplicado): $skippedCount',
-              ),
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al importar: $e')));
-      }
-    }
-  }
-
-  static Future<void> clearData(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Borrar TODOS los datos'.tr),
-        content: Text(
-          'Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?'
-              .tr,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'.tr),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Borrar todo'.tr),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await RecipeManager.clearAllData();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Datos eliminados correctamente'.tr)),
-        );
-      }
-    }
-  }
 }

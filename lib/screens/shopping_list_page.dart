@@ -1,15 +1,24 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/services/meal_plan_manager.dart';
+import 'package:recetas/services/shopping_list_manager.dart';
+import 'package:recetas/screens/recipe_creation.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:async';
 
-class _ShoppingListPage extends StatefulWidget {
-  const _ShoppingListPage({super.key, this.showAppBar = true, this.isActive = true});
+class ShoppingListPage extends StatefulWidget {
+  const ShoppingListPage({super.key, this.showAppBar = true, this.isActive = true});
   final bool showAppBar;
   final bool isActive;
 
   @override
-  State<_ShoppingListPage> createState() => _ShoppingListPageState();
+  State<ShoppingListPage> createState() => ShoppingListPageState();
 }
 
-class _ShoppingListPageState extends State<_ShoppingListPage> {
+class ShoppingListPageState extends State<ShoppingListPage> {
   List<Map<String, dynamic>> _plannerItems = [];
   final TextEditingController _manualNameController = TextEditingController();
   final TextEditingController _manualQtyController = TextEditingController();
@@ -23,7 +32,7 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
   }
 
   @override
-  void didUpdateWidget(covariant _ShoppingListPage oldWidget) {
+  void didUpdateWidget(covariant ShoppingListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive && !widget.isActive) {
       ShoppingListManager.archiveCheckedItems();
@@ -82,7 +91,7 @@ class _ShoppingListPageState extends State<_ShoppingListPage> {
       if (cat == null) {
         final name = (item['name'] as String).toLowerCase();
         for (final category in IngredientCategory.values) {
-          final matches = _getIngredientsForCategory(category, [name]);
+          final matches = getIngredientsForCategory(category, [name]);
           if (matches.isNotEmpty) {
             cat = category;
             break;
@@ -620,7 +629,7 @@ class _AddIngredientSearchSheetState extends State<_AddIngredientSearchSheet> {
   void _showAddCustomIngredientDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => _AddIngredientDialog(
+      builder: (ctx) => AddIngredientDialog(
         onAdd: (name, qty, category) {
           if (name.isNotEmpty) {
             ShoppingListManager.addManualItem(name, qty, category);
@@ -631,7 +640,7 @@ class _AddIngredientSearchSheetState extends State<_AddIngredientSearchSheet> {
     );
   }
 
-  List<String> _sortIngredients(List<String> allIngredients, String query) {
+  List<String> sortIngredients(List<String> allIngredients, String query) {
     if (query.isEmpty) return allIngredients;
     final q = query.toLowerCase();
     return allIngredients.where((ing) => ing.toLowerCase().contains(q)).toList()
@@ -650,7 +659,7 @@ class _AddIngredientSearchSheetState extends State<_AddIngredientSearchSheet> {
     final allIngredients = RecipeManager.allIngredients;
     final filteredList = _ingredientQuery.isEmpty
         ? allIngredients.take(30).toList()
-        : _sortIngredients(allIngredients, _ingredientQuery);
+        : sortIngredients(allIngredients, _ingredientQuery);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -786,3 +795,6 @@ class _AddIngredientSearchSheetState extends State<_AddIngredientSearchSheet> {
     );
   }
 }
+
+
+

@@ -1,4 +1,13 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/utils/utils.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'package:recetas/screens/recipe_details.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:math';
 
 class RecipesByCategoryPage extends StatefulWidget {
   const RecipesByCategoryPage({super.key, required this.category});
@@ -127,7 +136,7 @@ class _RecipesByCategoryPageState extends State<RecipesByCategoryPage> {
                         itemCount: searchFiltered.length,
                         itemBuilder: (context, index) {
                           final r = searchFiltered[index];
-                          return _RecipeCard(recipe: r, matchCount: 0)
+                          return RecipeCard(recipe: r, matchCount: 0)
                               .animate(delay: (index < 12 ? index * 50 : 0).ms)
                               .fade(duration: 400.ms)
                               .slideY(
@@ -162,7 +171,7 @@ class IngredientsByCategoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final allIngredients = RecipeManager.allIngredients;
-    final categoryIngredients = _getIngredientsForCategory(
+    final categoryIngredients = getIngredientsForCategory(
       category,
       allIngredients,
     );
@@ -252,7 +261,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final List<_ScoredRecipe> results =
+    final List<ScoredRecipe> results =
         RecipeManager.recipes
             .map((r) {
               int matches = 0;
@@ -263,7 +272,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                 double bestIngScore = 0.0;
                 String? bestMatch;
                 for (final ing in r.ingredients) {
-                  final score = _fuzzyMatchScore(ing, needle);
+                  final score = fuzzyMatchScore(ing, needle);
                   if (score > bestIngScore) {
                     bestIngScore = score;
                     bestMatch = ing;
@@ -277,7 +286,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
               }
               
               final remainingIngredients = r.ingredients.length - matches;
-              return _ScoredRecipe(
+              return ScoredRecipe(
                 recipe: r,
                 matchCount: matches,
                 remainingIngredients: remainingIngredients,
@@ -313,7 +322,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: results.isEmpty
-              ? _EmptyState(selectedIngredients: widget.selectedIngredients)
+              ? EmptyState(selectedIngredients: widget.selectedIngredients)
               : ListView(
                   children: [
                     if (_selectedFilters.isNotEmpty) ...[
@@ -360,7 +369,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
                     SizedBox(height: 12),
                     ...results.map((sr) {
                       final idx = results.indexOf(sr);
-                      return _RecipeCard(
+                      return RecipeCard(
                             recipe: sr.recipe,
                             matchCount: sr.matchCount,
                             matchedIngredients: sr.matchedIngredients,
@@ -403,7 +412,7 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
   void _showFilterDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => _DietaryFilterDialog(
+      builder: (context) => DietaryFilterDialog(
         selectedFilters: _selectedFilters,
         selectedCustomFilters: _selectedCustomFilters,
         onFiltersChanged: (filters, customFilters) {
@@ -418,3 +427,9 @@ class _RecipeResultsPageState extends State<RecipeResultsPage> {
     );
   }
 }
+
+
+
+
+
+

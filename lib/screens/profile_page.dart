@@ -1,9 +1,30 @@
-part of '../main.dart';
+import 'package:recetas/screens/meal_planner/helpers.dart';
+import 'package:recetas/screens/shopping_list_page.dart';
+import 'package:recetas/screens/meal_planner/meal_planner_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/services/meal_plan_manager.dart';
+import 'package:recetas/screens/search_page.dart';
+import 'package:recetas/screens/saved_page.dart';
+import 'package:recetas/screens/recipe_details.dart';
+import 'package:recetas/screens/settings_page.dart';
+import 'package:recetas/screens/stats_page.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:io';
+import 'dart:async';
 
-class _ShareQRCodePage extends StatelessWidget {
+class ShareQRCodePage extends StatelessWidget {
   final Recipe recipe;
 
-  const _ShareQRCodePage({required this.recipe});
+  const ShareQRCodePage({super.key, required this.recipe});
 
   @override
   Widget build(BuildContext context) {
@@ -75,14 +96,14 @@ class _ShareQRCodePage extends StatelessWidget {
   }
 }
 
-class _QrScannerPage extends StatefulWidget {
-  const _QrScannerPage();
+class QrScannerPage extends StatefulWidget {
+  const QrScannerPage({super.key});
 
   @override
-  State<_QrScannerPage> createState() => _QrScannerPageState();
+  State<QrScannerPage> createState() => QrScannerPageState();
 }
 
-class _QrScannerPageState extends State<_QrScannerPage> {
+class QrScannerPageState extends State<QrScannerPage> {
   final MobileScannerController controller = MobileScannerController();
   bool _isScanning = true;
 
@@ -582,7 +603,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
-                                            const _MealPlannerPage(),
+                                            const MealPlannerPage(),
                                       ),
                                     );
                                   },
@@ -600,7 +621,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
-                                            const _ShoppingListPage(isActive: true),
+                                            const ShoppingListPage(isActive: true),
                                       ),
                                     );
                                   },
@@ -869,3 +890,10 @@ class _TodayMealsCardState extends State<_TodayMealsCard> {
     ).animate().fade(duration: 500.ms).slideY(begin: 0.03, curve: Curves.easeOutCubic);
   }
 }
+
+
+
+
+
+
+

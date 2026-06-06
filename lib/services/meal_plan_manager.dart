@@ -1,4 +1,11 @@
-part of '../main.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/services/snackbar_service.dart';
+import 'package:recetas/utils/json_utils.dart';
 
 class MealPlanManager {
   static const String _mealsKey = 'planned_meals';
@@ -22,14 +29,14 @@ class MealPlanManager {
     _meals.clear();
     if (raw != null) {
       try {
-        final List<dynamic> decoded = json.decode(raw);
+        final List<dynamic> decoded = await compute(decodeJsonList, raw);
         for (final item in decoded) {
           if (item is Map<String, dynamic>) {
             _meals.add(PlannedMeal.fromJson(item));
           }
         }
       } catch (e) {
-        debugPrint('Error loading meal plan: $e');
+        debugPrint('Error loading meal plan: $e'); SnackbarService.showError('${'Error'.tr} loading meal plan: $e');
       }
     }
     await _loadTemplates();
@@ -49,7 +56,10 @@ class MealPlanManager {
     _notifyListeners();
   }
 
+  static PlannedMeal? _lastDeletedMeal;
+
   static Future<void> removeMeal(PlannedMeal meal) async {
+    _lastDeletedMeal = meal;
     _meals.removeWhere(
       (m) =>
           m.dateKey == meal.dateKey &&
@@ -58,6 +68,20 @@ class MealPlanManager {
     );
     await _save();
     _notifyListeners();
+    
+    // Auto-clear cache after 5 seconds to prevent memory leak
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_lastDeletedMeal == meal) _lastDeletedMeal = null;
+    });
+  }
+
+  static Future<void> undoRemoveMeal() async {
+    if (_lastDeletedMeal != null) {
+      _meals.add(_lastDeletedMeal!);
+      _lastDeletedMeal = null;
+      await _save();
+      _notifyListeners();
+    }
   }
 
   static Future<void> toggleCompleted(PlannedMeal meal) async {
@@ -295,14 +319,14 @@ class MealPlanManager {
     _templates.clear();
     if (raw != null) {
       try {
-        final List<dynamic> decoded = json.decode(raw);
+        final List<dynamic> decoded = await compute(decodeJsonList, raw);
         for (final item in decoded) {
           if (item is Map<String, dynamic>) {
             _templates.add(MealTemplate.fromJson(item));
           }
         }
       } catch (e) {
-        debugPrint('Error loading meal templates: $e');
+        debugPrint('Error loading meal templates: $e'); SnackbarService.showError('${'Error'.tr} loading meal templates: $e');
       }
     }
   }
@@ -383,3 +407,5 @@ class MealPlanManager {
     _notifyListeners();
   }
 }
+
+

@@ -1,4 +1,11 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'dart:io';
 
 enum DietaryRestriction {
   vegetariano,
@@ -568,8 +575,8 @@ class FavoriteFolder {
   }
 }
 
-class _ScoredRecipe {
-  _ScoredRecipe({
+class ScoredRecipe {
+  ScoredRecipe({
     required this.recipe,
     required this.matchCount,
     required this.remainingIngredients,
@@ -585,7 +592,7 @@ class _ScoredRecipe {
 }
 
 // Helper function to categorize ingredients based on keywords
-List<String> _getIngredientsForCategory(
+List<String> getIngredientsForCategory(
   IngredientCategory category,
   List<String> allIngredients,
 ) {
@@ -1001,3 +1008,6 @@ class MealTemplate {
     Map<int, List<TemplateMealEntry>>? days,
   }) => MealTemplate(name: name ?? this.name, days: days ?? this.days);
 }
+
+
+

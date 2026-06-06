@@ -1,4 +1,15 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/utils/utils.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'package:recetas/screens/recipe_creation.dart';
+import 'package:recetas/screens/recipe_categories.dart';
+import 'package:recetas/screens/recipe_details.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:math';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.showAppBar = true});
@@ -62,7 +73,7 @@ class _SearchPageState extends State<SearchPage> {
           // Segmented Control
           Padding(
             padding: const EdgeInsets.all(16),
-            child: _SlidingSegmentedControl(
+            child: SlidingSegmentedControl(
               controller: _pageController,
               selectedIndex: _selectedIndex,
               onTap: _onSegmentChanged,
@@ -150,7 +161,7 @@ class _RecetasView extends StatelessWidget {
     final searchResultsScore = searchQuery.isEmpty
         ? <MapEntry<Recipe, double>>[]
         : RecipeManager.recipes
-            .map((recipe) => MapEntry(recipe, _fuzzyMatchScore(recipe.title, searchQuery)))
+            .map((recipe) => MapEntry(recipe, fuzzyMatchScore(recipe.title, searchQuery)))
             .where((entry) => entry.value > 0)
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
@@ -234,7 +245,7 @@ class _RecetasView extends StatelessWidget {
                         itemCount: searchResults.length,
                         itemBuilder: (context, index) {
                           final recipe = searchResults[index];
-                          return _RecipeCard(recipe: recipe, matchCount: 0)
+                          return RecipeCard(recipe: recipe, matchCount: 0)
                               .animate(delay: (index < 12 ? index * 50 : 0).ms)
                               .fade(duration: 400.ms)
                               .slideY(
@@ -245,7 +256,7 @@ class _RecetasView extends StatelessWidget {
                         },
                       )
               : categories.isEmpty
-              ? _EmptyStateWidget(
+              ? EmptyStateWidget(
                   icon: Icons.restaurant_menu,
                   title: 'No hay recetas'.tr,
                   subtitle: 'Añade tus propias recetas para verlas aquí'.tr,
@@ -375,7 +386,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
 
     // Get ingredients from all categories
     for (final category in IngredientCategory.values) {
-      map[category] = _getIngredientsForCategory(
+      map[category] = getIngredientsForCategory(
         category,
         allIngredientsFromRecipes,
       );
@@ -417,7 +428,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
     final theme = Theme.of(context);
 
     // Use the smart sort logic
-    final filtered = _sortIngredients(
+    final filtered = sortIngredients(
       _allIngredients,
       _query,
     ).where((i) => !_selected.contains(i)).take(12).toList();
@@ -445,7 +456,7 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
                   },
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    hintText: 'Búsqueda por ingredientes...'.tr.tr,
+                    hintText: 'Búsqueda por ingredientes...'.tr,
                     prefixIcon: const Icon(
                       CupertinoIcons.search,
                       color: Colors.grey,
@@ -539,11 +550,11 @@ class _IngredientSearchPageState extends State<IngredientSearchPage>
           ),
           Expanded(
             child: _allIngredients.isEmpty
-                ? _EmptyStateWidget(
+                ? EmptyStateWidget(
                     icon: CupertinoIcons.search,
-                    title: 'No hay ingredientes'.tr.tr,
+                    title: 'No hay ingredientes'.tr,
                     subtitle:
-                        'Añade recetas para explorar sus ingredientes'.tr.tr.tr,
+                        'Añade recetas para explorar sus ingredientes'.tr,
                   )
                 : _query.isEmpty
                 ? _PopularIngredientsGrid(
@@ -687,3 +698,7 @@ class _PopularIngredientsGrid extends StatelessWidget {
     );
   }
 }
+
+
+
+

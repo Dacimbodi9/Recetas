@@ -1,4 +1,23 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:recetas/services/snackbar_service.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:recetas/utils/json_utils.dart';
+import 'package:flutter/services.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'package:recetas/screens/profile_page.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 
 class _BottomMenuSettingsPage extends StatelessWidget {
   const _BottomMenuSettingsPage();
@@ -163,10 +182,10 @@ class SettingsPage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             children:
                 [
-                      _SettingsSection(
+                      SettingsSection(
                         title: 'GENERAL'.tr,
                         children: [
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Escanear código QR'.tr,
                             subtitle:
                                 'Importar una receta escaneando un código QR'
@@ -176,13 +195,13 @@ class SettingsPage extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const _QrScannerPage(),
+                                  builder: (context) => const QrScannerPage(),
                                 ),
                               );
                             },
                           ),
 
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Filtros dietéticos permanentes'.tr,
                             subtitle:
                                 'Excluir siempre recetas incompatibles'.tr,
@@ -206,7 +225,7 @@ class SettingsPage extends StatelessWidget {
                           ValueListenableBuilder<bool>(
                             valueListenable: SettingsManager.showDefaultRecipes,
                             builder: (context, showDefaults, child) {
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Mostrar Recetas Predeterminadas'.tr,
                                 isSwitch: true,
                                 switchValue: showDefaults,
@@ -220,10 +239,10 @@ class SettingsPage extends StatelessWidget {
                         ],
                       ),
 
-                      _SettingsSection(
+                      SettingsSection(
                         title: 'APARIENCIA Y NAVEGACIÓN'.tr,
                         children: [
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Menú principal'.tr,
                             subtitle: 'Personalizar botones inferiores'.tr,
                             icon: CupertinoIcons.rectangle_grid_2x2,
@@ -258,7 +277,7 @@ class SettingsPage extends StatelessWidget {
                                 subtitle = 'Inicio'.tr;
                               }
 
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Pantalla predeterminada'.tr,
                                 icon: CupertinoIcons.home,
                                 subtitle: subtitle,
@@ -275,7 +294,7 @@ class SettingsPage extends StatelessWidget {
                           ValueListenableBuilder<String>(
                             valueListenable: SettingsManager.language,
                             builder: (context, lang, child) {
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Idioma / Language'.tr,
                                 icon: CupertinoIcons.globe,
                                 subtitle: lang == 'en' ? 'English' : 'Español',
@@ -292,7 +311,7 @@ class SettingsPage extends StatelessWidget {
                           ValueListenableBuilder<bool>(
                             valueListenable: SettingsManager.isDarkMode,
                             builder: (context, isDark, child) {
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Modo Oscuro'.tr,
                                 isSwitch: true,
                                 switchValue: isDark,
@@ -305,7 +324,7 @@ class SettingsPage extends StatelessWidget {
                           ValueListenableBuilder<bool>(
                             valueListenable: SettingsManager.preventSleep,
                             builder: (context, prevent, child) {
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Mantener pantalla encendida'.tr,
                                 isSwitch: true,
                                 switchValue: prevent,
@@ -317,15 +336,20 @@ class SettingsPage extends StatelessWidget {
                             },
                           ),
                           ValueListenableBuilder<bool>(
-                            valueListenable: SettingsManager.showTodayMealsInHome,
+                            valueListenable:
+                                SettingsManager.showTodayMealsInHome,
                             builder: (context, showInHome, child) {
-                              return _SettingsTile(
+                              return SettingsTile(
                                 title: 'Comidas de hoy en Inicio'.tr,
-                                subtitle: 'Mostrar resumen en vez de en planificador'.tr,
+                                subtitle:
+                                    'Mostrar resumen en vez de en planificador'
+                                        .tr,
                                 isSwitch: true,
                                 switchValue: showInHome,
                                 onSwitchChanged: (value) =>
-                                    SettingsManager.setShowTodayMealsInHome(value),
+                                    SettingsManager.setShowTodayMealsInHome(
+                                      value,
+                                    ),
                                 icon: CupertinoIcons.square_list,
                                 lastItem: true,
                               );
@@ -334,12 +358,14 @@ class SettingsPage extends StatelessWidget {
                         ],
                       ),
 
-                      _SettingsSection(
+                      SettingsSection(
                         title: 'MIS DATOS'.tr,
                         children: [
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Perfil Físico'.tr,
-                            subtitle: 'Configura tus datos de salud para recomendaciones'.tr,
+                            subtitle:
+                                'Configura tus datos de salud para recomendaciones'
+                                    .tr,
                             icon: Icons.accessibility_new_rounded,
                             trailing: Icon(
                               CupertinoIcons.chevron_right,
@@ -351,13 +377,14 @@ class SettingsPage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => BodyProfileSettingsPage(),
+                                    builder: (context) =>
+                                        BodyProfileSettingsPage(),
                                   ),
                                 );
                               }
                             },
                           ),
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Configurar API Key'.tr,
                             subtitle:
                                 'Usar IA para extraer recetas de imágenes'.tr,
@@ -378,24 +405,24 @@ class SettingsPage extends StatelessWidget {
                               }
                             },
                           ),
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Exportar recetas'.tr,
                             icon: CupertinoIcons.share,
-                            onTap: () => SettingsManager.exportRecipes(context),
+                            onTap: () => _exportRecipes(context),
                           ),
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Importar recetas'.tr,
                             icon: CupertinoIcons.arrow_down_doc,
-                            onTap: () => SettingsManager.importRecipes(context),
+                            onTap: () => _importRecipes(context),
                           ),
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Borrar todos los datos'.tr,
                             icon: CupertinoIcons.delete,
                             iconColor: Colors.red,
                             textColor: Colors.red,
-                            onTap: () => SettingsManager.clearData(context),
+                            onTap: () => _clearData(context),
                           ),
-                          _SettingsTile(
+                          SettingsTile(
                             title: 'Legal'.tr,
                             subtitle: 'Política de Privacidad y Términos'.tr,
                             icon: CupertinoIcons.doc_text,
@@ -494,7 +521,7 @@ class SettingsPage extends StatelessWidget {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _SelectionOption(
+                          child: SelectionOption(
                             title: title,
                             icon: icon,
                             isSelected: currentFeature == feature,
@@ -558,7 +585,7 @@ class SettingsPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    _SelectionOption(
+                    SelectionOption(
                       title: 'Español'.tr,
                       icon: CupertinoIcons.globe,
                       isSelected: currentLanguage == 'es',
@@ -568,7 +595,7 @@ class SettingsPage extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 12),
-                    _SelectionOption(
+                    SelectionOption(
                       title: 'English'.tr,
                       icon: CupertinoIcons.globe,
                       isSelected: currentLanguage == 'en',
@@ -633,9 +660,215 @@ class SettingsPage extends StatelessWidget {
 
     navigator.pop();
   }
+
+  Future<void> _exportRecipes(BuildContext context) async {
+    try {
+      final recipes = await RecipeManager.getCustomRecipes();
+      if (recipes.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No hay recetas para exportar'.tr)),
+          );
+        }
+        return;
+      }
+
+      // Ask user choice
+      if (!context.mounted) return;
+      final choice = await showModalBottomSheet<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Wrap(
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.share),
+                  title: Text('Compartir'.tr),
+                  onTap: () => Navigator.pop(context, 'share'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.save),
+                  title: Text('Guardar en dispositivo'.tr),
+                  onTap: () => Navigator.pop(context, 'save'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (choice == null) return;
+
+      final jsonStr = jsonEncode(recipes.map((r) => r.toJson()).toList());
+
+      if (choice == 'share') {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/recetas_backup.json');
+        await file.writeAsString(jsonStr);
+
+        final result = await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: 'Copia de seguridad de Guardados',
+          ),
+        );
+
+        if (result.status == ShareResultStatus.success) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Copia de seguridad compartida'.tr)),
+            );
+          }
+        }
+      } else if (choice == 'save') {
+        final bytes = Uint8List.fromList(utf8.encode(jsonStr));
+        String? outputFile = await FilePicker.platform.saveFile(
+          dialogTitle: 'Guardar copia de seguridad',
+          fileName: 'recetas_backup.json',
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          bytes: bytes,
+        );
+
+        if (outputFile != null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Recetas guardadas exitosamente'.tr)),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al exportar: $e')));
+      }
+    }
+  }
+
+  Future<void> _importRecipes(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final jsonStr = await file.readAsString();
+        final List<dynamic> jsonList = await compute(decodeJsonList, jsonStr);
+
+        int importedCount = 0;
+        int skippedCount = 0;
+
+        // Find or create "Importados" folder
+        String? importFolderId;
+        try {
+          final existing = RecipeManager.allFolders
+              .where((f) => f.name == 'Importados')
+              .firstOrNull;
+
+          if (existing != null) {
+            importFolderId = existing.id;
+          } else {
+            // Create New
+            final newId = DateTime.now().millisecondsSinceEpoch.toString();
+            final newFolder = FavoriteFolder(
+              id: newId,
+              name: 'Importados',
+              icon: Icons.drive_file_move,
+              recipeIds: [],
+            );
+            await RecipeManager.addFolder(newFolder);
+            importFolderId = newId;
+          }
+        } catch (e) {
+          debugPrint('Error handling Importados folder: $e');
+          SnackbarService.showError('Error handling Importados folder: $e');
+        }
+
+        for (var item in jsonList) {
+          try {
+            final recipe = Recipe.fromJson(item);
+            if (!RecipeManager.recipes.any((r) => r.id == recipe.id)) {
+              await RecipeManager.addRecipe(recipe);
+
+              if (importFolderId != null) {
+                await RecipeManager.addRecipeToFolder(importFolderId, recipe);
+              }
+
+              if (!RecipeManager.isFavorite(recipe)) {
+                await RecipeManager.toggleFavorite(recipe);
+              }
+
+              importedCount++;
+            } else {
+              skippedCount++;
+            }
+          } catch (e) {
+            debugPrint('Skipping invalid recipe during import: $e');
+            SnackbarService.showError('Skipping invalid recipe during import: $e');
+          }
+        }
+
+        RecipeManager.notifyListeners();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Importado: $importedCount. Omitido (duplicado): $skippedCount',
+              ),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al importar: $e')));
+      }
+    }
+  }
+
+  Future<void> _clearData(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Borrar TODOS los datos'.tr),
+        content: Text(
+          'Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?'
+              .tr,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Borrar todo'.tr),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await RecipeManager.clearAllData();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Datos eliminados correctamente'.tr)),
+        );
+      }
+    }
+  }
 }
 
-class _SelectionOption extends StatelessWidget {
+class SelectionOption extends StatelessWidget {
   final String title;
   final IconData icon;
   final bool isSelected;
@@ -643,7 +876,7 @@ class _SelectionOption extends StatelessWidget {
   final bool isDestructive;
   final Color? iconColor;
 
-  const _SelectionOption({
+  const SelectionOption({super.key, 
     required this.title,
     required this.icon,
     required this.isSelected,
@@ -746,12 +979,12 @@ class _DietarySettingsPage extends StatelessWidget {
               builder: (context, defaults, child) {
                 final restrictions = DietaryRestriction.values.toList();
 
-                return _SettingsSection(
-                  title: 'RESTRICCIONES'.tr.tr,
+                return SettingsSection(
+                  title: 'RESTRICCIONES'.tr,
                   children: List.generate(restrictions.length, (index) {
                     final restriction = restrictions[index];
                     final isSelected = defaults.contains(restriction);
-                    return _SettingsTile(
+                    return SettingsTile(
                       title: restriction.displayName,
                       subtitle: restriction
                           .description, // Added description for clarity
@@ -775,12 +1008,12 @@ class _DietarySettingsPage extends StatelessWidget {
 
                 return Column(
                   children: [
-                    _SettingsSection(
-                      title: 'ETIQUETAS PERSONALIZADAS'.tr.tr,
+                    SettingsSection(
+                      title: 'ETIQUETAS PERSONALIZADAS'.tr,
                       children: List.generate(allCustomTags.length, (index) {
                         final tag = allCustomTags[index];
                         final isSelected = customDefaults.contains(tag);
-                        return _SettingsTile(
+                        return SettingsTile(
                           title: tag,
                           isSwitch: true,
                           switchValue: isSelected,
@@ -801,11 +1034,11 @@ class _DietarySettingsPage extends StatelessWidget {
                 return ValueListenableBuilder<bool>(
                   valueListenable: SettingsManager.hideIncompatibleRecipes,
                   builder: (context, hideIncompatible, _) {
-                    return _SettingsSection(
-                      title: 'OPCIONES'.tr.tr,
+                    return SettingsSection(
+                      title: 'OPCIONES'.tr,
                       children: [
-                        _SettingsTile(
-                          title: 'Aplicar a recetas predeterminadas'.tr.tr,
+                        SettingsTile(
+                          title: 'Aplicar a recetas predeterminadas'.tr,
                           subtitle:
                               'Mostrar indicador rojo también en recetas incluidas en la app'
                                   .tr
@@ -817,8 +1050,8 @@ class _DietarySettingsPage extends StatelessWidget {
                               SettingsManager.setApplyDietaryToDefaults(value),
                           lastItem: false,
                         ),
-                        _SettingsTile(
-                          title: 'Ocultar recetas incompatibles'.tr.tr,
+                        SettingsTile(
+                          title: 'Ocultar recetas incompatibles'.tr,
                           subtitle:
                               'No mostrar recetas que no cumplan con los filtros'
                                   .tr
@@ -1093,8 +1326,8 @@ class _LegalPage extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _LegalContent(isPrivacy: true),
-            _LegalContent(isPrivacy: false),
+            LegalContent(isPrivacy: true),
+            LegalContent(isPrivacy: false),
           ],
         ),
       ),
@@ -1106,7 +1339,8 @@ class BodyProfileSettingsPage extends StatefulWidget {
   const BodyProfileSettingsPage({super.key});
 
   @override
-  State<BodyProfileSettingsPage> createState() => _BodyProfileSettingsPageState();
+  State<BodyProfileSettingsPage> createState() =>
+      _BodyProfileSettingsPageState();
 }
 
 class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
@@ -1119,9 +1353,15 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _weightController = TextEditingController(text: SettingsManager.userWeight.value?.toString() ?? '');
-    _heightController = TextEditingController(text: SettingsManager.userHeight.value?.toString() ?? '');
-    _ageController = TextEditingController(text: SettingsManager.userAge.value?.toString() ?? '');
+    _weightController = TextEditingController(
+      text: SettingsManager.userWeight.value?.toString() ?? '',
+    );
+    _heightController = TextEditingController(
+      text: SettingsManager.userHeight.value?.toString() ?? '',
+    );
+    _ageController = TextEditingController(
+      text: SettingsManager.userAge.value?.toString() ?? '',
+    );
     _sex = SettingsManager.userSex.value;
     _activityLevel = SettingsManager.userActivityLevel.value;
   }
@@ -1138,13 +1378,13 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
     final weight = double.tryParse(_weightController.text);
     final height = double.tryParse(_heightController.text);
     final age = int.tryParse(_ageController.text);
-    
+
     await SettingsManager.setUserWeight(weight);
     await SettingsManager.setUserHeight(height);
     await SettingsManager.setUserAge(age);
     await SettingsManager.setUserSex(_sex);
     await SettingsManager.setUserActivityLevel(_activityLevel);
-    
+
     if (mounted) {
       Navigator.pop(context);
     }
@@ -1159,7 +1399,8 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            'Estos datos se usan para calcular recomendaciones nutricionales personalizadas'.tr,
+            'Estos datos se usan para calcular recomendaciones nutricionales personalizadas'
+                .tr,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
@@ -1170,7 +1411,9 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Peso (kg)'.tr,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -1179,7 +1422,9 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Altura (cm)'.tr,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -1188,18 +1433,30 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Edad'.tr,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _sex,
             borderRadius: BorderRadius.circular(16),
-            dropdownColor: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
-            icon: Icon(CupertinoIcons.chevron_down, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            dropdownColor: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                : Colors.white,
+            icon: Icon(
+              CupertinoIcons.chevron_down,
+              size: 16,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             decoration: InputDecoration(
               labelText: 'Sexo'.tr,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             items: [
               DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
@@ -1215,24 +1472,56 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
           DropdownButtonFormField<double>(
             initialValue: _activityLevel ?? 1.55,
             borderRadius: BorderRadius.circular(16),
-            dropdownColor: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
-            icon: Icon(CupertinoIcons.chevron_down, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            dropdownColor: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                : Colors.white,
+            icon: Icon(
+              CupertinoIcons.chevron_down,
+              size: 16,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             decoration: InputDecoration(
               labelText: 'Nivel de Actividad'.tr,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               helperMaxLines: 3,
-              helperText: _activityLevel == 1.2 ? 'Sedentario: Trabajo de oficina, poco o ningún ejercicio.'.tr :
-                          _activityLevel == 1.375 ? 'Ligeramente activo: Ejercicio ligero 1-3 días a la semana.'.tr :
-                          _activityLevel == 1.55 || _activityLevel == null ? 'Moderadamente activo: Ejercicio 3-5 días a la semana.'.tr :
-                          _activityLevel == 1.725 ? 'Muy activo: Ejercicio fuerte 6-7 días a la semana.'.tr :
-                          'Extremadamente activo: Trabajo físico duro o entrenamiento doble.'.tr,
+              helperText: _activityLevel == 1.2
+                  ? 'Sedentario: Trabajo de oficina, poco o ningún ejercicio.'
+                        .tr
+                  : _activityLevel == 1.375
+                  ? 'Ligeramente activo: Ejercicio ligero 1-3 días a la semana.'
+                        .tr
+                  : _activityLevel == 1.55 || _activityLevel == null
+                  ? 'Moderadamente activo: Ejercicio 3-5 días a la semana.'.tr
+                  : _activityLevel == 1.725
+                  ? 'Muy activo: Ejercicio fuerte 6-7 días a la semana.'.tr
+                  : 'Extremadamente activo: Trabajo físico duro o entrenamiento doble.'
+                        .tr,
             ),
             items: [
-              DropdownMenuItem(value: 1.2, child: Text('Sedentario (Poco/ningún ejercicio)'.tr)),
-              DropdownMenuItem(value: 1.375, child: Text('Ligero (1-3 días/sem)'.tr)),
-              DropdownMenuItem(value: 1.55, child: Text('Moderado (3-5 días/sem)'.tr)),
-              DropdownMenuItem(value: 1.725, child: Text('Muy activo (6-7 días/sem)'.tr)),
-              DropdownMenuItem(value: 1.9, child: Text('Extremo (Trabajo físico/Atleta)'.tr)),
+              DropdownMenuItem(
+                value: 1.2,
+                child: Text('Sedentario (Poco/ningún ejercicio)'.tr),
+              ),
+              DropdownMenuItem(
+                value: 1.375,
+                child: Text('Ligero (1-3 días/sem)'.tr),
+              ),
+              DropdownMenuItem(
+                value: 1.55,
+                child: Text('Moderado (3-5 días/sem)'.tr),
+              ),
+              DropdownMenuItem(
+                value: 1.725,
+                child: Text('Muy activo (6-7 días/sem)'.tr),
+              ),
+              DropdownMenuItem(
+                value: 1.9,
+                child: Text('Extremo (Trabajo físico/Atleta)'.tr),
+              ),
             ],
             onChanged: (val) {
               setState(() {
@@ -1253,3 +1542,6 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
     );
   }
 }
+
+
+

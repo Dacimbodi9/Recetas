@@ -1,4 +1,24 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/utils/utils.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+
+part 'recipe_creation/step1_overview.dart';
+part 'recipe_creation/step2_ingredients.dart';
+part 'recipe_creation/step3_instructions.dart';
+part 'recipe_creation/step4_details.dart';
 
 class NewRecipePage extends StatefulWidget {
   const NewRecipePage({super.key, this.recipeToEdit});
@@ -35,6 +55,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
   final TextEditingController _carbsController = TextEditingController();
   final TextEditingController _fatController = TextEditingController();
   Recipe? _initialRecipeSnapshot;
+  Timer? _autoSaveTimer;
+  static const String _draftKey = 'recipe_draft';
 
   @override
   void initState() {
@@ -43,7 +65,45 @@ class _NewRecipePageState extends State<NewRecipePage> {
       _loadRecipeData(widget.recipeToEdit!);
       // Snapshot the loaded state to detect real changes later
       _initialRecipeSnapshot = _buildCurrentRecipe();
+    } else {
+      _checkDraft();
+      _startAutoSave();
     }
+  }
+
+  Future<void> _checkDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final draftJson = prefs.getString(_draftKey);
+    if (draftJson != null && draftJson.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Borrador encontrado'.tr),
+            action: SnackBarAction(
+              label: 'Restaurar'.tr,
+              onPressed: () {
+                final draftMap = json.decode(draftJson) as Map<String, dynamic>;
+                final draftRecipe = Recipe.fromJson(draftMap);
+                setState(() {
+                  _loadRecipeData(draftRecipe);
+                });
+              },
+            ),
+            duration: const Duration(seconds: 10),
+          ),
+        );
+      }
+    }
+  }
+
+  void _startAutoSave() {
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_titleController.text.trim().isNotEmpty) {
+        final current = _buildCurrentRecipe();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_draftKey, json.encode(current.toJson()));
+      }
+    });
   }
 
   void _loadRecipeData(Recipe recipe) {
@@ -77,6 +137,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _pageController.dispose();
     _titleController.dispose();
     _prepTimeController.dispose();
@@ -655,6 +716,12 @@ class _NewRecipePageState extends State<NewRecipePage> {
         await RecipeManager.toggleFavorite(newRecipe);
       }
 
+      // Clear draft on successful save
+      if (widget.recipeToEdit == null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_draftKey);
+      }
+
       if (mounted) {
         if (context.mounted) Navigator.of(context).pop(); // Close wizard
         if (context.mounted) {
@@ -662,8 +729,8 @@ class _NewRecipePageState extends State<NewRecipePage> {
             SnackBar(
               content: Text(
                 widget.recipeToEdit != null
-                    ? 'Receta actualizada'
-                    : 'Receta creada',
+                    ? 'Receta actualizada'.tr
+                    : 'Receta creada'.tr,
               ),
             ),
           );
@@ -824,7 +891,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
           controller: controller,
           maxLines: 3,
           autofocus: true,
-          decoration: InputDecoration(hintText: 'Describe el paso...'.tr.tr),
+          decoration: InputDecoration(hintText: 'Describe el paso...'.tr),
         ),
         actions: [
           TextButton(
@@ -846,7 +913,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
   void _showAddCustomIngredientDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => _AddIngredientDialog(
+      builder: (ctx) => AddIngredientDialog(
         onAdd: (name, qty, category) {
           if (name.isNotEmpty) {
             if (category != null) {
@@ -873,7 +940,9 @@ class _NewRecipePageState extends State<NewRecipePage> {
       child: Scaffold(
         // backgroundColor: Use theme default
         body: SafeArea(
-          child: Column(
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: Column(
             children: [
               // Top Bar & Progress
               Padding(
@@ -1010,14 +1079,15 @@ class _NewRecipePageState extends State<NewRecipePage> {
                               SizedBox(width: 8),
                               Icon(CupertinoIcons.chevron_right, size: 18),
                             ],
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1042,170 +1112,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
     );
   }
 
-  Widget _buildStep1Overview(ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              height: 280,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.3,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _selectedImagePath == null
-                  ? _buildAddPhotoPlaceholder(theme)
-                  : (_selectedImagePath!.startsWith('assets/')
-                        ? Image.asset(
-                            _selectedImagePath!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildAddPhotoPlaceholder(theme),
-                          )
-                        : Image.file(
-                            File(_selectedImagePath!),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildAddPhotoPlaceholder(theme),
-                          )),
-            ),
-          ),
-          SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: _scanRecipeLocally,
-            icon: Icon(CupertinoIcons.doc_text_viewfinder),
-            label: Text('Escanear receta desde foto (Beta)'.tr),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-          SizedBox(height: 16),
 
-          _buildInputSection(
-            theme,
-            title: 'NOMBRE'.tr.tr,
-            children: [
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: _titleController,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Nombre de la receta'.tr.tr,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          _buildInputSection(
-            theme,
-            title: 'TIEMPO ESTIMADO'.tr.tr,
-            children: [
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: _prepTimeController,
-                decoration: InputDecoration(
-                  hintText: 'Ej: 30 min'.tr.tr,
-                  prefixIcon: Icon(CupertinoIcons.clock, size: 20),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          _buildInputSection(
-            theme,
-            title: 'NUTRICIÓN (OPCIONAL)'.tr.tr,
-            children: [
-              Theme(
-                data: theme.copyWith(
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  hoverColor: Colors.transparent,
-                  dividerColor: Colors
-                      .transparent, // Ensure no dividers show up unexpectedly
-                ),
-                child: ExpansionTile(
-                  title: Text('Información Nutricional'.tr),
-                  leading: Icon(Icons.analytics_outlined),
-                  shape: Border(),
-                  collapsedShape: Border(),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-                  childrenPadding: const EdgeInsets.all(16),
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCompactNutriInput(
-                            theme,
-                            _caloriesController,
-                            'Calorías (kcal)'.tr,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: _buildCompactNutriInput(
-                            theme,
-                            _proteinController,
-                            'Proteína (g)'.tr,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCompactNutriInput(
-                            theme,
-                            _carbsController,
-                            'Carbohidratos (g)'.tr,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: _buildCompactNutriInput(
-                            theme,
-                            _fatController,
-                            'Grasas (g)'.tr,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildInputSection(
     ThemeData theme, {
@@ -1275,475 +1182,13 @@ class _NewRecipePageState extends State<NewRecipePage> {
   }
 
   // --- Step 2: Ingredients ---
-  Widget _buildStep2Ingredients(ThemeData theme) {
-    final allIngredients = RecipeManager.allIngredients;
-    final filteredList = _ingredientQuery.isEmpty
-        ? <String>[]
-        : _sortIngredients(allIngredients, _ingredientQuery)
-              .where((i) => !_detailedIngredients.any((d) => d.name == i))
-              .take(6)
-              .toList();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'INGREDIENTES'.tr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      textCapitalization: TextCapitalization.sentences,
-                      controller: _ingredientController,
-                      onChanged: (val) =>
-                          setState(() => _ingredientQuery = val),
-                      textAlignVertical: TextAlignVertical.center,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar ingredientes...'.tr,
-                        prefixIcon: const Icon(
-                          CupertinoIcons.search,
-                          color: Colors.grey,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(
-                            color: theme.brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : Colors.black.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        suffixIcon: _ingredientQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  CupertinoIcons.xmark_circle_fill,
-                                  size: 20,
-                                ),
-                                onPressed: () {
-                                  _ingredientController.clear();
-                                  setState(() => _ingredientQuery = '');
-                                },
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Container(
-                    height: 52,
-                    width: 52,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.3,
-                          ),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: const Icon(CupertinoIcons.add, color: Colors.white),
-                      onPressed: _showAddCustomIngredientDialog,
-                      tooltip: 'Crear nuevo'.tr,
-                    ),
-                  ),
-                ],
-              ),
-              // Search Results
-              if (filteredList.isNotEmpty) ...[
-                SizedBox(height: 8),
-                Container(
-                  constraints: BoxConstraints(maxHeight: 180),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: filteredList.length,
-                    separatorBuilder: (_, __) => Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final ing = filteredList[index];
-                      return ListTile(
-                        title: Text(ing),
-                        leading: Icon(CupertinoIcons.add, size: 16),
-                        visualDensity: VisualDensity.compact,
-                        onTap: () async {
-                          final qty = await _pickQuantityDialog(ing);
-                          if (qty != null) {
-                            _addIngredient(
-                              DetailedIngredient(name: ing, quantity: qty),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        Expanded(
-          child: _detailedIngredients.isEmpty
-              ? const SizedBox.shrink()
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: _detailedIngredients.length,
-                  itemBuilder: (context, index) {
-                    final item = _detailedIngredients[index];
-                    return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: 0.5,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.05,
-                              ),
-                            ),
-                          ),
-                          child: ListTile(
-                            title: Row(
-                              children: [
-                                Text(
-                                  item.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  item.quantity,
-                                  style: TextStyle(
-                                    color: theme.textTheme.bodyMedium?.color
-                                        ?.withValues(alpha: 0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                CupertinoIcons.trash,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () => _removeIngredient(item),
-                            ),
-                          ),
-                        )
-                        .animate(delay: (index * 50).ms)
-                        .fade(duration: 400.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
-                  },
-                ),
-        ),
-      ],
-    );
-  }
 
   // --- Step 3: Instructions ---
-  Widget _buildStep3Instructions(ThemeData theme) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'PASOS A SEGUIR'.tr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              Row(
-                children: [
-                  FilledButton(
-                    onPressed: () => setState(
-                      () => _isReorderingSteps = !_isReorderingSteps,
-                    ),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: _isReorderingSteps
-                          ? theme.colorScheme.primaryContainer
-                          : theme.colorScheme.surfaceContainerHighest,
-                      foregroundColor: _isReorderingSteps
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                      minimumSize: Size(
-                        48,
-                        36,
-                      ), // Ensure min height matches standard compact button
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                      ), // Restore some padding
-                    ),
-                    child: Icon(Icons.swap_vert, size: 20),
-                  ),
-                  SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _showAddStepDialog,
-                    icon: Icon(CupertinoIcons.add),
-                    label: Text('Añadir paso'.tr),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      foregroundColor: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _steps.isEmpty
-              ? const SizedBox.shrink()
-              : _isReorderingSteps
-              ? ReorderableListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      if (oldIndex < newIndex) newIndex -= 1;
-                      final item = _steps.removeAt(oldIndex);
-                      _steps.insert(newIndex, item);
-                    });
-                  },
-                  proxyDecorator: (child, index, animation) {
-                    return AnimatedBuilder(
-                      animation: animation,
-                      builder: (BuildContext context, Widget? child) {
-                        final double animValue = Curves.easeInOut.transform(animation.value);
-                        return Transform.scale(
-                          scale: 1 + (animValue * 0.02),
-                          child: Material(
-                            type: MaterialType.transparency,
-                            elevation: 0,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: child,
-                    );
-                  },
-                  children: [
-                    for (int index = 0; index < _steps.length; index++)
-                      Container(
-                        key: ValueKey('step_${_steps[index]}_$index'),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
-                            ),
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.drag_indicator,
-                            color: Colors.grey,
-                          ),
-                          title: Text(_steps[index]),
-                          trailing: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: _steps.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Material(
-                        color: theme.colorScheme.surface,
-                        clipBehavior: Clip.antiAlias,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
-                            ),
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            width: 28,
-                            height: 28,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.2,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          title: Text(_steps[index]),
-                          onTap: () => _showStepOptions(context, index),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
+
 
   // --- Step 4: Tags & Finish ---
-  Widget _buildStep4Details(ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTagSection(
-            theme: theme,
-            title: 'CATEGORÍA'.tr.tr,
-            items: RecipeCategory.values,
-            isSelected: (c) => _selectedCategories.contains(c),
-            onToggle: (c) {
-              setState(() {
-                if (_selectedCategories.contains(c)) {
-                  _selectedCategories.remove(c);
-                } else {
-                  _selectedCategories.add(c);
-                }
-              });
-            },
-            getLabel: (c) => c.displayName,
-          ),
-          SizedBox(height: 32),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'DIETA'.tr,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _showAddCustomTagDialog,
-                    icon: Icon(CupertinoIcons.add, size: 16),
-                    label: Text('Crear etiqueta'.tr),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      textStyle: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ...DietaryRestriction.values.map((r) {
-                    final active = _selectedDietaryRestrictions.contains(r);
-                    return FilterChip(
-                      label: Text(r.displayName),
-                      selected: active,
-                      onSelected: (_) => setState(() {
-                        if (active) {
-                          _selectedDietaryRestrictions.remove(r);
-                        } else {
-                          _selectedDietaryRestrictions.add(r);
-                        }
-                      }),
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.3),
-                      selectedColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
-                      checkmarkColor: theme.colorScheme.primary,
-                      side: BorderSide(
-                        color: active
-                            ? theme.colorScheme.primary
-                            : Colors.transparent,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    );
-                  }),
-                  ..._selectedCustomTags.map((tag) {
-                    return FilterChip(
-                      label: Text(tag),
-                      selected: true,
-                      onSelected: (_) =>
-                          setState(() => _selectedCustomTags.remove(tag)),
-                      backgroundColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
-                      selectedColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
-                      checkmarkColor: theme.colorScheme.primary,
-                      side: BorderSide(color: theme.colorScheme.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildTagSection<T>({
     required ThemeData theme,
@@ -1799,7 +1244,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
         content: TextField(
           textCapitalization: TextCapitalization.sentences,
           controller: controller,
-          decoration: InputDecoration(hintText: 'Ej: Keto, Low Carb...'.tr.tr),
+          decoration: InputDecoration(hintText: 'Ej: Keto, Low Carb...'.tr),
           autofocus: true,
         ),
         actions: [
@@ -1825,16 +1270,16 @@ class _NewRecipePageState extends State<NewRecipePage> {
   }
 }
 
-class _AddIngredientDialog extends StatefulWidget {
-  const _AddIngredientDialog({required this.onAdd});
+class AddIngredientDialog extends StatefulWidget {
+  const AddIngredientDialog({super.key, required this.onAdd});
 
   final void Function(String, String, IngredientCategory?) onAdd;
 
   @override
-  State<_AddIngredientDialog> createState() => _AddIngredientDialogState();
+  State<AddIngredientDialog> createState() => AddIngredientDialogState();
 }
 
-class _AddIngredientDialogState extends State<_AddIngredientDialog> {
+class AddIngredientDialogState extends State<AddIngredientDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _quantityController;
   IngredientCategory? _selectedCategory;
@@ -1864,7 +1309,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
             textCapitalization: TextCapitalization.sentences,
             controller: _nameController,
             decoration: InputDecoration(
-              hintText: 'Nombre del ingrediente'.tr.tr,
+              hintText: 'Nombre del ingrediente'.tr,
               labelText: 'Ingrediente'.tr,
             ),
             autofocus: true,
@@ -1874,7 +1319,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
             textCapitalization: TextCapitalization.sentences,
             controller: _quantityController,
             decoration: InputDecoration(
-              hintText: 'Ej: 200g'.tr.tr,
+              hintText: 'Ej: 200g'.tr,
               labelText: 'Cantidad'.tr,
             ),
           ),
@@ -1969,7 +1414,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
         textCapitalization: TextCapitalization.sentences,
         controller: _controller,
         decoration: InputDecoration(
-          hintText: 'Describe el paso de la receta'.tr.tr,
+          hintText: 'Describe el paso de la receta'.tr,
           labelText: 'Paso'.tr,
         ),
         autofocus: true,
@@ -1999,3 +1444,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
     );
   }
 }
+
+
+
+

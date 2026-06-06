@@ -1,4 +1,12 @@
-part of '../main.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/utils/utils.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:async';
 
 class SavedPage extends StatefulWidget {
   const SavedPage({super.key, this.showAppBar = true});
@@ -168,14 +176,14 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
       if (widget.searchQuery.isNotEmpty) {
         // GLOBAL SEARCH
         final scoredRecipes = RecipeManager.favoriteRecipes
-            .map((r) => MapEntry(r, _fuzzyMatchScore(r.title, widget.searchQuery)))
+            .map((r) => MapEntry(r, fuzzyMatchScore(r.title, widget.searchQuery)))
             .where((entry) => entry.value > 0)
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
         recipesToShow = scoredRecipes.map((e) => e.key).toList();
 
         final scoredFolders = RecipeManager.allFolders
-            .map((f) => MapEntry(f, _fuzzyMatchScore(f.name, widget.searchQuery)))
+            .map((f) => MapEntry(f, fuzzyMatchScore(f.name, widget.searchQuery)))
             .where((entry) => entry.value > 0)
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
@@ -300,15 +308,15 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                             (r) => (r.rating ?? 0) > 0,
                           ) &&
                           (widget.searchQuery.isEmpty ||
-                              _fuzzyMatch('Valoraciones', widget.searchQuery))))
+                              fuzzyMatch('Valoraciones', widget.searchQuery))))
                   ? Center(
                       child: widget.searchQuery.isNotEmpty
-                          ? _EmptyStateWidget(
+                          ? EmptyStateWidget(
                               icon: CupertinoIcons.search,
                               title: 'Sin resultados'.tr,
                               subtitle: 'Intenta con otra búsqueda'.tr,
                             )
-                          : _EmptyStateWidget(
+                          : EmptyStateWidget(
                               icon: CupertinoIcons.book,
                               title: 'No hay recetas'.tr,
                               subtitle:
@@ -325,11 +333,11 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                               (r) => (r.rating ?? 0) > 0,
                             ) &&
                             (widget.searchQuery.isEmpty ||
-                                _fuzzyMatch(
+                                fuzzyMatch(
                                   'Valoraciones',
                                   widget.searchQuery,
                                 )))
-                          _ValoracionesFolderCard(
+                          ValoracionesFolderCard(
                                 onTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -348,7 +356,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                         // Folders
                         ...foldersToShow.map((folder) {
                           final idx = foldersToShow.indexOf(folder);
-                          return _FolderCard(
+                          return FolderCard(
                                 folder: folder,
                                 onTap: () => _navigateToFolder(folder.id),
                                 onLongPress: () =>
@@ -365,7 +373,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                         // Recipes
                         ...recipesToShow.map((recipe) {
                           final idx = recipesToShow.indexOf(recipe);
-                          return _RecipeCard(
+                          return RecipeCard(
                                 recipe: recipe,
                                 matchCount: 0,
                                 showFolderOptions: true,
@@ -406,14 +414,14 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
       if (widget.searchQuery.isNotEmpty) {
         // RECURSIVE SEARCH
         final scoredRecipes = RecipeManager.getRecipesInFolderRecursive(_currentFolderId!)
-            .map((r) => MapEntry(r, _fuzzyMatchScore(r.title, widget.searchQuery)))
+            .map((r) => MapEntry(r, fuzzyMatchScore(r.title, widget.searchQuery)))
             .where((entry) => entry.value > 0)
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
         recipesToShow = scoredRecipes.map((e) => e.key).toList();
         
         final scoredFolders = RecipeManager.getSubFoldersRecursive(_currentFolderId!)
-            .map((f) => MapEntry(f, _fuzzyMatchScore(f.name, widget.searchQuery)))
+            .map((f) => MapEntry(f, fuzzyMatchScore(f.name, widget.searchQuery)))
             .where((entry) => entry.value > 0)
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
@@ -536,7 +544,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                       // Folders
                       ...foldersToShow.map((folder) {
                         final idx = foldersToShow.indexOf(folder);
-                        return _FolderCard(
+                        return FolderCard(
                               folder: folder,
                               onTap: () => _navigateToFolder(folder.id),
                               onLongPress: () =>
@@ -553,7 +561,7 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
                       // Recipes
                       ...recipesToShow.map((recipe) {
                         final idx = recipesToShow.indexOf(recipe);
-                        return _RecipeCard(
+                        return RecipeCard(
                               recipe: recipe,
                               matchCount: 0,
                               showFolderOptions: true,
@@ -581,14 +589,14 @@ class _SavedRecipesViewState extends State<_SavedRecipesView> {
   void _showCreateFolderDialog(BuildContext context, String? parentId) {
     showDialog(
       context: context,
-      builder: (context) => _CreateFolderDialog(parentId: parentId),
+      builder: (context) => CreateFolderDialog(parentId: parentId),
     );
   }
 
   void _showFolderOptions(BuildContext context, FavoriteFolder folder) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => _FolderOptionsSheet(folder: folder),
+      builder: (context) => FolderOptionsSheet(folder: folder),
     );
   }
 }
@@ -743,10 +751,10 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
       ),
       body: ratedRecipes.isEmpty
           ? Center(
-              child: _EmptyStateWidget(
+              child: EmptyStateWidget(
                 icon: CupertinoIcons.star_slash,
-                title: 'Sin valoraciones'.tr.tr,
-                subtitle: 'Valora recetas para verlas aquí'.tr.tr.tr,
+                title: 'Sin valoraciones'.tr,
+                subtitle: 'Valora recetas para verlas aquí'.tr,
               ),
             )
           : Column(
@@ -757,7 +765,7 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
                     itemCount: ratedRecipes.length,
                     itemBuilder: (context, index) {
                       final recipe = ratedRecipes[index];
-                      return _RecipeCard(
+                      return RecipeCard(
                             recipe: recipe,
                             matchCount: 0,
                             heroTag: 'rated_${recipe.title}',
@@ -778,3 +786,8 @@ class _RatedRecipesPageState extends State<RatedRecipesPage> {
     );
   }
 }
+
+
+
+
+

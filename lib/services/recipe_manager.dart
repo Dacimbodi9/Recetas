@@ -1,4 +1,15 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/snackbar_service.dart';
+import 'package:recetas/utils/json_utils.dart';
 
 class RecipeManager {
   static const String _storageKey = 'saved_recipes';
@@ -7,7 +18,7 @@ class RecipeManager {
   static const String _customMappingsKey = 'custom_ingredient_mappings';
   static const String _customImagesKey = 'custom_recipe_images';
 
-  static const List<IconData> availableFolderIcons = [
+  static final List<IconData> availableFolderIcons = [
     CupertinoIcons.folder,
     CupertinoIcons.book,
     CupertinoIcons.star,
@@ -67,7 +78,7 @@ class RecipeManager {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_customImagesKey, json.encode(_customImages));
     } catch (e) {
-      debugPrint('Error saving custom images: $e');
+      debugPrint('Error saving custom images: $e'); SnackbarService.showError('${'Error'.tr} saving custom images: $e');
     }
   }
 
@@ -86,7 +97,7 @@ class RecipeManager {
       final map = _customMappings.map((k, v) => MapEntry(k, v.index));
       await prefs.setString(_customMappingsKey, json.encode(map));
     } catch (e) {
-      debugPrint('Error saving custom mappings: $e');
+      debugPrint('Error saving custom mappings: $e'); SnackbarService.showError('${'Error'.tr} saving custom mappings: $e');
     }
   }
 
@@ -203,7 +214,7 @@ class RecipeManager {
       final String jsonString = await rootBundle.loadString(
         isEnglish ? 'assets/data/recipes_en.json' : 'assets/data/recipes.json',
       );
-      final List<dynamic> jsonData = json.decode(jsonString);
+      final List<dynamic> jsonData = await compute(decodeJsonList, jsonString);
 
       _defaultRecipes.clear();
       for (final item in jsonData) {
@@ -219,7 +230,7 @@ class RecipeManager {
       }
       _notifyListeners();
     } catch (e) {
-      debugPrint('Error loading default recipes from JSON: $e');
+      debugPrint('Error loading default recipes from JSON: $e'); SnackbarService.showError('${'Error'.tr} loading default recipes from JSON: $e');
       _defaultRecipes.clear();
     }
   }
@@ -235,10 +246,27 @@ class RecipeManager {
     _notifyListeners();
   }
 
+  static Recipe? _lastDeletedRecipe;
+
   static Future<void> removeRecipe(Recipe recipe) async {
+    _lastDeletedRecipe = recipe;
     _recipes.removeWhere((r) => r.id == recipe.id);
     await _saveRecipes();
     _notifyListeners();
+    
+    // Auto-clear cache after 5 seconds
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_lastDeletedRecipe?.id == recipe.id) _lastDeletedRecipe = null;
+    });
+  }
+
+  static Future<void> undoRemoveRecipe() async {
+    if (_lastDeletedRecipe != null) {
+      _recipes.add(_lastDeletedRecipe!);
+      _lastDeletedRecipe = null;
+      await _saveRecipes();
+      _notifyListeners();
+    }
   }
 
   static Future<void> loadRecipes() async {
@@ -263,7 +291,7 @@ class RecipeManager {
               .map((f) => FavoriteFolder.fromJson(f as Map<String, dynamic>))
               .toList();
         } catch (e) {
-          debugPrint('Error loading folders: $e');
+          debugPrint('Error loading folders: $e'); SnackbarService.showError('${'Error'.tr} loading folders: $e');
           _folders = [];
         }
       } else {
@@ -278,7 +306,7 @@ class RecipeManager {
             (k, v) => MapEntry(k, IngredientCategory.values[v as int]),
           );
         } catch (e) {
-          debugPrint('Error loading custom mappings: $e');
+          debugPrint('Error loading custom mappings: $e'); SnackbarService.showError('${'Error'.tr} loading custom mappings: $e');
           _customMappings = {};
         }
       }
@@ -289,14 +317,14 @@ class RecipeManager {
           final Map<String, dynamic> decoded = json.decode(imagesJson);
           _customImages = decoded.map((k, v) => MapEntry(k, v as String));
         } catch (e) {
-          debugPrint('Error loading custom images: $e');
+          debugPrint('Error loading custom images: $e'); SnackbarService.showError('${'Error'.tr} loading custom images: $e');
           _customImages = {};
         }
       }
 
       _notifyListeners();
     } catch (e) {
-      debugPrint('Error loading recipes: $e');
+      debugPrint('Error loading recipes: $e'); SnackbarService.showError('${'Error'.tr} loading recipes: $e');
     }
   }
 
@@ -320,7 +348,7 @@ class RecipeManager {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_favoritesKey, _favoriteIds.toList());
     } catch (e) {
-      debugPrint('Error saving favorites: $e');
+      debugPrint('Error saving favorites: $e'); SnackbarService.showError('${'Error'.tr} saving favorites: $e');
     }
   }
 
@@ -448,7 +476,7 @@ class RecipeManager {
       final foldersJson = json.encode(_folders.map((f) => f.toJson()).toList());
       await prefs.setString(_foldersKey, foldersJson);
     } catch (e) {
-      debugPrint('Error saving folders: $e');
+      debugPrint('Error saving folders: $e'); SnackbarService.showError('${'Error'.tr} saving folders: $e');
     }
   }
 
@@ -480,20 +508,28 @@ class RecipeManager {
       final recipesJson = _recipes.map((r) => json.encode(r.toJson())).toList();
       await prefs.setStringList(_storageKey, recipesJson);
     } catch (e) {
-      debugPrint('Error saving recipes: $e');
+      debugPrint('Error saving recipes: $e'); SnackbarService.showError('${'Error'.tr} saving recipes: $e');
     }
   }
 
-  static void addListener(Function() listener) => _listeners.add(listener);
-  static void removeListener(Function() listener) =>
-      _listeners.remove(listener);
+  static final ValueNotifier<int> listenable = ValueNotifier<int>(0);
+  static void addListener(Function() listener) {
+    _listeners.add(listener);
+    listenable.addListener(listener);
+  }
+  static void removeListener(Function() listener) {
+    _listeners.remove(listener);
+    listenable.removeListener(listener);
+  }
   static void notifyListeners() => _notifyListeners();
 
   static void _notifyListeners() {
     _cachedIngredients = null;
     _lastRecipeCount = 0;
-    for (final listener in _listeners) {
+    listenable.value++;
+    for (final listener in List.from(_listeners)) {
       listener();
     }
   }
 }
+

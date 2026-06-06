@@ -1,4 +1,19 @@
-part of '../main.dart';
+import 'package:recetas/screens/profile_page.dart';
+import 'package:recetas/screens/settings_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/widgets/widgets.dart';
+import 'package:recetas/screens/recipe_creation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:io';
+import 'dart:async';
 
 class RecipeDetailPage extends StatefulWidget {
   const RecipeDetailPage({super.key, required this.recipe, this.heroTag});
@@ -288,7 +303,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => _ShareQRCodePage(recipe: _currentRecipe),
+        builder: (context) => ShareQRCodePage(recipe: _currentRecipe),
       ),
     );
   }
@@ -340,7 +355,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: [
-                      _SelectionOption(
+                      SelectionOption(
                         title: 'Editar'.tr,
                         icon: CupertinoIcons.pencil,
                         isSelected: false,
@@ -356,7 +371,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                         },
                       ),
                       SizedBox(height: 12),
-                      _SelectionOption(
+                      SelectionOption(
                         title: 'Duplicar'.tr,
                         icon: CupertinoIcons.doc_on_doc,
                         isSelected: false,
@@ -368,7 +383,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       ),
                       if (isPersonalized) ...[
                         SizedBox(height: 12),
-                        _SelectionOption(
+                        SelectionOption(
                           title: 'Eliminar'.tr,
                           icon: CupertinoIcons.trash,
                           isSelected: false,
@@ -429,7 +444,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   color: theme.scaffoldBackgroundColor.withValues(alpha: 0.75),
                   shape: BoxShape.circle,
                 ),
-                child: _LikeButton(
+                child: LikeButton(
                   isFavorite: _isFavorite,
                   onTap: _toggleFavorite,
                 ),
@@ -592,7 +607,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   ),
 
                   if (hasIngredients)
-                    _IngredientsView(recipe: _currentRecipe)
+                    IngredientsView(recipe: _currentRecipe)
                         .animate(delay: 200.ms)
                         .fade(duration: 400.ms)
                         .slideY(begin: 0.05, curve: Curves.easeOutCubic),
@@ -602,7 +617,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       color: theme.dividerColor.withValues(alpha: 0.1),
                     ).animate(delay: 250.ms).fade(),
                   if (hasInstructions)
-                    _InstructionsView(recipe: _currentRecipe)
+                    InstructionsView(recipe: _currentRecipe)
                         .animate(delay: 250.ms)
                         .fade(duration: 400.ms)
                         .slideY(begin: 0.05, curve: Curves.easeOutCubic),
@@ -612,7 +627,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       color: theme.dividerColor.withValues(alpha: 0.1),
                     ).animate(delay: 300.ms).fade(),
                   if (hasInfo)
-                    _InfoView(recipe: _currentRecipe)
+                    InfoView(recipe: _currentRecipe)
                         .animate(delay: 300.ms)
                         .fade(duration: 400.ms)
                         .slideY(begin: 0.05, curve: Curves.easeOutCubic),
@@ -700,3 +715,8 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 }
+
+
+
+
+

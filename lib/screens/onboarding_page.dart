@@ -1,4 +1,10 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/screens/main_navigation.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -171,110 +177,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  // Step 2: All Features
-  Widget _buildStep2Features(ThemeData theme, bool isDark, bool isActive) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children:
-            [
-                  // No title text requested
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.search,
-                    title: 'Búsqueda Inteligente'.tr.tr,
-                    desc:
-                        'Encuentra recetas según los ingredientes que ya tengas en tu nevera.'
-                            .tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: Icons.auto_awesome,
-                    title: '+1000 Recetas'.tr.tr,
-                    desc:
-                        'Una base de datos inmensa de recetas creativas y deliciosas.'
-                            .tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.add_circled,
-                    title: 'Tus Propias Recetas'.tr.tr,
-                    desc:
-                        'Añade y organiza tus creaciones culinarias en un solo lugar.'
-                            .tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.slider_horizontal_3,
-                    title: 'Filtros Dietéticos'.tr.tr,
-                    desc:
-                        'Vegetariano, vegano, sin gluten... Filtra según tus necesidades.'
-                            .tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.moon,
-                    title: 'Modo Oscuro'.tr.tr,
-                    desc: 'Una interfaz elegante que cuida tus ojos.'.tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.cloud_upload,
-                    title: 'Importar/Exportar'.tr.tr,
-                    desc:
-                        'Haz copias de seguridad de tus recetas y compártelas.'
-                            .tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.globe,
-                    title: 'Búsqueda en Internet'.tr.tr,
-                    desc: 'Busca recetas en Google desde la aplicación.'.tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.star,
-                    title: 'Valoración'.tr.tr,
-                    desc: 'Califica las recetas y organiza tus favoritas.'.tr,
-                  ),
-                  SizedBox(height: 16),
-                  _buildFeatureCard(
-                    theme,
-                    isDark,
-                    icon: CupertinoIcons.shuffle,
-                    title: 'Receta Aleatoria'.tr.tr,
-                    desc: '¿Indeciso? Deja que el azar decida qué cocinar hoy.'
-                        .tr,
-                  ),
-                ]
-                .asMap()
-                .entries
-                .map(
-                  (e) => e.value
-                      .animate(target: isActive ? 1 : 0)
-                      .fade(duration: 400.ms, delay: (e.key * 80).ms)
-                      .slideX(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
-                )
-                .toList(),
-      ),
-    );
-  }
-
   // Step 3: Initial Setup
   Widget _buildStep3Settings(ThemeData theme, bool isDark, bool isActive) {
     return SingleChildScrollView(
@@ -300,8 +202,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         return _buildSettingToggle(
                           theme,
                           isDark,
-                          title: 'Modo Oscuro'.tr.tr,
-                          subtitle: 'Activa el tema oscuro.'.tr.tr.tr,
+                          title: 'Modo Oscuro'.tr,
+                          subtitle: 'Activa el tema oscuro.'.tr,
                           icon: isDarkEnabled
                               ? CupertinoIcons.moon_fill
                               : CupertinoIcons.sun_max_fill,
@@ -319,7 +221,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         return _buildSettingToggle(
                           theme,
                           isDark,
-                          title: 'Recetas Predeterminadas'.tr.tr,
+                          title: 'Recetas Predeterminadas'.tr,
                           subtitle: 'Carga nuestras +1000 recetas iniciales.'
                               .tr
                               .tr
@@ -487,59 +389,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   )
                   .toList(),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(
-    ThemeData theme,
-    bool isDark, {
-    required IconData icon,
-    required String title,
-    required String desc,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? theme.cardColor : theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [],
-        border: isDark
-            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  desc,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -887,3 +736,5 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 }
+
+

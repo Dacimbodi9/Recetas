@@ -1,4 +1,14 @@
-part of '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:recetas/services/meal_plan_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/services/snackbar_service.dart';
 
 class ShoppingListManager {
   static const String _checkedKey = 'shopping_checked_items';
@@ -49,7 +59,7 @@ class ShoppingListManager {
           }
         }
       } catch (e) {
-        debugPrint('Error loading manual shopping items: $e');
+        debugPrint('Error loading manual shopping items: $e'); SnackbarService.showError('${'Error'.tr} loading manual shopping items: $e');
       }
     }
 
@@ -66,7 +76,7 @@ class ShoppingListManager {
           _boughtUntil[key] = DateTime.parse(value.toString());
         });
       } catch (e) {
-        debugPrint('Error loading bought until: $e');
+        debugPrint('Error loading bought until: $e'); SnackbarService.showError('${'Error'.tr} loading bought until: $e');
       }
     }
   }
@@ -228,3 +238,5 @@ class ShoppingListManager {
     await prefs.setString(_manualKey, json.encode(_manualItems));
   }
 }
+
+

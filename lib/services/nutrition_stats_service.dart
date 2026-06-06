@@ -1,4 +1,8 @@
-part of '../main.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/models/models.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/services/meal_plan_manager.dart';
 
 class NutritionStatsService {
   /// Get completed meals for a specific date
@@ -237,3 +241,5 @@ class NutritionStatsService {
     return result;
   }
 }
+
+

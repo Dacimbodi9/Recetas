@@ -1,4 +1,13 @@
-part of '../main.dart';
+import 'package:recetas/screens/shopping_list_page.dart';
+import 'package:recetas/screens/meal_planner/meal_planner_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:recetas/l10n.dart';
+import 'package:recetas/services/settings_manager.dart';
+import 'package:recetas/screens/search_page.dart';
+import 'package:recetas/screens/saved_page.dart';
+import 'package:recetas/screens/profile_page.dart';
+import 'package:recetas/screens/stats_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -34,7 +43,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 pages.add(
                   _currentFeature == 'search'
                       ? SearchPage(
-                          key: ValueKey('search_$lang'),
+                          key: const ValueKey('search'),
                           showAppBar: false,
                         )
                       : const SizedBox.shrink(),
@@ -47,7 +56,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 );
               } else if (feature == 'saved') {
                 pages.add(
-                  SavedPage(key: ValueKey('saved_$lang'), showAppBar: false),
+                  SavedPage(key: const ValueKey('saved'), showAppBar: false),
                 );
                 destinations.add(
                   NavigationDestination(
@@ -56,7 +65,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                   ),
                 );
               } else if (feature == 'mealPlanner') {
-                pages.add(const _MealPlannerPage(showAppBar: false));
+                pages.add(const MealPlannerPage(showAppBar: false));
                 destinations.add(
                   NavigationDestination(
                     icon: const Icon(Icons.calendar_month_outlined),
@@ -64,8 +73,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                   ),
                 );
               } else if (feature == 'shoppingList') {
-                pages.add(_ShoppingListPage(
-                  key: ValueKey('shopping_$lang'),
+                pages.add(ShoppingListPage(
+                  key: const ValueKey('shopping'),
                   showAppBar: false,
                   isActive: _currentFeature == 'shoppingList',
                 ));
@@ -127,3 +136,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     );
   }
 }
+
+
+
+
+
+
