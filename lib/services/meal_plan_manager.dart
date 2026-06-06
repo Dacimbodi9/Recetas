@@ -120,7 +120,7 @@ class MealPlanManager {
 
   static final List<MealTemplate> _defaultTemplates = [
     MealTemplate(
-      name: 'Pérdida de Peso Equilibrada',
+      name: 'Pérdida de Peso Equilibrada'.tr,
       days: {
         1: [
           const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '23200bb2-cc86-4105-994f-6c13e82ea1e9'),
@@ -167,7 +167,7 @@ class MealPlanManager {
       },
     ),
     MealTemplate(
-      name: 'Ganancia Muscular',
+      name: 'Ganancia Muscular'.tr,
       days: {
         1: [
           const TemplateMealEntry(mealType: MealType.desayuno, recipeId: 'e452eca6-3f68-4e19-a48e-9c07329be362'),
@@ -214,7 +214,7 @@ class MealPlanManager {
       },
     ),
     MealTemplate(
-      name: 'Vegetariano Completo',
+      name: 'Vegetariano Completo'.tr,
       days: {
         1: [
           const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '771b9935-fa25-4827-af1f-d4dfa0c8441d'),
@@ -261,7 +261,7 @@ class MealPlanManager {
       },
     ),
     MealTemplate(
-      name: 'Rápido y Fácil',
+      name: 'Rápido y Fácil'.tr,
       days: {
         1: [
           const TemplateMealEntry(mealType: MealType.desayuno, recipeId: '9ce6ec7a-900c-49ea-98ca-05051a6ce8eb'),

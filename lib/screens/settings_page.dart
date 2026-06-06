@@ -742,7 +742,7 @@ class SettingsPage extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al exportar: $e')));
+        ).showSnackBar(SnackBar(content: Text('${'Error al exportar'.tr}: $e')));
       }
     }
   }
@@ -829,7 +829,7 @@ class SettingsPage extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al importar: $e')));
+        ).showSnackBar(SnackBar(content: Text('${'Error al importar'.tr}: $e')));
       }
     }
   }
@@ -1439,95 +1439,101 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: _sex,
-            borderRadius: BorderRadius.circular(16),
-            dropdownColor: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).colorScheme.surfaceContainerHighest
-                : Colors.white,
-            icon: Icon(
-              CupertinoIcons.chevron_down,
-              size: 16,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-            decoration: InputDecoration(
-              labelText: 'Sexo'.tr,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+          Theme(
+            data: Theme.of(context).copyWith(focusColor: Colors.transparent),
+            child: DropdownButtonFormField<String>(
+              initialValue: _sex,
+              borderRadius: BorderRadius.circular(16),
+              dropdownColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).cardColor,
+              icon: Icon(
+                CupertinoIcons.chevron_down,
+                size: 16,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
+              decoration: InputDecoration(
+                labelText: 'Sexo'.tr,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              items: [
+                DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
+                DropdownMenuItem(value: 'female', child: Text('Femenino'.tr)),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _sex = val;
+                });
+              },
             ),
-            items: [
-              DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
-              DropdownMenuItem(value: 'female', child: Text('Femenino'.tr)),
-            ],
-            onChanged: (val) {
-              setState(() {
-                _sex = val;
-              });
-            },
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<double>(
-            initialValue: _activityLevel ?? 1.55,
-            borderRadius: BorderRadius.circular(16),
-            dropdownColor: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).colorScheme.surfaceContainerHighest
-                : Colors.white,
-            icon: Icon(
-              CupertinoIcons.chevron_down,
-              size: 16,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
+          Theme(
+            data: Theme.of(context).copyWith(focusColor: Colors.transparent),
+            child: DropdownButtonFormField<double>(
+              initialValue: _activityLevel ?? 1.55,
+              borderRadius: BorderRadius.circular(16),
+              dropdownColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).cardColor,
+              icon: Icon(
+                CupertinoIcons.chevron_down,
+                size: 16,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              decoration: InputDecoration(
+                labelText: 'Nivel de Actividad'.tr,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                helperMaxLines: 3,
+                helperText: _activityLevel == 1.2
+                    ? 'Sedentario: Trabajo de oficina, poco o ningún ejercicio.'
+                          .tr
+                    : _activityLevel == 1.375
+                    ? 'Ligeramente activo: Ejercicio ligero 1-3 días a la semana.'
+                          .tr
+                    : _activityLevel == 1.55 || _activityLevel == null
+                    ? 'Moderadamente activo: Ejercicio 3-5 días a la semana.'.tr
+                    : _activityLevel == 1.725
+                    ? 'Muy activo: Ejercicio fuerte 6-7 días a la semana.'.tr
+                    : 'Extremadamente activo: Trabajo físico duro o entrenamiento doble.'
+                          .tr,
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: 1.2,
+                  child: Text('Sedentario (Poco/ningún ejercicio)'.tr),
+                ),
+                DropdownMenuItem(
+                  value: 1.375,
+                  child: Text('Ligero (1-3 días/sem)'.tr),
+                ),
+                DropdownMenuItem(
+                  value: 1.55,
+                  child: Text('Moderado (3-5 días/sem)'.tr),
+                ),
+                DropdownMenuItem(
+                  value: 1.725,
+                  child: Text('Muy activo (6-7 días/sem)'.tr),
+                ),
+                DropdownMenuItem(
+                  value: 1.9,
+                  child: Text('Extremo (Trabajo físico/Atleta)'.tr),
+                ),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _activityLevel = val;
+                });
+              },
             ),
-            decoration: InputDecoration(
-              labelText: 'Nivel de Actividad'.tr,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              helperMaxLines: 3,
-              helperText: _activityLevel == 1.2
-                  ? 'Sedentario: Trabajo de oficina, poco o ningún ejercicio.'
-                        .tr
-                  : _activityLevel == 1.375
-                  ? 'Ligeramente activo: Ejercicio ligero 1-3 días a la semana.'
-                        .tr
-                  : _activityLevel == 1.55 || _activityLevel == null
-                  ? 'Moderadamente activo: Ejercicio 3-5 días a la semana.'.tr
-                  : _activityLevel == 1.725
-                  ? 'Muy activo: Ejercicio fuerte 6-7 días a la semana.'.tr
-                  : 'Extremadamente activo: Trabajo físico duro o entrenamiento doble.'
-                        .tr,
-            ),
-            items: [
-              DropdownMenuItem(
-                value: 1.2,
-                child: Text('Sedentario (Poco/ningún ejercicio)'.tr),
-              ),
-              DropdownMenuItem(
-                value: 1.375,
-                child: Text('Ligero (1-3 días/sem)'.tr),
-              ),
-              DropdownMenuItem(
-                value: 1.55,
-                child: Text('Moderado (3-5 días/sem)'.tr),
-              ),
-              DropdownMenuItem(
-                value: 1.725,
-                child: Text('Muy activo (6-7 días/sem)'.tr),
-              ),
-              DropdownMenuItem(
-                value: 1.9,
-                child: Text('Extremo (Trabajo físico/Atleta)'.tr),
-              ),
-            ],
-            onChanged: (val) {
-              setState(() {
-                _activityLevel = val;
-              });
-            },
           ),
           const SizedBox(height: 32),
           FilledButton(

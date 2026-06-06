@@ -390,7 +390,7 @@ class RecipeCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: Text('Eliminar receta'.tr),
         content: Text(
-          'Â¿EstÃ¡s seguro de que quieres eliminar "${recipe.title}"?',
+          '${'¿Estás seguro de que quieres eliminar'.tr} "${recipe.title}"?',
         ),
         actions: [
           TextButton(
@@ -405,7 +405,7 @@ class RecipeCard extends StatelessWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Receta "${recipe.title}" eliminada'),
+                      content: Text('${'Receta'.tr} "${recipe.title}" ${'eliminada'.tr}'),
                     ),
                   );
                 }

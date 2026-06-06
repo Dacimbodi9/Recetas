@@ -47,19 +47,26 @@ The app uses a premium font pairing to balance artisan charm with modern readabi
 - **Chips & Small Elements:** Use a `12px` radius.
 - **Inputs:** Use a `16px` radius.
 
-### 2. Flat Depth
+### 2. Flat Depth & Glassmorphism
 Instead of heavy Material Design shadows, depth is achieved through:
 - **Subtle Borders:** `1px` borders with low opacity (`5-10%` alpha).
 - **Surface Color Contrasts:** Using the distinct difference between Background and Surface colors.
+- **Frosted Glass (Glassmorphism):** Overlays like the Image picker and Navigation bar use `BackdropFilter` blurs over semi-transparent surfaces to create an elegant frosted effect.
 - **Zero Elevation:** Cards and AppBars typically have `elevation: 0`.
 
 ### 3. Tactile Feedback
 - **OpenContainer Transitions:** Smooth, material-style expansion when opening recipes.
 - **Subtle Micro-interactions:** Animated checkmarks, scale transitions on buttons, and tonal feedback on tap.
 
-### 4. Semantic Indicators
+### 4. Semantic Indicators & Feedback States
 - **Dietary Alerts:** Small red dots on recipe cards indicate incompatibility with the user's dietary filters.
 - **Matched Ingredients:** Bold text and highlighted chips indicate ingredients the user already has.
+- **Skeleton Loaders:** When content is parsing (e.g. AI Recipe extraction) or images are loading from the web, dynamic shimmering skeleton shapes mask the delay in a visually pleasing manner.
+- **Undo SnackBar:** Floating indicators that gracefully allow users to reverse accidental actions like deleting a meal.
+
+### 5. Accessibility & WCAG Compliance
+- Contrast ratios between background plates and text are heavily enforced to maintain a **minimum of 4.5:1 (WCAG AA)**. 
+- Touch targets are padded to be easily interactive, preventing accidental mis-taps.
 
 ---
 

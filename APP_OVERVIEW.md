@@ -9,8 +9,8 @@ Recetas is born from the idea that cooking should be an inviting, tactile experi
 
 ### Target Audience
 - **Home Chefs:** Individuals looking for a beautiful way to organize their culinary repertoire.
-- **Meal Planners:** Users who need to manage their weekly nutrition efficiently.
-- **Diet-Conscious Users:** People with specific dietary restrictions (Gluten-Free, Vegan, etc.) who need a smart system to filter content.
+- **Meal Planners:** Users who need to manage their weekly nutrition efficiently and automate their shopping.
+- **Diet-Conscious Users:** People with specific dietary restrictions (Gluten-Free, Vegan, etc.) or macro-tracking goals who need a smart system to filter content.
 - **Tech-Savvy Cooks:** Users who enjoy AI-assisted recipe generation and modern sharing methods like QR codes and deep links.
 
 ---
@@ -28,20 +28,25 @@ Recetas is born from the idea that cooking should be an inviting, tactile experi
 - **Provider Flexibility:** Support for Gemini 2.5 Flash (free/recommended), GPT-4o, and custom compatible endpoints (e.g., OpenRouter).
 - **Interactive Review:** Extracted data is presented for review before being committed to the local database.
 
-### 3. Sophisticated Meal Planning
-- **Interactive Calendar:** A seamless weekly view for assigning meals.
+### 3. Sophisticated Meal Planning & Shopping
+- **Interactive Calendar:** A seamless weekly view with drag-and-drop support for assigning meals.
+- **Meal Limits:** Warns users if they exceed daily meal thresholds or leave gaps in their nutrition.
 - **Meal Templates:** Design "Weekly Staples" and apply them to any calendar range with one tap.
-- **Categorized Planning:** Specific slots for Breakfast, Lunch, Dinner, and Snacks.
-- **Progress Tracking:** Simple tap-to-complete actions to keep track of daily nutrition goals.
+- **Smart Shopping List:** Automatically generates a shopping list based on the planned meals for a given timeframe, grouped intelligently by ingredient categories (Meat, Dairy, Vegetables). Includes interactive checkboxes and custom item additions.
 
-### 4. Data Sovereignty & Sharing
+### 4. Nutritional Dashboard
+- **Macro Tracking:** Automatically calculates and aggregates nutritional data (Calories, Protein, Carbs, Fats) from planned recipes.
+- **Visual Analytics:** Interactive circular progress charts providing an overview of the daily macronutrient distribution against user-defined goals.
+
+### 5. Data Sovereignty & Sharing
 - **Offline-First:** All data lives on the device; no cloud account is required for core functionality.
 - **Compressed Sharing:** Uses Gzip + Base64 encoding to share full recipes through tiny strings, QR codes, or custom `.receta` files.
 - **Smart Import:** Detects conflicts during import and allows for merging or skipping duplicates.
+- **Undo System:** Accidental deletions of recipes or meals can be instantly reverted via a temporary SnackBar.
 
-### 5. Personalized Experience
+### 6. Personalized Experience
 - **User Profile:** Local identity with custom name, photo, and cumulative usage statistics.
-- **Customizable Navigation:** Users can choose which features (Search, Saved, Planner) appear in their bottom navigation bar.
+- **Customizable Navigation:** Users can choose which features (Search, Saved, Planner, Dashboard, Shopping) appear in their bottom navigation bar.
 - **Cooking Mode:** Integrated **Wakelock** support to keep the screen active while the user is cooking.
 
 ---
@@ -53,23 +58,11 @@ Recetas is born from the idea that cooking should be an inviting, tactile experi
 - **Light Mode: "Artisan Bakery"** — Toasted parchment, rich creams, and earthy natural tones.
 - **Dark Mode: "Rustic Organic Kitchen"** — Deep woods, truffle tones, and herbal sage accents.
 
-### Color Palette
-| Token | Light (Bakery) | Dark (Kitchen) | Usage |
-| :--- | :--- | :--- | :--- |
-| **Background** | `#EBE6DD` (Parchment) | `#141513` (Truffle) | Main scaffold |
-| **Surface** | `#F6F3EC` (Cream) | `#222420` (Olive Wood) | Cards & Dialogs |
-| **Primary** | `#6B8738` (Olive) | `#8BA85D` (Sage) | Actions & Branding |
-| **Secondary** | `#B54921` (Terracotta) | - | Accents |
-| **Text** | `#2E2A27` (Mocha) | `#F2EFE9` (Flour) | Typography |
-
-### Typography
-- **Headlines:** `Playfair Display` — Elegant, traditional, premium serif.
-- **Interface:** `Nunito` — Rounded, friendly, and highly legible.
-
 ### Visual Principles
 - **Organic Geometry:** Generous `18px` corner radiuses for a soft feel.
-- **Flat Depth:** Depth via color contrast and 1px borders rather than heavy shadows.
-- **Tactile Transitions:** Uses `OpenContainer` for smooth card expansions.
+- **Flat Depth & Glassmorphism:** Depth via color contrast, frosted glass overlays (backdrop filters), and 1px borders rather than heavy shadows.
+- **Skeleton Loaders:** Elegant shimmer effects used during image loading and AI extraction delays.
+- **WCAG AA Compliance:** Rigorously tested contrast ratios to ensure maximum readability for visually impaired users.
 
 ---
 
@@ -77,19 +70,21 @@ Recetas is born from the idea that cooking should be an inviting, tactile experi
 
 ### Tech Stack
 - **Framework:** Flutter (Material 3)
-- **State:** `ValueNotifier` & `ValueListenableBuilder`
+- **State:** `ValueNotifier` & `ValueListenableBuilder` (Provider-less architecture for absolute minimal overhead)
 - **Storage:** `SharedPreferences` (Settings/State) & `sqflite` (Structured Data)
+- **Security:** `flutter_secure_storage` for AI API Keys.
 - **Networking:** `dio` for AI API requests.
-- **Localization:** Custom system supporting English and Spanish with `.tr` extensions.
+- **Localization:** Custom system supporting English and Spanish with `.tr` extensions mapped directly to an in-memory dictionary map.
 
 ### 📂 Directory Structure
 ```text
 lib/
 ├── main.dart          # Entry point & Theme Engine
-├── models/            # Recipe, PlannedMeal, FavoriteFolder
+├── models/            # Recipe, PlannedMeal, ShoppingItem, etc.
 ├── services/          # SettingsManager, RecipeManager, MealPlanManager
-├── screens/           # UI logic (Monolithic screens.dart)
-├── widgets/           # Custom UI components (Cards, Buttons)
+├── screens/           # Modularized UI screens (e.g. meal_planner.dart)
+├── widgets/           # Custom UI components (Cards, Buttons, Glassmorphism)
+├── theme.dart         # Centralized tokenized design system
 └── l10n.dart          # Localization & Translation Engine
 ```
 
@@ -115,4 +110,4 @@ graph TD
 
 ---
 
-*Last Updated: 2026-04-26*
+*Last Updated: 2026-06-06*

@@ -73,7 +73,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       builder: (context) => AlertDialog(
         title: Text('Eliminar receta'.tr),
         content: Text(
-          '¿Estás seguro de que quieres eliminar "${_currentRecipe.title}"?',
+          '${'¿Estás seguro de que quieres eliminar'.tr} "${_currentRecipe.title}"?',
         ),
         actions: [
           TextButton(
@@ -101,7 +101,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Receta "${widget.recipe.title}" eliminada',
+                          '${'Receta'.tr} "${widget.recipe.title}" ${'eliminada'.tr}',
                         ),
                       ),
                     );

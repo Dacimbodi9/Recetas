@@ -228,7 +228,7 @@ class _NewRecipePageState extends State<NewRecipePage> {
       if (mounted) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al seleccionar imagen: $e')),
+            SnackBar(content: Text('${'Error al seleccionar imagen'.tr}: $e')),
           );
         }
       }
@@ -859,11 +859,11 @@ class _NewRecipePageState extends State<NewRecipePage> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cantidad para $ingredientName'),
+        title: Text('${'Cantidad para'.tr} $ingredientName'),
         content: TextField(
           textCapitalization: TextCapitalization.sentences,
           controller: controller,
-          decoration: InputDecoration(labelText: 'Ej: 200g, 1 un, al gusto...'),
+          decoration: InputDecoration(labelText: 'Ej: 200g, 1 un, al gusto...'.tr),
           autofocus: true,
         ),
         actions: [

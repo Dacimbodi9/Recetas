@@ -509,6 +509,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
               DropdownMenuItem(value: 'male', child: Text('Masculino'.tr)),
               DropdownMenuItem(value: 'female', child: Text('Femenino'.tr)),
             ]),
+            SizedBox(height: 16),
+            _buildDropdownInput(
+              theme, 
+              isDark, 
+              'Nivel de Actividad'.tr, 
+              SettingsManager.userActivityLevel.value?.toString() ?? '1.55', 
+              (v) {
+                final val = double.tryParse(v ?? '');
+                if (val != null) SettingsManager.setUserActivityLevel(val);
+              }, 
+              [
+                DropdownMenuItem(value: '1.2', child: Text('Sedentario (Poco/ningún ejercicio)'.tr)),
+                DropdownMenuItem(value: '1.375', child: Text('Ligero (1-3 días/sem)'.tr)),
+                DropdownMenuItem(value: '1.55', child: Text('Moderado (3-5 días/sem)'.tr)),
+                DropdownMenuItem(value: '1.725', child: Text('Muy activo (6-7 días/sem)'.tr)),
+                DropdownMenuItem(value: '1.9', child: Text('Extremo (Trabajo físico/Atleta)'.tr)),
+              ],
+            ),
             SizedBox(height: 32),
             Text(
               'Estos datos son opcionales y se guardan solo en tu dispositivo'.tr,
@@ -541,29 +559,34 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
         ),
         filled: true,
-        fillColor: isDark ? theme.cardColor : Colors.white,
+        fillColor: isDark ? theme.cardColor : theme.cardColor,
       ),
     );
   }
 
   Widget _buildDropdownInput(ThemeData theme, bool isDark, String label, String? value, Function(String?) onChanged, List<DropdownMenuItem<String>> items) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      onChanged: onChanged,
-      items: items,
-      borderRadius: BorderRadius.circular(16),
-      dropdownColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-      icon: Icon(CupertinoIcons.chevron_down, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+    return Theme(
+      data: theme.copyWith(
+        focusColor: Colors.transparent, // Removes the grey background of selected items
+      ),
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        onChanged: onChanged,
+        items: items,
+        borderRadius: BorderRadius.circular(16),
+        dropdownColor: isDark ? theme.colorScheme.surfaceContainerHighest : theme.cardColor,
+        icon: Icon(CupertinoIcons.chevron_down, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+            ),
           ),
+          filled: true,
+          fillColor: isDark ? theme.cardColor : theme.cardColor,
         ),
-        filled: true,
-        fillColor: isDark ? theme.cardColor : Colors.white,
       ),
     );
   }

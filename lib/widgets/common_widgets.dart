@@ -36,7 +36,7 @@ class EmptyState extends StatelessWidget {
           ),
           SizedBox(height: 6),
           Text(
-            'Se intentÃ³ con: ${selectedIngredients.join(', ')}',
+            '${'Se intentó con'.tr}: ${selectedIngredients.join(', ')}',
             style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
             textAlign: TextAlign.center,
           ),
@@ -677,7 +677,7 @@ class PremiumRatingButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tu valoraciÃ³n'.tr,
+                'Tu valoración'.tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

@@ -4,7 +4,7 @@ A beautiful, privacy-focused recipe management and meal planning application bui
 
 ## 🚀 Getting Started
 
-This project is not yet available for download in Google Play Store or Apple App Store. However, you can download the APK file and install it on your Android device from my [website](https://recetasinfo.netlify.app/) or from this [github repository](https://github.com/dacimbdi/recetas/blob/main/app-release.apk).
+This project is not yet available for download in Google Play Store or Apple App Store. However, you can download the APK file and install it on your Android device from my [website](https://recetasinfo.netlify.app/) or from this [github repository](https://github.com/Dacimbodi9/Recetas/releases).
 
 ## ✨ Features
 

@@ -195,7 +195,7 @@ class FolderOptionsSheet extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: Text('Eliminar carpeta'.tr),
         content: Text(
-          'Â¿EstÃ¡s seguro de que quieres eliminar "${folder.name}"? Esto tambiÃ©n eliminarÃ¡ todas las subcarpetas.',
+          '${'¿Estás seguro de que quieres eliminar'.tr} "${folder.name}"? ${'Esto también eliminará todas las subcarpetas.'.tr}',
         ),
         actions: [
           TextButton(
@@ -243,8 +243,8 @@ class RecipeFolderMenu extends StatelessWidget {
           SnackBar(
             content: Text(
               folderId == null
-                  ? 'Receta movida fuera de carpetas'
-                  : 'Receta movida a carpeta',
+                  ? 'Receta movida fuera de carpetas'.tr
+                  : 'Receta movida a carpeta'.tr,
             ),
           ),
         );
@@ -355,7 +355,7 @@ class DietaryFilterDialogState extends State<DietaryFilterDialog> {
     final allCustomTags = RecipeManager.allCustomDietaryTags.toList()..sort();
 
     return AlertDialog(
-      title: Text('Filtros dietÃ©ticos'.tr),
+      title: Text('Filtros dietéticos'.tr),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -364,7 +364,7 @@ class DietaryFilterDialogState extends State<DietaryFilterDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Restricciones estÃ¡ndar:'.tr,
+                'Restricciones estándar:'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
