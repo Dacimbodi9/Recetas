@@ -11,6 +11,7 @@ import 'package:recetas/services/meal_plan_manager.dart';
 import 'package:recetas/services/shopping_list_manager.dart';
 import 'package:recetas/screens/main_navigation.dart';
 import 'package:recetas/screens/onboarding_page.dart';
+import 'package:recetas/services/data_management_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -24,6 +25,11 @@ void main() async {
   await ShoppingListManager.load();
 
   MealPlanManager.cleanOldMeals();
+  
+  // Run auto backup silently in background if needed
+  DataManagementService.runAutoBackupIfNeeded().catchError((e) {
+    debugPrint('Auto backup failed: $e');
+  });
 
   runApp(RecetasApp());
   DeepLinkHandler.instance.init();

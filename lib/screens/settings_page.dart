@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:recetas/services/snackbar_service.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:recetas/utils/json_utils.dart';
-import 'package:flutter/services.dart';
 import 'package:recetas/l10n.dart';
 import 'package:recetas/models/models.dart';
 import 'package:recetas/services/settings_manager.dart';
 import 'package:recetas/services/recipe_manager.dart';
 import 'package:recetas/widgets/widgets.dart';
 import 'package:recetas/screens/profile_page.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:recetas/screens/data_settings_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:async';
-
 class _BottomMenuSettingsPage extends StatelessWidget {
   const _BottomMenuSettingsPage();
 
@@ -406,26 +397,9 @@ class SettingsPage extends StatelessWidget {
                             },
                           ),
                           SettingsTile(
-                            title: 'Exportar recetas'.tr,
-                            icon: CupertinoIcons.share,
-                            onTap: () => _exportRecipes(context),
-                          ),
-                          SettingsTile(
-                            title: 'Importar recetas'.tr,
-                            icon: CupertinoIcons.arrow_down_doc,
-                            onTap: () => _importRecipes(context),
-                          ),
-                          SettingsTile(
-                            title: 'Borrar todos los datos'.tr,
-                            icon: CupertinoIcons.delete,
-                            iconColor: Colors.red,
-                            textColor: Colors.red,
-                            onTap: () => _clearData(context),
-                          ),
-                          SettingsTile(
-                            title: 'Legal'.tr,
-                            subtitle: 'Política de Privacidad y Términos'.tr,
-                            icon: CupertinoIcons.doc_text,
+                            title: 'Gestión de datos'.tr,
+                            subtitle: 'Exportar, importar y copias de seguridad'.tr,
+                            icon: CupertinoIcons.doc_on_clipboard_fill,
                             trailing: Icon(
                               CupertinoIcons.chevron_right,
                               size: 20,
@@ -436,7 +410,7 @@ class SettingsPage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => _LegalPage(),
+                                    builder: (context) => const DataSettingsPage(),
                                   ),
                                 );
                               }
@@ -446,7 +420,28 @@ class SettingsPage extends StatelessWidget {
                         ],
                       ),
 
-                      SizedBox(height: 32),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            if (context.mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const _LegalPage(),
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            'Términos de uso y Política de privacidad'.tr,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                     ]
                     .animate(interval: 50.ms)
                     .fade(duration: 400.ms)
@@ -659,212 +654,6 @@ class SettingsPage extends StatelessWidget {
     await SettingsManager.setLanguage(lang);
 
     navigator.pop();
-  }
-
-  Future<void> _exportRecipes(BuildContext context) async {
-    try {
-      final recipes = await RecipeManager.getCustomRecipes();
-      if (recipes.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No hay recetas para exportar'.tr)),
-          );
-        }
-        return;
-      }
-
-      // Ask user choice
-      if (!context.mounted) return;
-      final choice = await showModalBottomSheet<String>(
-        context: context,
-        builder: (BuildContext context) {
-          return SafeArea(
-            child: Wrap(
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.share),
-                  title: Text('Compartir'.tr),
-                  onTap: () => Navigator.pop(context, 'share'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.save),
-                  title: Text('Guardar en dispositivo'.tr),
-                  onTap: () => Navigator.pop(context, 'save'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-
-      if (choice == null) return;
-
-      final jsonStr = jsonEncode(recipes.map((r) => r.toJson()).toList());
-
-      if (choice == 'share') {
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/recetas_backup.json');
-        await file.writeAsString(jsonStr);
-
-        final result = await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(file.path)],
-            text: 'Copia de seguridad de Guardados',
-          ),
-        );
-
-        if (result.status == ShareResultStatus.success) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Copia de seguridad compartida'.tr)),
-            );
-          }
-        }
-      } else if (choice == 'save') {
-        final bytes = Uint8List.fromList(utf8.encode(jsonStr));
-        String? outputFile = await FilePicker.platform.saveFile(
-          dialogTitle: 'Guardar copia de seguridad',
-          fileName: 'recetas_backup.json',
-          type: FileType.custom,
-          allowedExtensions: ['json'],
-          bytes: bytes,
-        );
-
-        if (outputFile != null) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Recetas guardadas exitosamente'.tr)),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${'Error al exportar'.tr}: $e')));
-      }
-    }
-  }
-
-  Future<void> _importRecipes(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final jsonStr = await file.readAsString();
-        final List<dynamic> jsonList = await compute(decodeJsonList, jsonStr);
-
-        int importedCount = 0;
-        int skippedCount = 0;
-
-        // Find or create "Importados" folder
-        String? importFolderId;
-        try {
-          final existing = RecipeManager.allFolders
-              .where((f) => f.name == 'Importados')
-              .firstOrNull;
-
-          if (existing != null) {
-            importFolderId = existing.id;
-          } else {
-            // Create New
-            final newId = DateTime.now().millisecondsSinceEpoch.toString();
-            final newFolder = FavoriteFolder(
-              id: newId,
-              name: 'Importados',
-              icon: Icons.drive_file_move,
-              recipeIds: [],
-            );
-            await RecipeManager.addFolder(newFolder);
-            importFolderId = newId;
-          }
-        } catch (e) {
-          debugPrint('Error handling Importados folder: $e');
-          SnackbarService.showError('Error handling Importados folder: $e');
-        }
-
-        for (var item in jsonList) {
-          try {
-            final recipe = Recipe.fromJson(item);
-            if (!RecipeManager.recipes.any((r) => r.id == recipe.id)) {
-              await RecipeManager.addRecipe(recipe);
-
-              if (importFolderId != null) {
-                await RecipeManager.addRecipeToFolder(importFolderId, recipe);
-              }
-
-              if (!RecipeManager.isFavorite(recipe)) {
-                await RecipeManager.toggleFavorite(recipe);
-              }
-
-              importedCount++;
-            } else {
-              skippedCount++;
-            }
-          } catch (e) {
-            debugPrint('Skipping invalid recipe during import: $e');
-            SnackbarService.showError('Skipping invalid recipe during import: $e');
-          }
-        }
-
-        RecipeManager.notifyListeners();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Importado: $importedCount. Omitido (duplicado): $skippedCount',
-              ),
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${'Error al importar'.tr}: $e')));
-      }
-    }
-  }
-
-  Future<void> _clearData(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Borrar TODOS los datos'.tr),
-        content: Text(
-          'Esta acción eliminará todas tus recetas personalizadas y carpetas. No se puede deshacer. ¿Estás seguro?'
-              .tr,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'.tr),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Borrar todo'.tr),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await RecipeManager.clearAllData();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Datos eliminados correctamente'.tr)),
-        );
-      }
-    }
   }
 }
 
@@ -1319,8 +1108,8 @@ class _LegalPage extends StatelessWidget {
           title: Text('Legal'.tr),
           bottom: TabBar(
             tabs: [
-              Tab(text: 'Política de Privacidad'),
-              Tab(text: 'Términos de Uso'),
+              Tab(text: 'Política de Privacidad'.tr),
+              Tab(text: 'Términos de Uso'.tr),
             ],
           ),
         ),

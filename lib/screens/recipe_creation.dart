@@ -638,30 +638,35 @@ class _NewRecipePageState extends State<NewRecipePage> {
     // Check for changes if editing
     if (_initialRecipeSnapshot != null) {
       if (_areRecipesDifferent(_initialRecipeSnapshot!, newRecipe)) {
-        final choice = await showDialog<String>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Guardar cambios'.tr),
-            content: Text(
-              'Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?'
-                  .tr,
+        String? choice;
+        if (widget.recipeToEdit != null && RecipeManager.isDefaultRecipe(widget.recipeToEdit!)) {
+          choice = 'new';
+        } else {
+          choice = await showDialog<String>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Guardar cambios'.tr),
+              content: Text(
+                'Has modificado la receta. ¿Deseas actualizar la actual o guardar como una nueva?'
+                    .tr,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancelar'.tr),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'new'),
+                  child: Text('Guardar como nueva'.tr),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, 'update'),
+                  child: Text('Actualizar'.tr),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancelar'.tr),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, 'new'),
-                child: Text('Guardar como nueva'.tr),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, 'update'),
-                child: Text('Actualizar'.tr),
-              ),
-            ],
-          ),
-        );
+          );
+        }
 
         if (choice == null) return; // Cancelled
 

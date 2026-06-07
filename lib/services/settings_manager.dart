@@ -61,6 +61,22 @@ class SettingsManager {
   static const _userSexKey = 'user_sex';
   static const _userActivityLevelKey = 'user_activity_level';
   static const _showTodayMealsInHomeKey = 'show_today_meals_in_home';
+  static const _autoBackupFrequencyKey = 'auto_backup_frequency';
+  static const _lastBackupDateKey = 'last_backup_date';
+
+  static final ValueNotifier<String> autoBackupFrequency = ValueNotifier('off');
+  static final ValueNotifier<String?> lastBackupDate = ValueNotifier(null);
+
+  // Auto-backup preferences
+  static final ValueNotifier<bool> autoBackupSettings = ValueNotifier(true);
+  static final ValueNotifier<bool> autoBackupRecipes = ValueNotifier(true);
+  static final ValueNotifier<bool> autoBackupMeals = ValueNotifier(true);
+  static final ValueNotifier<bool> autoBackupShopping = ValueNotifier(true);
+
+  static const String _autoBackupSettingsKey = 'auto_backup_settings';
+  static const String _autoBackupRecipesKey = 'auto_backup_recipes';
+  static const String _autoBackupMealsKey = 'auto_backup_meals';
+  static const String _autoBackupShoppingKey = 'auto_backup_shopping';
 
   static List<Map<String, dynamic>> get availableFeatures => [
     {
@@ -164,6 +180,37 @@ class SettingsManager {
     userSex.value = prefs.getString(_userSexKey);
     userActivityLevel.value = prefs.getDouble(_userActivityLevelKey);
     showTodayMealsInHome.value = prefs.getBool(_showTodayMealsInHomeKey) ?? false;
+    autoBackupFrequency.value = prefs.getString(_autoBackupFrequencyKey) ?? 'off';
+    lastBackupDate.value = prefs.getString(_lastBackupDateKey);
+
+    autoBackupSettings.value = prefs.getBool(_autoBackupSettingsKey) ?? true;
+    autoBackupRecipes.value = prefs.getBool(_autoBackupRecipesKey) ?? true;
+    autoBackupMeals.value = prefs.getBool(_autoBackupMealsKey) ?? true;
+    autoBackupShopping.value = prefs.getBool(_autoBackupShoppingKey) ?? true;
+  }
+
+  static Future<void> setAutoBackupSettings(bool value) async {
+    autoBackupSettings.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoBackupSettingsKey, value);
+  }
+
+  static Future<void> setAutoBackupRecipes(bool value) async {
+    autoBackupRecipes.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoBackupRecipesKey, value);
+  }
+
+  static Future<void> setAutoBackupMeals(bool value) async {
+    autoBackupMeals.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoBackupMealsKey, value);
+  }
+
+  static Future<void> setAutoBackupShopping(bool value) async {
+    autoBackupShopping.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoBackupShoppingKey, value);
   }
 
   static Future<void> setUserName(String name) async {
@@ -371,4 +418,71 @@ class SettingsManager {
   }
 
   // Data Management
+
+  static Future<void> setAutoBackupFrequency(String frequency) async {
+    autoBackupFrequency.value = frequency;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_autoBackupFrequencyKey, frequency);
+  }
+
+  static Future<void> setLastBackupDate(DateTime date) async {
+    final iso = date.toIso8601String();
+    lastBackupDate.value = iso;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastBackupDateKey, iso);
+  }
+
+  static Future<Map<String, dynamic>> getAllSettingsAsMap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final Map<String, dynamic> data = {};
+    for (final key in prefs.getKeys()) {
+      data[key] = prefs.get(key);
+    }
+    const secureStorage = FlutterSecureStorage();
+    final secureData = await secureStorage.readAll();
+    data['secure_storage'] = secureData;
+    return data;
+  }
+
+  static Future<void> importSettingsFromMap(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    for (final key in data.keys) {
+      if (key == 'secure_storage') continue;
+      
+      final value = data[key];
+      if (value is bool) {
+        await prefs.setBool(key, value);
+      } else if (value is int) {
+        await prefs.setInt(key, value);
+      } else if (value is double) {
+        await prefs.setDouble(key, value);
+      } else if (value is String) {
+        await prefs.setString(key, value);
+      } else if (value is List) {
+        await prefs.setStringList(key, value.map((e) => e.toString()).toList());
+      }
+    }
+
+    if (data.containsKey('secure_storage')) {
+      const secureStorage = FlutterSecureStorage();
+      await secureStorage.deleteAll();
+      final Map<String, dynamic> secureData = data['secure_storage'];
+      for (final key in secureData.keys) {
+        await secureStorage.write(key: key, value: secureData[key].toString());
+      }
+    }
+
+    // Reload settings into memory
+    await loadSettings();
+  }
+
+  static Future<void> clearAllSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    const secureStorage = FlutterSecureStorage();
+    await secureStorage.deleteAll();
+    await loadSettings();
+  }
 }

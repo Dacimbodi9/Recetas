@@ -14,6 +14,17 @@ class AppLocalization {
   }
 
   static const Map<String, String> translations = {
+    "¿Quieres importar la plantilla": "Do you want to import the template",
+    "Error al compartir plantilla": "Error sharing template",
+    "Exportar como archivo": "Export as file",
+    "Guarda o envía el archivo de la plantilla": "Save or send the template file",
+    "Muestra un código para escanear": "Show a code to scan",
+    "Otros pueden escanear este código para añadir la plantilla y sus recetas a su aplicación": "Others can scan this code to add the template and its recipes to their app",
+    "Plantilla compartida detectada": "Shared template detected",
+    "Plantilla detectada": "Template detected",
+    "Plantilla importada correctamente": "Template imported successfully",
+    "recetas?": "recipes?",
+    "y sus": "and its",
     "+1000 Recetas": "+1000 Recipes",
     "Aceites y Grasas": "Oils & Fats",
     "Activa el tema oscuro.": "Enable dark theme.",
@@ -211,6 +222,8 @@ class AppLocalization {
     "PLANTILLAS": "TEMPLATES",
     "Platos Principales": "Main Dishes",
     "Política de Privacidad y Términos": "Privacy Policy and Terms",
+    "Política de Privacidad": "Privacy Policy",
+    "Términos de Uso": "Terms of Use",
     "Por favor ingresa un nombre para la carpeta": "Please enter a folder name",
     "Por favor, escribe un nombre para la receta": "Please write a recipe name",
     "Postres y Dulces": "Desserts & Sweets",
@@ -586,7 +599,44 @@ You are solely responsible for the recipes, images, and content you create, stor
 To the maximum extent permitted by applicable law, Recetas, its developers, and affiliates shall not be liable for any indirect, incidental, special, or consequential damages resulting from the use or inability to use the App, including but not limited to ruined meals, allergic reactions resulting from unverified recipes, or data loss.
 
 7. Modifications to the App
-We reserve the right to modify, suspend, or discontinue any feature of the App at any time without prior notice."""
+We reserve the right to modify, suspend, or discontinue any feature of the App at any time without prior notice.""",
+    "Gestión de Datos": "Data Management",
+    "Gestión de datos": "Data Management",
+    "Exportar, importar y copias de seguridad": "Export, import and backups",
+    "PELIGRO": "DANGER",
+    "¿Borrar todos los datos?": "Delete all data?",
+    "Esta acción no se puede deshacer. Perderás todas tus recetas, planificaciones, configuraciones y perfil físico.": "This action cannot be undone. You will lose all your recipes, meal plans, settings, and physical profile.",
+    "Borrar": "Delete",
+    "COPIAS MANUALES": "MANUAL BACKUPS",
+    "Exportar todos los datos": "Export all data",
+    "Importar datos": "Import data",
+    "COPIAS AUTOMÁTICAS (LOCALES)": "AUTOMATIC BACKUPS (LOCAL)",
+    "Frecuencia de copia": "Backup frequency",
+    "Desactivado": "Off",
+    "Diaria": "Daily",
+    "Semanal": "Weekly",
+    "Mensual": "Monthly",
+    "Selecciona qué importar": "Select what to import",
+    "Los datos importados se añadirán a los actuales. Las recetas o plantillas existentes no se sobrescribirán.": "The imported data will be added to the current data. Existing recipes or templates will not be overwritten.",
+    "Error al restaurar": "Error restoring",
+    "Formato de archivo inválido": "Invalid file format",
+    "Selecciona qué exportar": "Select what to export",
+    "Ajustes y Perfil": "Settings & Profile",
+    "Recetas y Carpetas": "Recipes & Folders",
+    "Planificador y Plantillas": "Planner & Templates",
+    "Lista de la compra": "Shopping List",
+    "Continuar": "Continue",
+    "Selecciona al menos una opción": "Select at least one option",
+    "Términos de uso y Política de privacidad": "Terms of use and Privacy Policy",
+    "Restaurar copia automática": "Restore automatic backup",
+    "Contenido de la copia": "Backup content",
+    "Datos guardados exitosamente": "Data saved successfully",
+    "Datos restaurados exitosamente": "Data restored successfully",
+    "¿Estás absolutamente seguro?": "Are you absolutely sure?",
+    "Por favor confirma por última vez.": "Please confirm one last time.",
+    "¿Restaurar esta copia?": "Restore this backup?",
+    "Esto reemplazará tus datos actuales con los del archivo de copia de seguridad.": "This will merge your current data with the backup file.",
+    "Copia restaurada exitosamente": "Backup restored successfully"
   };
 
   static const Map<String, String> spanishOverrides = {

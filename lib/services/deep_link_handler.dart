@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:recetas/l10n.dart';
 import 'package:recetas/models/models.dart';
 import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/services/meal_plan_manager.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:io';
 import 'dart:async';
@@ -33,6 +34,16 @@ class DeepLinkHandler {
     final segments = uri.pathSegments;
     if (segments.isEmpty) return;
     final encodedData = segments.first;
+
+    final payload = MealTemplate.fromShareableData(encodedData);
+    if (payload != null) {
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () => _showTemplateImportDialog(payload),
+      );
+      return;
+    }
+
     final recipe = Recipe.fromShareableData(encodedData);
     if (recipe != null) {
       final sanitized = _sanitizeRecipe(recipe);
@@ -71,6 +82,15 @@ class DeepLinkHandler {
         content = await File(path).readAsString();
       }
       if (content != null) {
+        final payload = MealTemplate.fromShareableData(content.trim());
+        if (payload != null) {
+          Future.delayed(
+            const Duration(milliseconds: 500),
+            () => _showTemplateImportDialog(payload),
+          );
+          return;
+        }
+
         final recipe = Recipe.fromShareableData(content.trim());
         if (recipe != null) {
           final sanitized = _sanitizeRecipe(recipe);
@@ -152,6 +172,42 @@ class DeepLinkHandler {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Receta importada correctamente'.tr)),
+                );
+              }
+            },
+            child: Text('Importar'.tr),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTemplateImportDialog(ShareableTemplatePayload payload) {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Plantilla compartida detectada'.tr),
+        content: Text('${'¿Quieres importar la plantilla'.tr} "${payload.template.name}" ${'y sus'.tr} ${payload.recipes.length} ${'recetas?'.tr}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            onPressed: () async {
+              for (final recipe in payload.recipes) {
+                if (!RecipeManager.recipes.any((r) => r.id == recipe.id)) {
+                  await RecipeManager.addRecipe(recipe);
+                }
+              }
+              MealPlanManager.addTemplate(payload.template);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Plantilla importada correctamente'.tr)),
                 );
               }
             },

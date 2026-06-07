@@ -62,7 +62,7 @@ This project is not yet available for download in Google Play Store or Apple App
 
 This application is free to use, but the source code is proprietary. It is published on GitHub for viewing and portfolio purposes only. You are not permitted to copy, modify, distribute, or use this code for any other projects (commercial or non-commercial) without explicit written permission.
 
-See the [LICENSE](LICENSE) file for more details.
+See the [LICENSE](https://github.com/Dacimbodi9/Recetas?tab=License-1-ov-file) file for more details.
 
 ## 👥 Credits
 

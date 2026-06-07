@@ -96,6 +96,8 @@ class ShareQRCodePage extends StatelessWidget {
   }
 }
 
+
+
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
 
@@ -113,6 +115,12 @@ class QrScannerPageState extends State<QrScannerPage> {
     for (final barcode in barcodes) {
       final String? code = barcode.rawValue;
       if (code != null) {
+        final payload = MealTemplate.fromShareableData(code);
+        if (payload != null) {
+          setState(() => _isScanning = false);
+          _importTemplate(payload);
+          break;
+        }
         final recipe = Recipe.fromShareableData(code);
         if (recipe != null) {
           setState(() => _isScanning = false);
@@ -121,6 +129,44 @@ class QrScannerPageState extends State<QrScannerPage> {
         }
       }
     }
+  }
+
+  Future<void> _importTemplate(ShareableTemplatePayload payload) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Plantilla detectada'.tr),
+        content: Text('${'¿Quieres importar la plantilla'.tr} "${payload.template.name}" ${'y sus'.tr} ${payload.recipes.length} ${'recetas?'.tr}'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _isScanning = true);
+            },
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              for (final recipe in payload.recipes) {
+                if (!RecipeManager.recipes.any((r) => r.title == recipe.title)) {
+                  await RecipeManager.addRecipe(recipe);
+                }
+              }
+              MealPlanManager.addTemplate(payload.template);
+              nav.pop(); // Close dialog
+              nav.pop(); // Close scanner
+              messenger.showSnackBar(
+                SnackBar(content: Text('Plantilla importada correctamente'.tr)),
+              );
+            },
+            child: Text('Importar'.tr),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _importRecipe(Recipe recipe) async {

@@ -183,6 +183,24 @@ class AppTheme {
                       ),
                     ),
                   ),
+                  checkboxTheme: CheckboxThemeData(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    side: WidgetStateBorderSide.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return BorderSide(color: lightPrimary, width: 2);
+                      }
+                      return const BorderSide(color: Colors.grey, width: 2);
+                    }),
+                    fillColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return lightPrimary;
+                      }
+                      return Colors.transparent;
+                    }),
+                    checkColor: WidgetStateProperty.all(Colors.white),
+                  ),
                 );
   }
 
@@ -281,6 +299,24 @@ class AppTheme {
                         color: Colors.white70,
                       ),
                     ),
+                  ),
+                  checkboxTheme: CheckboxThemeData(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    side: WidgetStateBorderSide.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return BorderSide(color: darkPrimary, width: 2);
+                      }
+                      return const BorderSide(color: Colors.grey, width: 2);
+                    }),
+                    fillColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return darkPrimary;
+                      }
+                      return Colors.transparent;
+                    }),
+                    checkColor: WidgetStateProperty.all(Colors.white),
                   ),
                 );
   }

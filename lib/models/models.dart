@@ -1007,7 +1007,50 @@ class MealTemplate {
     String? name,
     Map<int, List<TemplateMealEntry>>? days,
   }) => MealTemplate(name: name ?? this.name, days: days ?? this.days);
+
+  String toShareableData(List<Recipe> usedRecipes) {
+    final map = {
+      'type': 'template',
+      'template': toJson(),
+      'recipes': usedRecipes.map((r) => r.toJson()).toList(),
+    };
+    final jsonString = jsonEncode(map);
+    final bytes = utf8.encode(jsonString);
+    final gzipped = gzip.encode(bytes);
+    return base64UrlEncode(gzipped);
+  }
+
+  static ShareableTemplatePayload? fromShareableData(String data) {
+    try {
+      var rawPayload = data;
+      if (rawPayload.contains('?data=')) {
+        rawPayload = rawPayload.split('?data=').last;
+      }
+      final bytes = base64Url.decode(rawPayload);
+      final unzipped = gzip.decode(bytes);
+      final jsonStr = utf8.decode(unzipped);
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      
+      if (map['type'] != 'template') return null;
+      
+      final template = MealTemplate.fromJson(map['template'] as Map<String, dynamic>);
+      final recipes = (map['recipes'] as List)
+          .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
+          .toList();
+          
+      return ShareableTemplatePayload(template: template, recipes: recipes);
+    } catch (e) {
+      return null;
+    }
+  }
+
 }
 
 
 
+
+class ShareableTemplatePayload {
+  final MealTemplate template;
+  final List<Recipe> recipes;
+  ShareableTemplatePayload({required this.template, required this.recipes});
+}

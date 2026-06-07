@@ -5,6 +5,9 @@ import 'package:recetas/models/models.dart';
 import 'package:recetas/services/recipe_manager.dart';
 import 'package:recetas/services/meal_plan_manager.dart';
 import 'dart:io';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:recetas/screens/settings_page.dart';
 
 
 class TemplateEditorPage extends StatefulWidget {
@@ -270,6 +273,61 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
     );
   }
 
+  bool _hasUnsavedChanges() {
+    if (widget.template == null) {
+      return _nameController.text.trim().isNotEmpty || _days.isNotEmpty;
+    } else {
+      if (_nameController.text.trim() != widget.template!.name) return true;
+      if (_days.length != widget.template!.days.length) return true;
+      for (final key in _days.keys) {
+        if (!widget.template!.days.containsKey(key)) return true;
+        final currentEntries = _days[key]!;
+        final originalEntries = widget.template!.days[key]!;
+        if (currentEntries.length != originalEntries.length) return true;
+        for (int i = 0; i < currentEntries.length; i++) {
+          if (currentEntries[i].recipeId != originalEntries[i].recipeId ||
+              currentEntries[i].mealType != originalEntries[i].mealType) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  }
+
+  Future<void> _attemptClose() async {
+    if (!_hasUnsavedChanges()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Salir sin guardar?'.tr),
+        content: Text('Tienes cambios sin guardar. Si sales, los perderás.'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'.tr),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Salir'.tr),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true) {
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
   void _save() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -287,6 +345,197 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
     }
     Navigator.pop(context);
   }
+
+  void _showEditNameMenu() {
+    final theme = Theme.of(context);
+    final editController = TextEditingController(text: _nameController.text);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Editar nombre'.tr,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                textCapitalization: TextCapitalization.sentences,
+                controller: editController,
+                decoration: InputDecoration(
+                  labelText: 'Nombre de la plantilla'.tr,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    setState(() {
+                      _nameController.text = editController.text;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: Text('Guardar'.tr),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTemplateOptionsDialog(BuildContext context, ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      if (!_isDefaultTemplate)
+                        SelectionOption(
+                          title: 'Editar nombre'.tr,
+                          icon: CupertinoIcons.pencil,
+                          isSelected: false,
+                          iconColor: theme.colorScheme.primary,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showEditNameMenu();
+                          },
+                        ),
+                      if (!_isDefaultTemplate) SizedBox(height: 12),
+                      SelectionOption(
+                        title: 'Duplicar'.tr,
+                        icon: CupertinoIcons.doc_on_doc,
+                        isSelected: false,
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () {
+                          final copyName = '${widget.template!.name} (${'Copia'.tr})';
+                          final newTemplate = MealTemplate(name: copyName, days: widget.template!.days);
+                          MealPlanManager.addTemplate(newTemplate);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      SelectionOption(
+                        title: 'Compartir'.tr,
+                        icon: CupertinoIcons.share,
+                        isSelected: false,
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _shareAsFile();
+                        },
+                      ),
+                      if (!_isDefaultTemplate) ...[
+                        SizedBox(height: 12),
+                        SelectionOption(
+                          title: 'Eliminar'.tr,
+                          icon: CupertinoIcons.trash,
+                          isSelected: false,
+                          isDestructive: true,
+                          onTap: () {
+                            MealPlanManager.deleteTemplate(widget.templateIndex!);
+                            Navigator.pop(context); // Close dialog
+                            Navigator.pop(context); // Close page
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(height: 48),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+  Future<void> _shareAsFile() async {
+    try {
+      final name = widget.template!.name;
+      final usedRecipes = <Recipe>[];
+      for (final entries in widget.template!.days.values) {
+        for (final entry in entries) {
+          final recipe = RecipeManager.getRecipeById(entry.recipeId);
+          if (recipe != null && !usedRecipes.contains(recipe)) {
+            usedRecipes.add(recipe);
+          }
+        }
+      }
+      final data = widget.template!.toShareableData(usedRecipes);
+      
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/${name.replaceAll(' ', '_')}.recetas');
+      await file.writeAsString(data);
+      
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          subject: 'Plantilla de Recetas: $name',
+          text: '¡Echa un vistazo a esta plantilla de comidas: $name!',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al compartir plantilla'.tr)),
+        );
+      }
+    }
+  }
+
 
   Widget _buildMealSection(
     int weekday,
@@ -508,8 +757,14 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
     final dayNames = _dayNames();
     final shortDayNames = _shortDayNames();
 
-    return Scaffold(
-      body: SafeArea(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _attemptClose();
+      },
+      child: Scaffold(
+        body: SafeArea(
         child: Column(
           children: [
             // Top Bar
@@ -520,46 +775,59 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
                 children: [
                   IconButton(
                     icon: const Icon(CupertinoIcons.xmark),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _attemptClose,
                   ),
                   Expanded(
-                    child: Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: TextField(
-                        enabled: !_isDefaultTemplate,
-                        textCapitalization: TextCapitalization.sentences,
-                        controller: _nameController,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 1.2,
-                          color: theme.colorScheme.primary,
-                        ),
-                        decoration: InputDecoration(
-                          filled: false,
-                          hintText: _isEditing
-                              ? 'EDITAR PLANTILLA'.tr
-                              : 'NUEVA PLANTILLA'.tr,
-                          hintStyle: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 1.2,
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.5,
+                    child: _isEditing
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Text(
+                                _nameController.text,
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextField(
+                              enabled: !_isDefaultTemplate,
+                              textCapitalization: TextCapitalization.sentences,
+                              controller: _nameController,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 1.2,
+                                color: theme.colorScheme.primary,
+                              ),
+                              decoration: InputDecoration(
+                                filled: false,
+                                hintText: 'NUEVA PLANTILLA'.tr,
+                                hintStyle: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  letterSpacing: 1.2,
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.only(
+                                  bottom: 14,
+                                ),
+                              ),
                             ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.only(
-                            bottom: 14,
-                          ), // Align text vertically
-                        ),
-                      ),
-                    ),
                   ),
                   if (!_isDefaultTemplate)
                     TextButton(
@@ -572,46 +840,12 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
                         ),
                       ),
                     ),
-                  if (_isEditing)
-                    PopupMenuButton<int>(
-                      icon: const Icon(CupertinoIcons.ellipsis_vertical, size: 20),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 0,
-                          child: Row(
-                            children: [
-                              const Icon(CupertinoIcons.doc_on_doc, size: 18),
-                              const SizedBox(width: 8),
-                              Text('Duplicar'.tr),
-                            ],
-                          ),
-                        ),
-                        if (!_isDefaultTemplate)
-                          PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              children: [
-                                const Icon(CupertinoIcons.trash, size: 18, color: Colors.redAccent),
-                                const SizedBox(width: 8),
-                                Text('Eliminar'.tr, style: const TextStyle(color: Colors.redAccent)),
-                              ],
-                            ),
-                          ),
-                      ],
-                      onSelected: (val) {
-                        if (val == 0) {
-                          // Duplicar
-                          final copyName = '${widget.template!.name} (${'Copia'.tr})';
-                          final newTemplate = MealTemplate(name: copyName, days: widget.template!.days);
-                          MealPlanManager.addTemplate(newTemplate);
-                          Navigator.pop(context);
-                        } else if (val == 1) {
-                          // Eliminar
-                          MealPlanManager.deleteTemplate(widget.templateIndex!);
-                          Navigator.pop(context);
-                        }
-                      },
+                  if (_isEditing) ...[
+                    IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () => _showTemplateOptionsDialog(context, theme),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -738,7 +972,7 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
