@@ -13,6 +13,7 @@ import 'package:recetas/services/data_management_service.dart';
 import 'package:recetas/services/settings_manager.dart';
 import 'package:recetas/services/snackbar_service.dart';
 import 'package:recetas/screens/onboarding_page.dart';
+import 'package:recetas/widgets/widgets.dart';
 
 class DataSettingsPage extends StatefulWidget {
   const DataSettingsPage({super.key});
@@ -398,57 +399,47 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildSectionHeader('COPIAS MANUALES'.tr, theme),
-                Card(
-                  elevation: 0,
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(CupertinoIcons.share),
-                        title: Text('Exportar todos los datos'.tr),
-                        onTap: _exportData,
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(CupertinoIcons.arrow_down_doc),
-                        title: Text('Importar datos'.tr),
-                        onTap: _importData,
-                      ),
-                    ],
-                  ),
+                SettingsSection(
+                  title: 'COPIAS MANUALES'.tr,
+                  children: [
+                    SettingsTile(
+                      title: 'Exportar todos los datos'.tr,
+                      icon: CupertinoIcons.share,
+                      onTap: _exportData,
+                    ),
+                    SettingsTile(
+                      title: 'Importar datos'.tr,
+                      icon: CupertinoIcons.arrow_down_doc,
+                      onTap: _importData,
+                      lastItem: true,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                _buildSectionHeader('COPIAS AUTOMÁTICAS (LOCALES)'.tr, theme),
                 ValueListenableBuilder<String>(
                   valueListenable: SettingsManager.autoBackupFrequency,
                   builder: (context, frequency, child) {
-                    return Card(
-                      elevation: 0,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: const Icon(CupertinoIcons.time),
-                            title: Text('Frecuencia de copia'.tr),
-                            trailing: Theme(
-                              data: Theme.of(context).copyWith(focusColor: Colors.transparent),
-                              child: DropdownButton<String>(
-                                value: frequency,
-                                underline: const SizedBox(),
-                                elevation: 0,
-                                borderRadius: BorderRadius.circular(16),
-                                dropdownColor: theme.brightness == Brightness.dark
-                                    ? theme.colorScheme.surfaceContainerHighest
-                                    : theme.cardColor,
-                                icon: Icon(
-                                  CupertinoIcons.chevron_down,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                ),
-                                items: [
+                    final frequencySection = SettingsSection(
+                      title: 'COPIAS AUTOMÁTICAS (LOCALES)'.tr,
+                      children: [
+                        SettingsTile(
+                          title: 'Frecuencia de copia'.tr,
+                          icon: CupertinoIcons.time,
+                          trailing: Theme(
+                            data: Theme.of(context).copyWith(focusColor: Colors.transparent),
+                            child: DropdownButton<String>(
+                              value: frequency,
+                              underline: const SizedBox(),
+                              elevation: 0,
+                              borderRadius: BorderRadius.circular(16),
+                              dropdownColor: theme.brightness == Brightness.dark
+                                  ? theme.colorScheme.surfaceContainerHighest
+                                  : theme.cardColor,
+                              icon: Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                              items: [
                                 DropdownMenuItem(value: 'off', child: Text('Desactivado'.tr)),
                                 DropdownMenuItem(value: 'daily', child: Text('Diaria'.tr)),
                                 DropdownMenuItem(value: 'weekly', child: Text('Semanal'.tr)),
@@ -460,134 +451,97 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
                                 }
                               },
                             ),
-                            ),
                           ),
-                          if (frequency != 'off') ...[
+                          lastItem: true,
+                        ),
+                      ],
+                    );
 
-                            Padding(
-                              padding: const EdgeInsets.only(left: 16, top: 16, bottom: 8),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Contenido de la copia'.tr.toUpperCase(),
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                    letterSpacing: 1.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                    final contentSection = frequency == 'off'
+                        ? const SizedBox.shrink()
+                        : SettingsSection(
+                            title: 'Contenido de la copia'.tr.toUpperCase(),
+                            children: [
+                              ValueListenableBuilder<bool>(
+                                valueListenable: SettingsManager.autoBackupSettings,
+                                builder: (context, value, child) => SettingsTile(
+                                  title: 'Ajustes y Perfil'.tr,
+                                  isSwitch: true,
+                                  switchValue: value,
+                                  onSwitchChanged: (v) => SettingsManager.setAutoBackupSettings(v),
                                 ),
                               ),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: SettingsManager.autoBackupSettings,
-                              builder: (context, value, child) => SwitchListTile.adaptive(
-                                title: Text('Ajustes y Perfil'.tr, style: theme.textTheme.bodyMedium),
-                                value: value,
-                                onChanged: (v) => SettingsManager.setAutoBackupSettings(v),
-                                activeColor: theme.colorScheme.primary,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: SettingsManager.autoBackupRecipes,
-                              builder: (context, value, child) => SwitchListTile.adaptive(
-                                title: Text('Recetas y Carpetas'.tr, style: theme.textTheme.bodyMedium),
-                                value: value,
-                                onChanged: (v) => SettingsManager.setAutoBackupRecipes(v),
-                                activeColor: theme.colorScheme.primary,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: SettingsManager.autoBackupMeals,
-                              builder: (context, value, child) => SwitchListTile.adaptive(
-                                title: Text('Planificador y Plantillas'.tr, style: theme.textTheme.bodyMedium),
-                                value: value,
-                                onChanged: (v) => SettingsManager.setAutoBackupMeals(v),
-                                activeColor: theme.colorScheme.primary,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: SettingsManager.autoBackupShopping,
-                              builder: (context, value, child) => SwitchListTile.adaptive(
-                                title: Text('Lista de la compra'.tr, style: theme.textTheme.bodyMedium),
-                                value: value,
-                                onChanged: (v) => SettingsManager.setAutoBackupShopping(v),
-                                activeColor: theme.colorScheme.primary,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                visualDensity: VisualDensity.compact,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: SettingsManager.autoBackupRecipes,
+                                builder: (context, value, child) => SettingsTile(
+                                  title: 'Recetas y Carpetas'.tr,
+                                  isSwitch: true,
+                                  switchValue: value,
+                                  onSwitchChanged: (v) => SettingsManager.setAutoBackupRecipes(v),
                                 ),
                               ),
-                            ),
-                          ],
-                          if (_backups.isNotEmpty) ...[
+                              ValueListenableBuilder<bool>(
+                                valueListenable: SettingsManager.autoBackupMeals,
+                                builder: (context, value, child) => SettingsTile(
+                                  title: 'Planificador y Plantillas'.tr,
+                                  isSwitch: true,
+                                  switchValue: value,
+                                  onSwitchChanged: (v) => SettingsManager.setAutoBackupMeals(v),
+                                ),
+                              ),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: SettingsManager.autoBackupShopping,
+                                builder: (context, value, child) => SettingsTile(
+                                  title: 'Lista de la compra'.tr,
+                                  isSwitch: true,
+                                  switchValue: value,
+                                  onSwitchChanged: (v) => SettingsManager.setAutoBackupShopping(v),
+                                  lastItem: true,
+                                ),
+                              ),
+                            ],
+                          );
 
-                            Padding(
-                              padding: const EdgeInsets.only(left: 16, top: 16, bottom: 8),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Restaurar copia automática'.tr.toUpperCase(),
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                    letterSpacing: 1.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ..._backups.map((file) {
-                              final name = file.path.split('/').last.split('\\').last;
-                              return ListTile(
-                                leading: Icon(CupertinoIcons.doc_text, color: theme.colorScheme.primary),
-                                title: Text(name.replaceAll('.json', '').replaceAll('backup_', 'Backup ')),
-                                trailing: const Icon(CupertinoIcons.refresh),
-                                onTap: () => _restoreBackup(file),
-                              );
-                            }),
-                          ]
-                        ],
-                      ),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        frequencySection,
+                        contentSection,
+                      ],
                     );
                   },
                 ),
-                const SizedBox(height: 24),
-                _buildSectionHeader('PELIGRO'.tr, theme),
-                Card(
-                  elevation: 0,
-                  color: Colors.red.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    leading: const Icon(CupertinoIcons.delete, color: Colors.red),
-                    title: Text(
-                      'Borrar todos los datos'.tr,
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                    onTap: _clearData,
+                if (_backups.isNotEmpty)
+                  SettingsSection(
+                    title: 'Restaurar copia automática'.tr.toUpperCase(),
+                    children: _backups.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final file = entry.value;
+                      final name = file.path.split('/').last.split('\\').last;
+                      return SettingsTile(
+                        title: name.replaceAll('.json', '').replaceAll('backup_', 'Backup '),
+                        icon: CupertinoIcons.doc_text,
+                        trailing: const Icon(CupertinoIcons.refresh),
+                        onTap: () => _restoreBackup(file),
+                        lastItem: index == _backups.length - 1,
+                      );
+                    }).toList(),
                   ),
+                SettingsSection(
+                  title: 'PELIGRO'.tr,
+                  children: [
+                    SettingsTile(
+                      title: 'Borrar todos los datos'.tr,
+                      icon: CupertinoIcons.delete,
+                      iconColor: Colors.red,
+                      textColor: Colors.red,
+                      onTap: _clearData,
+                      lastItem: true,
+                    ),
+                  ],
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, bottom: 8),
-      child: Text(
-        title,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.textTheme.bodySmall?.color,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
     );
   }
 }
