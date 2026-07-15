@@ -181,6 +181,7 @@ class RecipeCard extends StatelessWidget {
     this.showFolderOptions = false,
     this.heroTag,
     this.showRating = false,
+    this.trailing,
   });
 
   final Recipe recipe;
@@ -189,6 +190,7 @@ class RecipeCard extends StatelessWidget {
   final bool showFolderOptions;
   final String? heroTag;
   final bool showRating;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -346,6 +348,7 @@ class RecipeCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                        if (trailing != null) trailing!,
                       ],
                     ),
                   ),

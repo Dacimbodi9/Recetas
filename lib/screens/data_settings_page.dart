@@ -261,13 +261,19 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
     final filteredData = Map<String, dynamic>.from(data);
 
     if (!impRecipes) {
-      for (var key in recipeKeys) filteredData.remove(key);
+      for (var key in recipeKeys) {
+        filteredData.remove(key);
+      }
     }
     if (!impMeals) {
-      for (var key in mealKeys) filteredData.remove(key);
+      for (var key in mealKeys) {
+        filteredData.remove(key);
+      }
     }
     if (!impShopping) {
-      for (var key in shoppingKeys) filteredData.remove(key);
+      for (var key in shoppingKeys) {
+        filteredData.remove(key);
+      }
     }
     if (!impSettings) {
       filteredData.remove('secure_storage');
@@ -339,6 +345,7 @@ class _DataSettingsPageState extends State<DataSettingsPage> {
     );
 
     if (confirm == true) {
+      if (!mounted) return;
       final confirm2 = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(

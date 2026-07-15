@@ -9,6 +9,8 @@ import 'package:recetas/screens/profile_page.dart';
 import 'package:recetas/screens/data_settings_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:recetas/theme.dart';
+import 'package:uuid/uuid.dart';
 import 'dart:async';
 class _BottomMenuSettingsPage extends StatelessWidget {
   const _BottomMenuSettingsPage();
@@ -299,16 +301,27 @@ class SettingsPage extends StatelessWidget {
                               );
                             },
                           ),
-                          ValueListenableBuilder<bool>(
-                            valueListenable: SettingsManager.isDarkMode,
-                            builder: (context, isDark, child) {
+                          ValueListenableBuilder<String>(
+                            valueListenable: SettingsManager.activeThemeId,
+                            builder: (context, themeId, child) {
+                              final preset = SettingsManager.activePreset;
                               return SettingsTile(
-                                title: 'Modo Oscuro'.tr,
-                                isSwitch: true,
-                                switchValue: isDark,
-                                onSwitchChanged: (value) =>
-                                    SettingsManager.setDarkMode(value),
-                                icon: CupertinoIcons.moon_fill,
+                                title: 'Tema'.tr,
+                                subtitle: preset.name.tr,
+                                icon: CupertinoIcons.paintbrush,
+                                trailing: const Icon(
+                                  CupertinoIcons.chevron_right,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const _ThemeSettingsPage(),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -1338,5 +1351,543 @@ class _BodyProfileSettingsPageState extends State<BodyProfileSettingsPage> {
   }
 }
 
+class _ThemeSettingsPage extends StatefulWidget {
+  const _ThemeSettingsPage();
+  @override
+  State<_ThemeSettingsPage> createState() => _ThemeSettingsPageState();
+}
 
+class _ThemeSettingsPageState extends State<_ThemeSettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Tema'.tr, style: theme.textTheme.titleLarge),
+      ),
+      body: ValueListenableBuilder<String>(
+        valueListenable: SettingsManager.activeThemeId,
+        builder: (context, activeId, _) {
+          return ValueListenableBuilder<List<AppThemePreset>>(
+            valueListenable: SettingsManager.customThemes,
+            builder: (context, customs, _) {
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Dark mode toggle
+                  SettingsSection(
+                    children: [
+                      ValueListenableBuilder<bool>(
+                        valueListenable: SettingsManager.isDarkMode,
+                        builder: (context, isDark, child) {
+                          return SettingsTile(
+                            title: 'Modo Oscuro'.tr,
+                            isSwitch: true,
+                            switchValue: isDark,
+                            onSwitchChanged: (value) => SettingsManager.setDarkMode(value),
+                            icon: CupertinoIcons.moon_fill,
+                            lastItem: true,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
+                  // Default themes section title
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      'Temas predeterminados'.tr,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+
+                  // Default themes grid
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: AppTheme.defaultPresets.length,
+                    itemBuilder: (context, index) {
+                      final preset = AppTheme.defaultPresets[index];
+                      return _ThemeCard(
+                        preset: preset,
+                        isSelected: activeId == preset.id,
+                        onTap: () => SettingsManager.setActiveTheme(preset.id),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Custom themes section title
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      'Temas personalizados'.tr,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+
+                  // Custom themes grid + add button
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: customs.length + 1, // +1 for add button
+                    itemBuilder: (context, index) {
+                      if (index == customs.length) {
+                        // Add new theme button
+                        return _AddThemeCard(
+                          onTap: () => _showCreateThemeDialog(context),
+                        );
+                      }
+                      final preset = customs[index];
+                      return _ThemeCard(
+                        preset: preset,
+                        isSelected: activeId == preset.id,
+                        onTap: () => SettingsManager.setActiveTheme(preset.id),
+                        onLongPress: () => _showEditDeleteDialog(context, preset),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCreateThemeDialog(BuildContext context) {
+    _showThemeEditorDialog(context, null);
+  }
+
+  void _showEditDeleteDialog(BuildContext context, AppThemePreset preset) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(CupertinoIcons.pencil),
+                title: Text('Editar tema'.tr),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showThemeEditorDialog(context, preset);
+                },
+              ),
+              ListTile(
+                leading: Icon(CupertinoIcons.delete, color: Colors.red),
+                title: Text('Eliminar tema'.tr, style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDelete(context, preset);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppThemePreset preset) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Eliminar este tema?'.tr),
+        content: Text(preset.name),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar'.tr),
+          ),
+          TextButton(
+            onPressed: () {
+              SettingsManager.deleteCustomTheme(preset.id);
+              Navigator.pop(ctx);
+            },
+            child: Text('Eliminar'.tr, style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThemeEditorDialog(BuildContext context, AppThemePreset? existing) {
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    Color primary = existing?.primaryColor ?? const Color(0xFF6B8738);
+    Color secondary = existing?.secondaryColor ?? const Color(0xFFB54921);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final previewPreset = AppThemePreset(
+              id: existing?.id ?? '',
+              name: nameController.text.isEmpty ? 'Preview' : nameController.text,
+              primaryColor: primary,
+              secondaryColor: secondary,
+            );
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 24, right: 24, top: 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      existing == null ? 'Crear tema'.tr : 'Editar tema'.tr,
+                      style: Theme.of(ctx).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Nombre del tema'.tr,
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Color primario'.tr, style: Theme.of(ctx).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    _ColorPickerRow(
+                      selectedColor: primary,
+                      onColorSelected: (c) => setModalState(() => primary = c),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Color secundario'.tr, style: Theme.of(ctx).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    _ColorPickerRow(
+                      selectedColor: secondary,
+                      onColorSelected: (c) => setModalState(() => secondary = c),
+                    ),
+                    const SizedBox(height: 20),
+                    // Live preview
+                    Text('Vista previa'.tr, style: Theme.of(ctx).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    _ThemePreviewCard(preset: previewPreset),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: nameController.text.trim().isEmpty
+                            ? null
+                            : () {
+                                final theme = AppThemePreset(
+                                  id: existing?.id ?? const Uuid().v4(),
+                                  name: nameController.text.trim(),
+                                  primaryColor: primary,
+                                  secondaryColor: secondary,
+                                );
+                                if (existing != null) {
+                                  SettingsManager.updateCustomTheme(theme);
+                                  // If this theme is active, refresh it
+                                  if (SettingsManager.activeThemeId.value == theme.id) {
+                                    SettingsManager.setActiveTheme(theme.id);
+                                  }
+                                } else {
+                                  SettingsManager.addCustomTheme(theme);
+                                  SettingsManager.setActiveTheme(theme.id);
+                                }
+                                Navigator.pop(ctx);
+                              },
+                        child: Text(existing == null ? 'Crear tema'.tr : 'Guardar'.tr),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// A card showing a theme preset with color bars and name.
+class _ThemeCard extends StatelessWidget {
+  final AppThemePreset preset;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  const _ThemeCard({
+    required this.preset,
+    required this.isSelected,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.1),
+            width: isSelected ? 2.5 : 1,
+          ),
+          color: theme.colorScheme.surface,
+        ),
+        child: Column(
+          children: [
+            // Color bars preview
+            Expanded(
+              child: Column(
+                children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(color: preset.primaryColor),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Container(color: preset.secondaryColor),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Container(color: preset.lightBg),
+                    ),
+                  ],
+                ),
+            ),
+            // Name + checkmark
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isSelected)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        CupertinoIcons.check_mark_circled_solid,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  Flexible(
+                    child: Text(
+                      preset.name.tr,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The "+" card for creating a new custom theme.
+class _AddThemeCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddThemeCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          color: theme.colorScheme.surface,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              CupertinoIcons.add_circled,
+              size: 32,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Crear tema'.tr,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A row of preset color swatches for picking primary/secondary.
+class _ColorPickerRow extends StatelessWidget {
+  final Color selectedColor;
+  final ValueChanged<Color> onColorSelected;
+
+  const _ColorPickerRow({
+    required this.selectedColor,
+    required this.onColorSelected,
+  });
+
+  static const _palette = [
+    Color(0xFF6B8738), // Olive
+    Color(0xFFC62828), // Red
+    Color(0xFF1565C0), // Blue
+    Color(0xFF7B1FA2), // Purple
+    Color(0xFFF57F17), // Amber
+    Color(0xFF455A64), // Blue grey
+    Color(0xFF00838F), // Teal
+    Color(0xFFAD1457), // Pink
+    Color(0xFF2E7D32), // Green
+    Color(0xFFE65100), // Deep orange
+    Color(0xFF4527A0), // Deep purple
+    Color(0xFF00695C), // Dark teal
+    Color(0xFF880E4F), // Dark pink
+    Color(0xFF33691E), // Light green dark
+    Color(0xFF1A237E), // Indigo
+    Color(0xFF3E2723), // Brown
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _palette.map((color) {
+        final isSelected = selectedColor == color;
+        return GestureDetector(
+          onTap: () => onColorSelected(color),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? Colors.white : Colors.transparent,
+                width: 2.5,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                  : null,
+            ),
+            child: isSelected
+                ? const Icon(CupertinoIcons.check_mark, size: 16, color: Colors.white)
+                : null,
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+/// Shows a mini preview of what the theme looks like.
+class _ThemePreviewCard extends StatelessWidget {
+  final AppThemePreset preset;
+  const _ThemePreviewCard({required this.preset});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: preset.lightBg,
+        border: Border.all(
+          color: preset.lightText.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left side: simulated nav bar
+          Container(
+            width: 48,
+            decoration: BoxDecoration(
+              color: preset.lightSurface,
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(15)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(width: 20, height: 3, decoration: BoxDecoration(color: preset.primaryColor, borderRadius: BorderRadius.circular(2))),
+                Container(width: 20, height: 3, decoration: BoxDecoration(color: preset.lightText.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+                Container(width: 20, height: 3, decoration: BoxDecoration(color: preset.lightText.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              ],
+            ),
+          ),
+          // Main content area
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(width: 60, height: 8, decoration: BoxDecoration(color: preset.lightText, borderRadius: BorderRadius.circular(4))),
+                  Container(width: 100, height: 6, decoration: BoxDecoration(color: preset.lightText.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(3))),
+                  Row(
+                    children: [
+                      Container(width: 40, height: 18, decoration: BoxDecoration(color: preset.primaryColor, borderRadius: BorderRadius.circular(6))),
+                      const SizedBox(width: 6),
+                      Container(width: 40, height: 18, decoration: BoxDecoration(color: preset.secondaryColor, borderRadius: BorderRadius.circular(6))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

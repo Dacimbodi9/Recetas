@@ -1054,3 +1054,105 @@ class ShareableTemplatePayload {
   final List<Recipe> recipes;
   ShareableTemplatePayload({required this.template, required this.recipes});
 }
+
+
+/// Represents a theme preset with primary and secondary colors.
+/// Background, surface, and text colors are auto-derived from primary.
+class AppThemePreset {
+  final String id;
+  final String name;
+  final Color primaryColor;
+  final Color secondaryColor;
+  final bool isDefault;
+
+  const AppThemePreset({
+    required this.id,
+    required this.name,
+    required this.primaryColor,
+    required this.secondaryColor,
+    this.isDefault = false,
+  });
+
+  // ── Light mode derived colors ──
+
+  Color get lightPrimary => primaryColor;
+  Color get lightSecondary => secondaryColor;
+
+  Color get lightBg {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.12, 0.91).toColor();
+  }
+
+  Color get lightSurface {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.10, 0.95).toColor();
+  }
+
+  Color get lightText {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.15, 0.16).toColor();
+  }
+
+  // ── Dark mode derived colors ──
+
+  Color get darkPrimary {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(
+      1.0,
+      hsl.hue,
+      (hsl.saturation * 0.75).clamp(0.0, 1.0),
+      (hsl.lightness + 0.18).clamp(0.0, 0.75),
+    ).toColor();
+  }
+
+  Color get darkBg {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.06, 0.075).toColor();
+  }
+
+  Color get darkSurface {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.08, 0.13).toColor();
+  }
+
+  Color get darkText {
+    final hsl = HSLColor.fromColor(primaryColor);
+    return HSLColor.fromAHSL(1.0, hsl.hue, 0.08, 0.94).toColor();
+  }
+
+  // ── Serialization ──
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'primaryColor': primaryColor.toARGB32(),
+    'secondaryColor': secondaryColor.toARGB32(),
+    'isDefault': isDefault,
+  };
+
+  factory AppThemePreset.fromJson(Map<String, dynamic> json) {
+    return AppThemePreset(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      primaryColor: Color(json['primaryColor'] as int),
+      secondaryColor: Color(json['secondaryColor'] as int),
+      isDefault: json['isDefault'] as bool? ?? false,
+    );
+  }
+
+  AppThemePreset copyWith({
+    String? id,
+    String? name,
+    Color? primaryColor,
+    Color? secondaryColor,
+    bool? isDefault,
+  }) {
+    return AppThemePreset(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      primaryColor: primaryColor ?? this.primaryColor,
+      secondaryColor: secondaryColor ?? this.secondaryColor,
+      isDefault: isDefault ?? this.isDefault,
+    );
+  }
+}

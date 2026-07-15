@@ -3,11 +3,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:recetas/l10n.dart';
 import 'package:recetas/models/models.dart';
 import 'package:recetas/services/recipe_manager.dart';
+import 'package:recetas/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 
 class SettingsManager {
   static final ValueNotifier<String> userName = ValueNotifier('Chef');
@@ -66,6 +68,12 @@ class SettingsManager {
 
   static final ValueNotifier<String> autoBackupFrequency = ValueNotifier('off');
   static final ValueNotifier<String?> lastBackupDate = ValueNotifier(null);
+
+  // Theme preferences
+  static final ValueNotifier<String> activeThemeId = ValueNotifier('oliva');
+  static final ValueNotifier<List<AppThemePreset>> customThemes = ValueNotifier([]);
+  static const _activeThemeKey = 'active_theme_id';
+  static const _customThemesKey = 'custom_themes';
 
   // Auto-backup preferences
   static final ValueNotifier<bool> autoBackupSettings = ValueNotifier(true);
@@ -187,6 +195,13 @@ class SettingsManager {
     autoBackupRecipes.value = prefs.getBool(_autoBackupRecipesKey) ?? true;
     autoBackupMeals.value = prefs.getBool(_autoBackupMealsKey) ?? true;
     autoBackupShopping.value = prefs.getBool(_autoBackupShoppingKey) ?? true;
+
+    // Theme
+    activeThemeId.value = prefs.getString(_activeThemeKey) ?? 'oliva';
+    final customThemesJson = prefs.getStringList(_customThemesKey) ?? [];
+    customThemes.value = customThemesJson
+        .map((e) => AppThemePreset.fromJson(jsonDecode(e)))
+        .toList();
   }
 
   static Future<void> setAutoBackupSettings(bool value) async {
@@ -484,5 +499,59 @@ class SettingsManager {
     const secureStorage = FlutterSecureStorage();
     await secureStorage.deleteAll();
     await loadSettings();
+  }
+
+  // ── Theme Management ──
+
+  /// Returns the currently active theme preset (default or custom).
+  static AppThemePreset get activePreset {
+    final id = activeThemeId.value;
+    // Check defaults first
+    for (final preset in AppTheme.defaultPresets) {
+      if (preset.id == id) return preset;
+    }
+    // Check custom themes
+    for (final preset in customThemes.value) {
+      if (preset.id == id) return preset;
+    }
+    // Fallback to Oliva
+    return AppTheme.defaultPreset;
+  }
+
+  static Future<void> setActiveTheme(String themeId) async {
+    activeThemeId.value = themeId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_activeThemeKey, themeId);
+  }
+
+  static Future<void> _saveCustomThemes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = customThemes.value
+        .map((t) => jsonEncode(t.toJson()))
+        .toList();
+    await prefs.setStringList(_customThemesKey, jsonList);
+  }
+
+  static Future<void> addCustomTheme(AppThemePreset theme) async {
+    customThemes.value = [...customThemes.value, theme];
+    await _saveCustomThemes();
+  }
+
+  static Future<void> updateCustomTheme(AppThemePreset theme) async {
+    customThemes.value = customThemes.value
+        .map((t) => t.id == theme.id ? theme : t)
+        .toList();
+    await _saveCustomThemes();
+  }
+
+  static Future<void> deleteCustomTheme(String themeId) async {
+    // If this theme is active, switch to default
+    if (activeThemeId.value == themeId) {
+      await setActiveTheme('oliva');
+    }
+    customThemes.value = customThemes.value
+        .where((t) => t.id != themeId)
+        .toList();
+    await _saveCustomThemes();
   }
 }

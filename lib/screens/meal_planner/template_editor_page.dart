@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:recetas/screens/settings_page.dart';
+import 'package:recetas/widgets/recipe_widgets.dart';
 
 
 class TemplateEditorPage extends StatefulWidget {
@@ -616,97 +617,95 @@ class TemplateEditorPageState extends State<TemplateEditorPage> {
                   e.value,
                 ); // absolute index in _days[weekday]
                 final recipe = RecipeManager.getRecipeById(e.value.recipeId);
-                final imagePath = recipe != null
-                    ? (RecipeManager.getCustomImage(recipe.title) ??
-                          recipe.imagePath)
-                    : null;
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.05),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+
+                if (recipe == null) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
                       ),
-                    ],
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    leading: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
                       ),
-                      child: imagePath != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: imagePath.startsWith('assets/')
-                                  ? Image.asset(
-                                      imagePath,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.restaurant,
-                                        color: theme.colorScheme.primary,
-                                        size: 20,
-                                      ),
-                                    )
-                                  : Image.file(
-                                      File(imagePath),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.restaurant,
-                                        color: theme.colorScheme.primary,
-                                        size: 20,
-                                      ),
-                                    ),
-                            )
-                          : Icon(
-                              Icons.restaurant,
-                              color: theme.colorScheme.primary,
-                              size: 20,
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.restaurant,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        'Receta eliminada'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      trailing: _isDefaultTemplate 
+                          ? null 
+                          : IconButton(
+                              icon: Icon(
+                                CupertinoIcons.trash,
+                                size: 18,
+                                color: Colors.red.withValues(alpha: 0.8),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _days[weekday]!.removeAt(idx);
+                                  if (_days[weekday]!.isEmpty) {
+                                    _days.remove(weekday);
+                                  }
+                                });
+                              },
                             ),
                     ),
-                    title: Text(
-                      recipe?.title ?? 'Receta eliminada'.tr,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    trailing: _isDefaultTemplate 
-                        ? null 
-                        : IconButton(
-                            icon: Icon(
-                              CupertinoIcons.trash,
-                              size: 18,
-                              color: Colors.red.withValues(alpha: 0.8),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _days[weekday]!.removeAt(idx);
-                                if (_days[weekday]!.isEmpty) {
-                                  _days.remove(weekday);
-                                }
-                              });
-                            },
+                  );
+                }
+
+                return RecipeCard(
+                  recipe: recipe,
+                  matchCount: 0,
+                  trailing: _isDefaultTemplate 
+                      ? null 
+                      : IconButton(
+                          icon: Icon(
+                            CupertinoIcons.trash,
+                            size: 18,
+                            color: Colors.red.withValues(alpha: 0.8),
                           ),
-                  ),
+                          onPressed: () {
+                            setState(() {
+                              _days[weekday]!.removeAt(idx);
+                              if (_days[weekday]!.isEmpty) {
+                                _days.remove(weekday);
+                              }
+                            });
+                          },
+                        ),
                 );
               }),
 

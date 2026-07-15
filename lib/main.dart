@@ -48,55 +48,61 @@ class _RecetasAppState extends State<RecetasApp> {
     return ValueListenableBuilder<String>(
       valueListenable: SettingsManager.language,
       builder: (context, lang, child) {
-        return ValueListenableBuilder<bool>(
-          valueListenable: SettingsManager.isDarkMode,
-          builder: (context, isDark, child) {
-            return AnnotatedRegion<SystemUiOverlayStyle>(
-              value: SystemUiOverlayStyle(
-                systemNavigationBarColor: Colors.transparent,
-                systemNavigationBarDividerColor: Colors.transparent,
-                systemNavigationBarContrastEnforced: false,
-                systemNavigationBarIconBrightness: isDark
-                    ? Brightness.light
-                    : Brightness.dark,
-                statusBarColor: Colors.transparent,
-                statusBarBrightness: isDark
-                    ? Brightness.dark
-                    : Brightness.light,
-                statusBarIconBrightness: isDark
-                    ? Brightness.light
-                    : Brightness.dark,
-                systemStatusBarContrastEnforced: false,
-              ),
-              child: MaterialApp(
-                scaffoldMessengerKey: SnackbarService.messengerKey,
-                navigatorKey: navigatorKey,
-                debugShowCheckedModeBanner: false,
-                title: 'Recetas'.tr,
-                themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-                builder: (context, child) {
-                  return GestureDetector(
-                    onTap: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
+        return ValueListenableBuilder<String>(
+          valueListenable: SettingsManager.activeThemeId,
+          builder: (context, themeId, child) {
+            final preset = SettingsManager.activePreset;
+            return ValueListenableBuilder<bool>(
+              valueListenable: SettingsManager.isDarkMode,
+              builder: (context, isDark, child) {
+                return AnnotatedRegion<SystemUiOverlayStyle>(
+                  value: SystemUiOverlayStyle(
+                    systemNavigationBarColor: Colors.transparent,
+                    systemNavigationBarDividerColor: Colors.transparent,
+                    systemNavigationBarContrastEnforced: false,
+                    systemNavigationBarIconBrightness: isDark
+                        ? Brightness.light
+                        : Brightness.dark,
+                    statusBarColor: Colors.transparent,
+                    statusBarBrightness: isDark
+                        ? Brightness.dark
+                        : Brightness.light,
+                    statusBarIconBrightness: isDark
+                        ? Brightness.light
+                        : Brightness.dark,
+                    systemStatusBarContrastEnforced: false,
+                  ),
+                  child: MaterialApp(
+                    scaffoldMessengerKey: SnackbarService.messengerKey,
+                    navigatorKey: navigatorKey,
+                    debugShowCheckedModeBanner: false,
+                    title: 'Recetas'.tr,
+                    themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                    builder: (context, child) {
+                      return GestureDetector(
+                        onTap: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        child: child,
+                      );
                     },
-                    child: child,
-                  );
-                },
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                home: ValueListenableBuilder<bool>(
-                  valueListenable: SettingsManager.hasSeenOnboarding,
-                  builder: (context, hasSeen, _) {
-                    if (!hasSeen) return OnboardingPage();
+                    theme: AppTheme.light(preset),
+                    darkTheme: AppTheme.dark(preset),
+                    home: ValueListenableBuilder<bool>(
+                      valueListenable: SettingsManager.hasSeenOnboarding,
+                      builder: (context, hasSeen, _) {
+                        if (!hasSeen) return OnboardingPage();
 
-                    return ValueListenableBuilder<String>(
-                      valueListenable: SettingsManager.startScreenFeature,
-                      builder: (context, feature, child) =>
-                          MainNavigationPage(),
-                    );
-                  },
-                ),
-              ),
+                        return ValueListenableBuilder<String>(
+                          valueListenable: SettingsManager.startScreenFeature,
+                          builder: (context, feature, child) =>
+                              MainNavigationPage(),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

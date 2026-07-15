@@ -1,40 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:recetas/models/models.dart';
 
 class AppTheme {
-// Light Mode Palette - Vibe: "Artisan Bakery" (Parchment, Thick Cream, Dark Olive)
-    static const lightBg = Color(
-      0xFFEBE6DD,
-    ); // Papel de hornear tostado (Toasted Baking Paper - richer, distinctly warm beige)
-    static const lightSurface = Color(
-      0xFFF6F3EC,
-    ); // Crema pastelera
-    static const lightPrimary = Color(
-      0xFF6B8738,
-    ); // Hojas de olivo
-    static const lightSecondary = Color(
-      0xFFB54921,
-    ); // Horno de ladrillo
-    static const lightText = Color(
-      0xFF2E2A27,
-    ); // Cafe moca
 
-    // Dark Mode Palette
-    static const darkBg = Color(
-      0xFF141513,
-    ); // Trufa negra
-    static const darkSurface = Color(
-      0xFF222420,
-    ); // Madera de olivo oscura (Dark Olive Wood)
-    static const darkPrimary = Color(
-      0xFF8BA85D,
-    ); // Hojas de salvia / Romero (Sage / Rosemary)
-    static const darkText = Color(
-      0xFFF2EFE9,
-    ); // Harina / Crema (Flour / Warm Cream instead of pure white)
-    // const darkSecondary = Color(0xFFE2916E); // Terracota suave
+  // ── Default Theme Presets ──
 
-    // Typography
+  static const _oliva = AppThemePreset(
+    id: 'oliva',
+    name: 'Oliva',
+    primaryColor: Color(0xFF6B8738),
+    secondaryColor: Color(0xFFB54921),
+    isDefault: true,
+  );
+
+  static const _cereza = AppThemePreset(
+    id: 'cereza',
+    name: 'Cereza',
+    primaryColor: Color(0xFFA32B45),
+    secondaryColor: Color(0xFF7A2033),
+    isDefault: true,
+  );
+
+  static const _oceano = AppThemePreset(
+    id: 'oceano',
+    name: 'Océano',
+    primaryColor: Color(0xFF215473),
+    secondaryColor: Color(0xFF448FA3),
+    isDefault: true,
+  );
+
+  static const _lavanda = AppThemePreset(
+    id: 'lavanda',
+    name: 'Lavanda',
+    primaryColor: Color(0xFF75558C),
+    secondaryColor: Color(0xFF927A9E),
+    isDefault: true,
+  );
+
+  static const _miel = AppThemePreset(
+    id: 'miel',
+    name: 'Miel',
+    primaryColor: Color(0xFFD18E34),
+    secondaryColor: Color(0xFFA36622),
+    isDefault: true,
+  );
+
+  static const _carbon = AppThemePreset(
+    id: 'carbon',
+    name: 'Carbón',
+    primaryColor: Color(0xFF455A64),
+    secondaryColor: Color(0xFF37474F),
+    isDefault: true,
+  );
+
+  static const List<AppThemePreset> defaultPresets = [
+    _oliva,
+    _cereza,
+    _oceano,
+    _lavanda,
+    _miel,
+    _carbon,
+  ];
+
+  static AppThemePreset get defaultPreset => _oliva;
+
+  // ── Original Oliva hand-tuned overrides ──
+  // These preserve the exact colors the designer picked for the default theme.
+  // Other presets use auto-derived colors from AppThemePreset getters.
+
+  static const _olivaLightBg = Color(0xFFEBE6DD);
+  static const _olivaLightSurface = Color(0xFFF6F3EC);
+  static const _olivaLightText = Color(0xFF2E2A27);
+  static const _olivaDarkBg = Color(0xFF141513);
+  static const _olivaDarkSurface = Color(0xFF222420);
+  static const _olivaDarkPrimary = Color(0xFF8BA85D);
+  static const _olivaDarkText = Color(0xFFF2EFE9);
+
+  // ── Typography (unchanged) ──
+
     static TextTheme _createTextTheme(TextTheme base, Color textColor) {
       return GoogleFonts.nunitoTextTheme(base).copyWith(
         displayLarge: GoogleFonts.playfairDisplay(
@@ -96,35 +140,60 @@ class AppTheme {
       );
     }
 
-    
-  static ThemeData get light {
+  // ── Theme Builders ──
+
+  /// For the Oliva preset, use hand-tuned colors. For all others, auto-derive.
+  static Color _bg(AppThemePreset p, bool dark) =>
+      dark ? (p.id == 'oliva' ? _olivaDarkBg : p.darkBg)
+           : (p.id == 'oliva' ? _olivaLightBg : p.lightBg);
+
+  static Color _surface(AppThemePreset p, bool dark) =>
+      dark ? (p.id == 'oliva' ? _olivaDarkSurface : p.darkSurface)
+           : (p.id == 'oliva' ? _olivaLightSurface : p.lightSurface);
+
+  static Color _primary(AppThemePreset p, bool dark) =>
+      dark ? (p.id == 'oliva' ? _olivaDarkPrimary : p.darkPrimary)
+           : p.lightPrimary;
+
+  static Color _text(AppThemePreset p, bool dark) =>
+      dark ? (p.id == 'oliva' ? _olivaDarkText : p.darkText)
+           : (p.id == 'oliva' ? _olivaLightText : p.lightText);
+
+  static ThemeData light([AppThemePreset? preset]) {
+    final p = preset ?? _oliva;
+    final bg = _bg(p, false);
+    final surface = _surface(p, false);
+    final primary = _primary(p, false);
+    final secondary = p.lightSecondary;
+    final text = _text(p, false);
+
     return ThemeData(
                   useMaterial3: true,
                   brightness: Brightness.light,
-                  scaffoldBackgroundColor: lightBg,
+                  scaffoldBackgroundColor: bg,
                   colorScheme: ColorScheme.fromSeed(
-                    seedColor: lightPrimary,
+                    seedColor: primary,
                     brightness: Brightness.light,
-                    primary: lightPrimary,
+                    primary: primary,
                     onPrimary: Colors.white,
-                    secondary: lightSecondary,
-                    surface: lightSurface,
+                    secondary: secondary,
+                    surface: surface,
                     surfaceTint:
                         Colors.transparent, // Disable overlay tint for dialogs
                     surfaceContainerHighest:
-                        lightSurface, // Make dialogs and tonals creamy white
-                    surfaceContainerHigh: lightSurface,
-                    surfaceContainer: lightSurface,
-                    surfaceContainerLow: lightBg,
-                    surfaceContainerLowest: lightBg,
+                        surface, // Make dialogs and tonals creamy white
+                    surfaceContainerHigh: surface,
+                    surfaceContainer: surface,
+                    surfaceContainerLow: bg,
+                    surfaceContainerLowest: bg,
                     secondaryContainer:
-                        lightSurface, // Avoid pale olive buttons
-                    onSecondaryContainer: lightText,
-                    onSurface: lightText,
+                        surface, // Avoid pale olive buttons
+                    onSecondaryContainer: text,
+                    onSurface: text,
                   ),
                   textTheme: _createTextTheme(
                     ThemeData.light().textTheme,
-                    lightText,
+                    text,
                   ),
                   appBarTheme: AppBarTheme(
                     elevation: 0,
@@ -134,45 +203,45 @@ class AppTheme {
                   ),
                   inputDecorationTheme: InputDecorationTheme(
                     filled: true,
-                    fillColor: lightSurface,
+                    fillColor: surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: lightText.withValues(alpha: 0.08),
+                        color: text.withValues(alpha: 0.08),
                         width: 1,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: lightText.withValues(alpha: 0.08),
+                        color: text.withValues(alpha: 0.08),
                         width: 1,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: lightPrimary, width: 1.5),
+                      borderSide: BorderSide(color: primary, width: 1.5),
                     ),
                   ),
                   cardTheme: CardThemeData(
-                    color: lightSurface,
+                    color: surface,
                     elevation: 0,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       side: BorderSide(
-                        color: lightText.withValues(alpha: 0.08),
+                        color: text.withValues(alpha: 0.08),
                         width: 1,
                       ),
                       borderRadius: BorderRadius.all(Radius.circular(16)),
                     ),
                   ),
                   floatingActionButtonTheme: FloatingActionButtonThemeData(
-                    backgroundColor: lightPrimary,
+                    backgroundColor: primary,
                     foregroundColor: Colors.white,
                   ),
                   navigationBarTheme: NavigationBarThemeData(
-                    backgroundColor: lightBg,
-                    indicatorColor: lightPrimary.withValues(alpha: 0.2),
+                    backgroundColor: bg,
+                    indicatorColor: primary.withValues(alpha: 0.2),
                     iconTheme: WidgetStateProperty.all(
                       IconThemeData(color: Colors.grey[700]),
                     ),
@@ -189,13 +258,13 @@ class AppTheme {
                     ),
                     side: WidgetStateBorderSide.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return BorderSide(color: lightPrimary, width: 2);
+                        return BorderSide(color: primary, width: 2);
                       }
                       return const BorderSide(color: Colors.grey, width: 2);
                     }),
                     fillColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return lightPrimary;
+                        return primary;
                       }
                       return Colors.transparent;
                     }),
@@ -204,32 +273,38 @@ class AppTheme {
                 );
   }
 
-  static ThemeData get dark {
+  static ThemeData dark([AppThemePreset? preset]) {
+    final p = preset ?? _oliva;
+    final bg = _bg(p, true);
+    final surface = _surface(p, true);
+    final primary = _primary(p, true);
+    final text = _text(p, true);
+
     return ThemeData(
                   useMaterial3: true,
                   brightness: Brightness.dark,
-                  scaffoldBackgroundColor: darkBg,
+                  scaffoldBackgroundColor: bg,
                   colorScheme: ColorScheme.fromSeed(
-                    seedColor: darkPrimary,
+                    seedColor: primary,
                     brightness: Brightness.dark,
-                    primary: darkPrimary,
-                    onPrimary: darkText,
-                    surface: darkSurface,
+                    primary: primary,
+                    onPrimary: text,
+                    surface: surface,
                     surfaceTint: Colors.transparent, // Disable overlay tint
                     surfaceContainerHighest:
-                        darkSurface, // Force match card color
-                    surfaceContainerHigh: darkSurface,
-                    surfaceContainer: darkSurface,
-                    surfaceContainerLow: darkBg,
-                    surfaceContainerLowest: darkBg,
+                        surface, // Force match card color
+                    surfaceContainerHigh: surface,
+                    surfaceContainer: surface,
+                    surfaceContainerLow: bg,
+                    surfaceContainerLowest: bg,
                     secondaryContainer:
-                        darkSurface, // Ensures FilledButton.tonal is NOT olive green
-                    onSecondaryContainer: darkText,
-                    onSurface: darkText,
+                        surface, // Ensures FilledButton.tonal is NOT olive green
+                    onSecondaryContainer: text,
+                    onSurface: text,
                   ),
                   textTheme: _createTextTheme(
                     ThemeData.dark().textTheme,
-                    darkText,
+                    text,
                   ),
                   appBarTheme: AppBarTheme(
                     elevation: 0,
@@ -239,31 +314,31 @@ class AppTheme {
                   ),
                   inputDecorationTheme: InputDecorationTheme(
                     filled: true,
-                    fillColor: darkSurface,
+                    fillColor: surface,
                     hintStyle: TextStyle(
-                      color: darkText.withValues(alpha: 0.4),
+                      color: text.withValues(alpha: 0.4),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: darkText.withValues(alpha: 0.1),
+                        color: text.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: darkText.withValues(alpha: 0.1),
+                        color: text.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: darkPrimary, width: 1.5),
+                      borderSide: BorderSide(color: primary, width: 1.5),
                     ),
                   ),
                   cardTheme: CardThemeData(
-                    color: darkSurface,
+                    color: surface,
                     elevation: 0,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
@@ -272,7 +347,7 @@ class AppTheme {
                   ),
                   chipTheme: ChipThemeData(
                     backgroundColor: Colors.white.withValues(alpha: 0.05),
-                    selectedColor: darkPrimary.withValues(alpha: 0.3),
+                    selectedColor: primary.withValues(alpha: 0.3),
                     side: BorderSide(
                       color: Colors.white.withValues(alpha: 0.1),
                     ),
@@ -283,12 +358,12 @@ class AppTheme {
                     secondaryLabelStyle: TextStyle(color: Colors.white),
                   ),
                   floatingActionButtonTheme: FloatingActionButtonThemeData(
-                    backgroundColor: darkPrimary,
+                    backgroundColor: primary,
                     foregroundColor: Color(0xFF1E1E24), // Text on button
                   ),
                   navigationBarTheme: NavigationBarThemeData(
-                    backgroundColor: darkBg,
-                    indicatorColor: darkPrimary.withValues(alpha: 0.2),
+                    backgroundColor: bg,
+                    indicatorColor: primary.withValues(alpha: 0.2),
                     iconTheme: WidgetStateProperty.all(
                       IconThemeData(color: Colors.white70),
                     ),
@@ -306,13 +381,13 @@ class AppTheme {
                     ),
                     side: WidgetStateBorderSide.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return BorderSide(color: darkPrimary, width: 2);
+                        return BorderSide(color: primary, width: 2);
                       }
                       return const BorderSide(color: Colors.grey, width: 2);
                     }),
                     fillColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return darkPrimary;
+                        return primary;
                       }
                       return Colors.transparent;
                     }),
